@@ -1,0 +1,7 @@
+[workspace]
+name = "yijie-connectors"
+stack = "Go + MCP tools"
+
+[rules]
+no_real_tokens = true
+approval_required_for_high_risk_tools = true
