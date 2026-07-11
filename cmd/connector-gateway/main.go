@@ -9,7 +9,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/36Dge/yijie/yijie-connectors/internal/app"
+	"github.com/36Dge/yijie-connectors/internal/app"
 )
 
 func main() {

@@ -4,10 +4,11 @@ dev:
 	go run ./cmd/connector-gateway
 
 test:
-	go test ./...
+	go test -race -cover ./...
 
 lint:
-	go test ./...
+	@test -z "$$(gofmt -l $$(find cmd internal -type f -name '*.go'))" || (gofmt -l $$(find cmd internal -type f -name '*.go') && exit 1)
+	go vet ./...
 
 generate:
 	echo "No generated assets yet"

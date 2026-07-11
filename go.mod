@@ -1,3 +1,3 @@
-module github.com/36Dge/yijie/yijie-connectors
+module github.com/36Dge/yijie-connectors
 
-go 1.26.4
+go 1.26.5
