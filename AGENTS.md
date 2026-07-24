@@ -47,12 +47,18 @@
 
 ## Contract First 与平台接入
 
-- MCP tool、OpenAPI 和公共消息 schema 先在 `yijie-contracts` 定义并执行兼容性检查；
+- 每个任务先标记 `contract-impact = none | additive | semantic | breaking`；分类覆盖跨进程、跨仓、跨版本及持久化/重放边界，tool scope、风险、审批、错误、幂等和重试变化即使形状不变也属于契约影响，`none` 必须说明理由；
+- 按 `breaking > semantic > additive > none` 的最高风险唯一选择；任一受支持交互可能失效即 breaking，不确定时不能假定 additive/none；
+- 第三方平台 API/webhook 以当前官方规范为外部权威；任何易界归一化 MCP tool、OpenAPI 和公共消息 schema 仍先在 `yijie-contracts` 定义、评审、执行兼容检查并形成不可变引用；
 - 每个工具必须声明名称、输入输出 schema、平台、权限 scope、风险等级、幂等语义、审计字段和错误模型；
 - 不手写与生成契约重复的 DTO，不直接编辑生成 client 或 schema；
+- 本仓固定精确 contract version、完整 commit 和可用时的 digest/generator 版本后，实现才可合并或启用；`make generate` 仍为占位时不能宣称已完成契约消费门禁；
 - 接入平台前必须依据当前官方文档确认 API 版本、环境、认证流程、scope、配额、错误码和 webhook 规则；
 - 官方 SDK 与自建 client 的选择、SDK 版本和许可证必须明确确认；
 - sandbox、mock 和 production 配置严格隔离，默认本地开发不得访问生产环境。
+
+dirty/floating sibling 只能用于本地候选验证，不能作为发布来源。兄弟元仓存在时同时
+遵循 `../yijie/docs/dev/contract-first.md`。
 
 ## Token 与租户安全
 
@@ -108,6 +114,7 @@ make dev      # 启动 connector-gateway 骨架
 ## 完成标准
 
 - 工具契约、scope、风险、幂等、限流、错误和审计语义完整；
+- 当 `contract-impact != none` 时按权威源路由：第三方原始协议固定官方 API/SDK/schema 版本并验证 adapter/webhook；易界归一化公共表面固定 contracts 引用、consumer pin 和 conformance；私有 token/state 变化走所属存储 migration/恢复验证；不适用的 contracts 字段写 `N/A + 理由`；所有路径记录部署/回滚顺序；`none` 只需分类理由；
 - token 始终留在连接器安全边界，日志和测试数据完成脱敏；
 - 高风险写操作缺少有效审批时默认拒绝，重复请求不会重复执行；
 - 平台差异有隔离实现，失败和未知结果没有被包装成成功；
