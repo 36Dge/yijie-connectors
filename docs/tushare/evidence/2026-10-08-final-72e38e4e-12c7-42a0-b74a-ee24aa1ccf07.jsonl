@@ -1,0 +1,5 @@
+{"event":"started","httpStatus":null,"safeFailure":null,"schemaVersion":1,"stage":"metadata_initialize","unixMs":1791432239471}
+{"event":"succeeded","httpStatus":null,"safeFailure":null,"schemaVersion":1,"stage":"metadata_initialize","unixMs":1791432247875}
+{"event":"started","httpStatus":null,"safeFailure":null,"schemaVersion":1,"stage":"metadata_tools_list","unixMs":1791432247875}
+{"event":"succeeded","httpStatus":null,"safeFailure":null,"schemaVersion":1,"stage":"metadata_tools_list","unixMs":1791432248190}
+{"event":"succeeded","httpStatus":null,"safeFailure":null,"schemaVersion":1,"stage":"metadata_artifact","unixMs":1791432248203}

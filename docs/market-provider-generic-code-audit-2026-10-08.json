@@ -1,0 +1,587 @@
+{
+  "schemaVersion": 1,
+  "asOf": "2026-10-08",
+  "scope": "49 active services; Taobao and Doukou removed by Owner; Agentic Engine explicit exported HTTP Header configuration; only Tushare real validation",
+  "catalogRevision": 5,
+  "serviceCount": 49,
+  "historicalUndiagnosedFailureBlocksDelivery": false,
+  "otherProvidersExternalCalls": 0,
+  "sourceHashes": [
+    {
+      "path": "worker/src/providers.rs",
+      "sha256": "35b930f42a530b70dfc057eb6a20f77b12247decd88d0f8d7dd4e2c04c45cabf"
+    },
+    {
+      "path": "worker/src/broker.rs",
+      "sha256": "bd2c2069fcf702e54bbdfa18902106f740a20acdc83e6add336b1cad1aafceba"
+    },
+    {
+      "path": "worker/src/gateway.rs",
+      "sha256": "150b1c03e10703f8cfe88dd1a814d8f58a476da72a9f07b13da98fcd1eeffa4f"
+    },
+    {
+      "path": "worker/src/generic.rs",
+      "sha256": "8821b878861cb45228e15f1244e5e655f3ef3557c81deaf3252b61f185845c48"
+    },
+    {
+      "path": "worker/src/daily.rs",
+      "sha256": "d41c445e9e188cbf333dd7bfecdd8ee87e5beaf959fe395037aa644e1a1360e2"
+    },
+    {
+      "path": "worker/src/tushare_oauth.rs",
+      "sha256": "b36c8c609f46254e44f2ef72e77f075cf9638f58543fa70f6adf17f40464f5ff"
+    },
+    {
+      "path": "worker/src/oauth_policy.rs",
+      "sha256": "db3203f1a81ef1228684c327f244b12c3b4afd8d273533cce251fe954c93c4e9"
+    },
+    {
+      "path": "worker/src/credentials.rs",
+      "sha256": "44680d3ac1a282f4a3dd3476c5df752e84a9958d6522961d90ddd5bc11ecad7d"
+    },
+    {
+      "path": "worker/src/google_calendar.rs",
+      "sha256": "669a17d530bd05adc1aad90330254acb4a334b3e94a36d909b1ac50bd80c6199"
+    },
+    {
+      "path": "worker/src/secret_guard.rs",
+      "sha256": "e48c4a6aafbdd135d9e07bfccff363b01585e0a0bd3f53e980d98b1f30eb59e8"
+    },
+    {
+      "path": "catalog/provider-registry.v1.json",
+      "sha256": "93ac9a9c318be82355956a5f87192f48afc8c8c3ac0586b01a094cfc0af3f858"
+    },
+    {
+      "path": "catalog/market-catalog.v1.json",
+      "sha256": "400621e346e94ef7115a1f7dc7562d8614fb24cc1ebe653c6152f44416d089d3"
+    },
+    {
+      "path": "worker/src/provider_registry.rs",
+      "sha256": "e2cc20fa99b153f64c415b5c7a3b6027a0d4006c1dff681bf95ab3539a1c3969"
+    },
+    {
+      "path": "catalog/source-provenance.json",
+      "sha256": "e2a21c5a7949d6ccf9bf701366232662987154044d0c8bdd25927283bce5a688"
+    }
+  ],
+  "tests": {
+    "worker": 56,
+    "nativeConnectors": 38,
+    "frontendFocused": 56,
+    "contractsFocused": 15,
+    "workerClippy": "PASS",
+    "nativeClippy": "PASS",
+    "frontendLint": "PASS",
+    "nativeSourceCheck": "PASS",
+    "catalogGoRace": "PASS",
+    "goVet": "PASS",
+    "hostMarketFocused": 9
+  },
+  "items": [
+    {
+      "serviceId": "cue",
+      "displayName": "cue",
+      "transport": "http",
+      "authMode": "oauth",
+      "adapter": "standard_oauth_discovery",
+      "codeAdapterRegistered": true,
+      "audit": "固定服务 HTTPS 发现链、DCR/PKCE、Codex Keyring、完整 schema 冻结、单次审批；服务方必须提供兼容的 MCP OAuth 注册/发现能力。",
+      "realValidation": "not_required_by_owner; not_run"
+    },
+    {
+      "serviceId": "baixiao-mcp",
+      "displayName": "百晓智能",
+      "transport": "http",
+      "authMode": "oauth",
+      "adapter": "standard_oauth_discovery",
+      "codeAdapterRegistered": true,
+      "audit": "固定服务 HTTPS 发现链、DCR/PKCE、Codex Keyring、完整 schema 冻结、单次审批；服务方必须提供兼容的 MCP OAuth 注册/发现能力。",
+      "realValidation": "not_required_by_owner; not_run"
+    },
+    {
+      "serviceId": "dxe-mcp-server",
+      "displayName": "单小二",
+      "transport": "http",
+      "authMode": "oauth",
+      "adapter": "standard_oauth_discovery",
+      "codeAdapterRegistered": true,
+      "audit": "固定服务 HTTPS 发现链、DCR/PKCE、Codex Keyring、完整 schema 冻结、单次审批；服务方必须提供兼容的 MCP OAuth 注册/发现能力。",
+      "realValidation": "not_required_by_owner; not_run"
+    },
+    {
+      "serviceId": "Hologrow",
+      "displayName": "Hologrow",
+      "transport": "http",
+      "authMode": "oauth",
+      "adapter": "standard_oauth_discovery",
+      "codeAdapterRegistered": true,
+      "audit": "固定服务 HTTPS 发现链、DCR/PKCE、Codex Keyring、完整 schema 冻结、单次审批；服务方必须提供兼容的 MCP OAuth 注册/发现能力。",
+      "realValidation": "not_required_by_owner; not_run"
+    },
+    {
+      "serviceId": "X-Store",
+      "displayName": "好多店",
+      "transport": "http",
+      "authMode": "oauth",
+      "adapter": "standard_oauth_discovery",
+      "codeAdapterRegistered": true,
+      "audit": "固定服务 HTTPS 发现链、DCR/PKCE、Codex Keyring、完整 schema 冻结、单次审批；服务方必须提供兼容的 MCP OAuth 注册/发现能力。",
+      "realValidation": "not_required_by_owner; not_run"
+    },
+    {
+      "serviceId": "yintai-open-platform",
+      "displayName": "银泰商业开放平台",
+      "transport": "http",
+      "authMode": "oauth",
+      "adapter": "standard_oauth_discovery",
+      "codeAdapterRegistered": true,
+      "audit": "固定服务 HTTPS 发现链、DCR/PKCE、Codex Keyring、完整 schema 冻结、单次审批；服务方必须提供兼容的 MCP OAuth 注册/发现能力。",
+      "realValidation": "not_required_by_owner; not_run"
+    },
+    {
+      "serviceId": "yuyidata",
+      "displayName": "语忆Neosight",
+      "transport": "http",
+      "authMode": "oauth",
+      "adapter": "standard_oauth_discovery",
+      "codeAdapterRegistered": true,
+      "audit": "固定服务 HTTPS 发现链、DCR/PKCE、Codex Keyring、完整 schema 冻结、单次审批；服务方必须提供兼容的 MCP OAuth 注册/发现能力。",
+      "realValidation": "not_required_by_owner; not_run"
+    },
+    {
+      "serviceId": "FTShare",
+      "displayName": "FTShare 金融数据",
+      "transport": "http",
+      "authMode": "api_key",
+      "adapter": "fixed_header_credentials",
+      "codeAdapterRegistered": true,
+      "audit": "固定 FTSHARE_API_KEY；worker 自有一次性配置页、Keyring、精确资源 Header 注入，逐次审批。",
+      "realValidation": "not_required_by_owner; not_run"
+    },
+    {
+      "serviceId": "yunting-consumerlens",
+      "displayName": "云听ConsumerLens",
+      "transport": "http",
+      "authMode": "oauth",
+      "adapter": "standard_oauth_discovery",
+      "codeAdapterRegistered": true,
+      "audit": "固定服务 HTTPS 发现链、DCR/PKCE、Codex Keyring、完整 schema 冻结、单次审批；服务方必须提供兼容的 MCP OAuth 注册/发现能力。",
+      "realValidation": "not_required_by_owner; not_run"
+    },
+    {
+      "serviceId": "google-calendar",
+      "displayName": "Google 日历",
+      "transport": "http",
+      "authMode": "oauth",
+      "adapter": "google_registered_oauth",
+      "codeAdapterRegistered": true,
+      "audit": "官方远程 MCP；需开发者预览资格和自有 Web OAuth 客户端；默认只读，修改权限需配置时显式勾选，删除拒绝。",
+      "realValidation": "not_required_by_owner; not_run"
+    },
+    {
+      "serviceId": "google-maps",
+      "displayName": "Google 地图",
+      "transport": "http",
+      "authMode": "api_key",
+      "adapter": "fixed_header_credentials",
+      "codeAdapterRegistered": true,
+      "audit": "固定 X-Goog-Api-Key；worker 自有一次性配置页、Keyring、精确资源 Header 注入，逐次审批。",
+      "realValidation": "not_required_by_owner; not_run"
+    },
+    {
+      "serviceId": "speechclaw",
+      "displayName": "思必驰AI办公",
+      "transport": "http",
+      "authMode": "oauth",
+      "adapter": "standard_oauth_discovery",
+      "codeAdapterRegistered": true,
+      "audit": "固定服务 HTTPS 发现链、DCR/PKCE、Codex Keyring、完整 schema 冻结、单次审批；服务方必须提供兼容的 MCP OAuth 注册/发现能力。",
+      "realValidation": "not_required_by_owner; not_run"
+    },
+    {
+      "serviceId": "caoliao",
+      "displayName": "草料二维码",
+      "transport": "http",
+      "authMode": "oauth",
+      "adapter": "standard_oauth_discovery",
+      "codeAdapterRegistered": true,
+      "audit": "固定服务 HTTPS 发现链、DCR/PKCE、Codex Keyring、完整 schema 冻结、单次审批；服务方必须提供兼容的 MCP OAuth 注册/发现能力。",
+      "realValidation": "not_required_by_owner; not_run"
+    },
+    {
+      "serviceId": "wavenote",
+      "displayName": "WaveNote",
+      "transport": "http",
+      "authMode": "oauth",
+      "adapter": "standard_oauth_discovery",
+      "codeAdapterRegistered": true,
+      "audit": "固定服务 HTTPS 发现链、DCR/PKCE、Codex Keyring、完整 schema 冻结、单次审批；服务方必须提供兼容的 MCP OAuth 注册/发现能力。",
+      "realValidation": "not_required_by_owner; not_run"
+    },
+    {
+      "serviceId": "yida",
+      "displayName": "宜搭",
+      "transport": "http",
+      "authMode": "oauth",
+      "adapter": "standard_oauth_discovery",
+      "codeAdapterRegistered": true,
+      "audit": "固定服务 HTTPS 发现链、DCR/PKCE、Codex Keyring、完整 schema 冻结、单次审批；服务方必须提供兼容的 MCP OAuth 注册/发现能力。",
+      "realValidation": "not_required_by_owner; not_run"
+    },
+    {
+      "serviceId": "qingflow",
+      "displayName": "轻流",
+      "transport": "http",
+      "authMode": "oauth",
+      "adapter": "standard_oauth_discovery",
+      "codeAdapterRegistered": true,
+      "audit": "固定服务 HTTPS 发现链、DCR/PKCE、Codex Keyring、完整 schema 冻结、单次审批；服务方必须提供兼容的 MCP OAuth 注册/发现能力。",
+      "realValidation": "not_required_by_owner; not_run"
+    },
+    {
+      "serviceId": "uupt",
+      "displayName": "UU跑腿",
+      "transport": "http",
+      "authMode": "oauth",
+      "adapter": "standard_oauth_discovery",
+      "codeAdapterRegistered": true,
+      "audit": "固定服务 HTTPS 发现链、DCR/PKCE、Codex Keyring、完整 schema 冻结、单次审批；服务方必须提供兼容的 MCP OAuth 注册/发现能力。",
+      "realValidation": "not_required_by_owner; not_run"
+    },
+    {
+      "serviceId": "fenbeitong",
+      "displayName": "分贝通",
+      "transport": "http",
+      "authMode": "oauth",
+      "adapter": "standard_oauth_discovery",
+      "codeAdapterRegistered": true,
+      "audit": "固定服务 HTTPS 发现链、DCR/PKCE、Codex Keyring、完整 schema 冻结、单次审批；服务方必须提供兼容的 MCP OAuth 注册/发现能力。",
+      "realValidation": "not_required_by_owner; not_run"
+    },
+    {
+      "serviceId": "bazhuayu",
+      "displayName": "数阔八爪鱼",
+      "transport": "http",
+      "authMode": "oauth",
+      "adapter": "standard_oauth_discovery",
+      "codeAdapterRegistered": true,
+      "audit": "固定服务 HTTPS 发现链、DCR/PKCE、Codex Keyring、完整 schema 冻结、单次审批；服务方必须提供兼容的 MCP OAuth 注册/发现能力。",
+      "realValidation": "not_required_by_owner; not_run"
+    },
+    {
+      "serviceId": "camscanner-mcp",
+      "displayName": "扫描全能王",
+      "transport": "http",
+      "authMode": "oauth",
+      "adapter": "standard_oauth_discovery",
+      "codeAdapterRegistered": true,
+      "audit": "固定服务 HTTPS 发现链、DCR/PKCE、Codex Keyring、完整 schema 冻结、单次审批；服务方必须提供兼容的 MCP OAuth 注册/发现能力。",
+      "realValidation": "not_required_by_owner; not_run"
+    },
+    {
+      "serviceId": "todoist",
+      "displayName": "Todoist",
+      "transport": "http",
+      "authMode": "oauth",
+      "adapter": "standard_oauth_discovery",
+      "codeAdapterRegistered": true,
+      "audit": "固定服务 HTTPS 发现链、DCR/PKCE、Codex Keyring、完整 schema 冻结、单次审批；服务方必须提供兼容的 MCP OAuth 注册/发现能力。",
+      "realValidation": "not_required_by_owner; not_run"
+    },
+    {
+      "serviceId": "agentkey-qwen",
+      "displayName": "Agentkey",
+      "transport": "http",
+      "authMode": "oauth",
+      "adapter": "standard_oauth_discovery",
+      "codeAdapterRegistered": true,
+      "audit": "固定服务 HTTPS 发现链、DCR/PKCE、Codex Keyring、完整 schema 冻结、单次审批；服务方必须提供兼容的 MCP OAuth 注册/发现能力。",
+      "realValidation": "not_required_by_owner; not_run"
+    },
+    {
+      "serviceId": "huida-erp",
+      "displayName": "惠搭ERP",
+      "transport": "http",
+      "authMode": "oauth",
+      "adapter": "standard_oauth_discovery",
+      "codeAdapterRegistered": true,
+      "audit": "固定服务 HTTPS 发现链、DCR/PKCE、Codex Keyring、完整 schema 冻结、单次审批；服务方必须提供兼容的 MCP OAuth 注册/发现能力。",
+      "realValidation": "not_required_by_owner; not_run"
+    },
+    {
+      "serviceId": "FastMoss",
+      "displayName": "FastMoss",
+      "transport": "http",
+      "authMode": "oauth",
+      "adapter": "standard_oauth_discovery",
+      "codeAdapterRegistered": true,
+      "audit": "固定服务 HTTPS 发现链、DCR/PKCE、Codex Keyring、完整 schema 冻结、单次审批；服务方必须提供兼容的 MCP OAuth 注册/发现能力。",
+      "realValidation": "not_required_by_owner; not_run"
+    },
+    {
+      "serviceId": "smartsalary",
+      "displayName": "薪智·市场人才薪酬数据",
+      "transport": "http",
+      "authMode": "oauth",
+      "adapter": "standard_oauth_discovery",
+      "codeAdapterRegistered": true,
+      "audit": "固定服务 HTTPS 发现链、DCR/PKCE、Codex Keyring、完整 schema 冻结、单次审批；服务方必须提供兼容的 MCP OAuth 注册/发现能力。",
+      "realValidation": "not_required_by_owner; not_run"
+    },
+    {
+      "serviceId": "qixin_insight",
+      "displayName": "启信慧眼",
+      "transport": "http",
+      "authMode": "oauth",
+      "adapter": "standard_oauth_discovery",
+      "codeAdapterRegistered": true,
+      "audit": "固定服务 HTTPS 发现链、DCR/PKCE、Codex Keyring、完整 schema 冻结、单次审批；服务方必须提供兼容的 MCP OAuth 注册/发现能力。",
+      "realValidation": "not_required_by_owner; not_run"
+    },
+    {
+      "serviceId": "zerone",
+      "displayName": "执中·金融数据",
+      "transport": "http",
+      "authMode": "provider_credentials",
+      "adapter": "fixed_query_credentials",
+      "codeAdapterRegistered": true,
+      "audit": "官方2026-05手册第13页确认固定api_key URL查询参数；worker发出请求前才注入，Codex client/Host/Runtime持有无密钥地址；不做真实调用。",
+      "realValidation": "not_required_by_owner; not_run",
+      "officialSource": "https://cdn.zdeal.com.cn/ai/file/%E6%89%A7%E4%B8%ADMCP%E5%8A%9F%E8%83%BD%E4%BD%BF%E7%94%A8%E8%AF%B4%E6%98%8E%E4%B9%A6.pdf"
+    },
+    {
+      "serviceId": "patent-analysis",
+      "displayName": "智慧芽·专利分析",
+      "transport": "http",
+      "authMode": "oauth",
+      "adapter": "standard_oauth_discovery",
+      "codeAdapterRegistered": true,
+      "audit": "固定服务 HTTPS 发现链、DCR/PKCE、Codex Keyring、完整 schema 冻结、单次审批；服务方必须提供兼容的 MCP OAuth 注册/发现能力。",
+      "realValidation": "not_required_by_owner; not_run"
+    },
+    {
+      "serviceId": "thinkingdata",
+      "displayName": "Agentic Engine",
+      "transport": "http",
+      "authMode": "provider_credentials",
+      "adapter": "explicit_exported_header_credentials",
+      "codeAdapterRegistered": true,
+      "audit": "官方文档说明从 AE 导出远程客户端配置。安全页要求填写该固定地址对应的 Header 名称/完整值，默认原值，不推断 Bearer 或 API_TOKEN 映射。保存后需实际发现资格和逐次审批；官方公开页未独立确认参考端点的 Header 字段。",
+      "realValidation": "not_required_by_owner; not_run",
+      "sources": [
+        "https://docs.thinkingai.cn/zh/manual/mcp",
+        "https://docs.thinkingai.cn/zh/manual/mcp_integration",
+        "https://www.thinkingai.cn/product/mcp-service/"
+      ]
+    },
+    {
+      "serviceId": "morningstar",
+      "displayName": "晨星 Morningstar",
+      "transport": "http",
+      "authMode": "oauth",
+      "adapter": "standard_oauth_discovery",
+      "codeAdapterRegistered": true,
+      "audit": "固定服务 HTTPS 发现链、DCR/PKCE、Codex Keyring、完整 schema 冻结、单次审批；服务方必须提供兼容的 MCP OAuth 注册/发现能力。",
+      "realValidation": "not_required_by_owner; not_run"
+    },
+    {
+      "serviceId": "dichanai-mcp",
+      "displayName": "CRIC 克而瑞地产数据",
+      "transport": "http",
+      "authMode": "oauth",
+      "adapter": "standard_oauth_discovery",
+      "codeAdapterRegistered": true,
+      "audit": "固定服务 HTTPS 发现链、DCR/PKCE、Codex Keyring、完整 schema 冻结、单次审批；服务方必须提供兼容的 MCP OAuth 注册/发现能力。",
+      "realValidation": "not_required_by_owner; not_run"
+    },
+    {
+      "serviceId": "Yingmi",
+      "displayName": "盈米基金",
+      "transport": "http",
+      "authMode": "oauth",
+      "adapter": "standard_oauth_discovery",
+      "codeAdapterRegistered": true,
+      "audit": "固定服务 HTTPS 发现链、DCR/PKCE、Codex Keyring、完整 schema 冻结、单次审批；服务方必须提供兼容的 MCP OAuth 注册/发现能力。",
+      "realValidation": "not_required_by_owner; not_run"
+    },
+    {
+      "serviceId": "wind",
+      "displayName": "Wind Alice万得金融数据",
+      "transport": "http",
+      "authMode": "oauth",
+      "adapter": "standard_oauth_discovery",
+      "codeAdapterRegistered": true,
+      "audit": "固定服务 HTTPS 发现链、DCR/PKCE、Codex Keyring、完整 schema 冻结、单次审批；服务方必须提供兼容的 MCP OAuth 注册/发现能力。",
+      "realValidation": "not_required_by_owner; not_run"
+    },
+    {
+      "serviceId": "yidian-company",
+      "displayName": "质数幻方·企业数据",
+      "transport": "http",
+      "authMode": "oauth",
+      "adapter": "standard_oauth_discovery",
+      "codeAdapterRegistered": true,
+      "audit": "固定服务 HTTPS 发现链、DCR/PKCE、Codex Keyring、完整 schema 冻结、单次审批；服务方必须提供兼容的 MCP OAuth 注册/发现能力。",
+      "realValidation": "not_required_by_owner; not_run"
+    },
+    {
+      "serviceId": "investoday",
+      "displayName": "今日投资·金融数据",
+      "transport": "http",
+      "authMode": "oauth",
+      "adapter": "standard_oauth_discovery",
+      "codeAdapterRegistered": true,
+      "audit": "固定服务 HTTPS 发现链、DCR/PKCE、Codex Keyring、完整 schema 冻结、单次审批；服务方必须提供兼容的 MCP OAuth 注册/发现能力。",
+      "realValidation": "not_required_by_owner; not_run"
+    },
+    {
+      "serviceId": "dzh-mcp",
+      "displayName": "大智慧",
+      "transport": "http",
+      "authMode": "oauth",
+      "adapter": "standard_oauth_discovery",
+      "codeAdapterRegistered": true,
+      "audit": "固定服务 HTTPS 发现链、DCR/PKCE、Codex Keyring、完整 schema 冻结、单次审批；服务方必须提供兼容的 MCP OAuth 注册/发现能力。",
+      "realValidation": "not_required_by_owner; not_run"
+    },
+    {
+      "serviceId": "Octoparse-data-hub",
+      "displayName": "八爪鱼Data Hub",
+      "transport": "http",
+      "authMode": "oauth",
+      "adapter": "standard_oauth_discovery",
+      "codeAdapterRegistered": true,
+      "audit": "固定服务 HTTPS 发现链、DCR/PKCE、Codex Keyring、完整 schema 冻结、单次审批；服务方必须提供兼容的 MCP OAuth 注册/发现能力。",
+      "realValidation": "not_required_by_owner; not_run"
+    },
+    {
+      "serviceId": "tushareMcp",
+      "displayName": "Tushare·金融数据",
+      "transport": "http",
+      "authMode": "oauth",
+      "adapter": "reviewed_tushare_daily",
+      "codeAdapterRegistered": true,
+      "audit": "保留单代码/单日 daily 专用策略及真实批准/拒绝证据；未开放另外253个工具。",
+      "realValidation": "Tushare representative only"
+    },
+    {
+      "serviceId": "eastmoney",
+      "displayName": "东方财富妙想MCP",
+      "transport": "http",
+      "authMode": "oauth",
+      "adapter": "standard_oauth_discovery",
+      "codeAdapterRegistered": true,
+      "audit": "固定服务 HTTPS 发现链、DCR/PKCE、Codex Keyring、完整 schema 冻结、单次审批；服务方必须提供兼容的 MCP OAuth 注册/发现能力。",
+      "realValidation": "not_required_by_owner; not_run"
+    },
+    {
+      "serviceId": "gildata_finance_data_qwen",
+      "displayName": "恒生聚源金融问数",
+      "transport": "http",
+      "authMode": "oauth",
+      "adapter": "standard_oauth_discovery",
+      "codeAdapterRegistered": true,
+      "audit": "固定服务 HTTPS 发现链、DCR/PKCE、Codex Keyring、完整 schema 冻结、单次审批；服务方必须提供兼容的 MCP OAuth 注册/发现能力。",
+      "realValidation": "not_required_by_owner; not_run"
+    },
+    {
+      "serviceId": "fanruan-growth-advisor",
+      "displayName": "MOSS增长谋士",
+      "transport": "http",
+      "authMode": "oauth",
+      "adapter": "standard_oauth_discovery",
+      "codeAdapterRegistered": true,
+      "audit": "固定服务 HTTPS 发现链、DCR/PKCE、Codex Keyring、完整 schema 冻结、单次审批；服务方必须提供兼容的 MCP OAuth 注册/发现能力。",
+      "realValidation": "not_required_by_owner; not_run"
+    },
+    {
+      "serviceId": "weibo",
+      "displayName": "微博",
+      "transport": "http",
+      "authMode": "oauth",
+      "adapter": "standard_oauth_discovery",
+      "codeAdapterRegistered": true,
+      "audit": "固定服务 HTTPS 发现链、DCR/PKCE、Codex Keyring、完整 schema 冻结、单次审批；服务方必须提供兼容的 MCP OAuth 注册/发现能力。",
+      "realValidation": "not_required_by_owner; not_run"
+    },
+    {
+      "serviceId": "jinshuju",
+      "displayName": "金数据",
+      "transport": "http",
+      "authMode": "oauth",
+      "adapter": "standard_oauth_discovery",
+      "codeAdapterRegistered": true,
+      "audit": "固定服务 HTTPS 发现链、DCR/PKCE、Codex Keyring、完整 schema 冻结、单次审批；服务方必须提供兼容的 MCP OAuth 注册/发现能力。",
+      "realValidation": "not_required_by_owner; not_run"
+    },
+    {
+      "serviceId": "xiaoe-mcp",
+      "displayName": "小鹅通",
+      "transport": "http",
+      "authMode": "oauth",
+      "adapter": "standard_oauth_discovery",
+      "codeAdapterRegistered": true,
+      "audit": "固定服务 HTTPS 发现链、DCR/PKCE、Codex Keyring、完整 schema 冻结、单次审批；服务方必须提供兼容的 MCP OAuth 注册/发现能力。",
+      "realValidation": "not_required_by_owner; not_run"
+    },
+    {
+      "serviceId": "feisentry",
+      "displayName": "飞哨GEO",
+      "transport": "http",
+      "authMode": "oauth",
+      "adapter": "standard_oauth_discovery",
+      "codeAdapterRegistered": true,
+      "audit": "固定服务 HTTPS 发现链、DCR/PKCE、Codex Keyring、完整 schema 冻结、单次审批；服务方必须提供兼容的 MCP OAuth 注册/发现能力。",
+      "realValidation": "not_required_by_owner; not_run"
+    },
+    {
+      "serviceId": "xiaoliebian",
+      "displayName": "小裂变SCRM",
+      "transport": "http",
+      "authMode": "oauth",
+      "adapter": "standard_oauth_discovery",
+      "codeAdapterRegistered": true,
+      "audit": "固定服务 HTTPS 发现链、DCR/PKCE、Codex Keyring、完整 schema 冻结、单次审批；服务方必须提供兼容的 MCP OAuth 注册/发现能力。",
+      "realValidation": "not_required_by_owner; not_run"
+    },
+    {
+      "serviceId": "ysk_mcp_3f824505d1faf80bc60c052729620929",
+      "displayName": "智客AI",
+      "transport": "http",
+      "authMode": "oauth",
+      "adapter": "standard_oauth_discovery",
+      "codeAdapterRegistered": true,
+      "audit": "固定服务 HTTPS 发现链、DCR/PKCE、Codex Keyring、完整 schema 冻结、单次审批；服务方必须提供兼容的 MCP OAuth 注册/发现能力。",
+      "realValidation": "not_required_by_owner; not_run"
+    },
+    {
+      "serviceId": "3chat",
+      "displayName": "3Chat私域客户运营",
+      "transport": "http",
+      "authMode": "oauth",
+      "adapter": "standard_oauth_discovery",
+      "codeAdapterRegistered": true,
+      "audit": "固定服务 HTTPS 发现链、DCR/PKCE、Codex Keyring、完整 schema 冻结、单次审批；服务方必须提供兼容的 MCP OAuth 注册/发现能力。",
+      "realValidation": "not_required_by_owner; not_run"
+    },
+    {
+      "serviceId": "xiaoliebian-geo",
+      "displayName": "小裂变GEO",
+      "transport": "http",
+      "authMode": "oauth",
+      "adapter": "standard_oauth_discovery",
+      "codeAdapterRegistered": true,
+      "audit": "固定服务 HTTPS 发现链、DCR/PKCE、Codex Keyring、完整 schema 冻结、单次审批；服务方必须提供兼容的 MCP OAuth 注册/发现能力。",
+      "realValidation": "not_required_by_owner; not_run"
+    }
+  ],
+  "currentImplementationScope": 49,
+  "removedByOwner": [
+    "taobao-flash-sale-retail",
+    "doukou-doctor"
+  ],
+  "deferredServiceIds": [],
+  "vendorConfigurationLimitations": {
+    "thinkingdata": "公开文档未绑定具体 HTTP Header 字段；必须由实际 AE 导出配置提供，未做服务端实连。"
+  }
+}

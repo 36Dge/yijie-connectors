@@ -1,0 +1,77 @@
+{
+  "schema_version": 1,
+  "contract_version": "0.2.0",
+  "feature": "FEAT-157",
+  "mode": "local_worktree_candidate",
+  "release": false,
+  "base_commit": "1a213ac8383e95ac6ec69363937687904fa3591c",
+  "sources": [
+    {
+      "path": "compatibility/market-provider/wire.schema.json",
+      "sha256": "0d7d4d852133aa2c75a298a0ee12c857d68a75a34aa28797a32757ea97a10819"
+    },
+    {
+      "path": "compatibility/market-provider/transport.json",
+      "sha256": "51c93eb77a9cdcbc44f5aa7a5487c6cec0754bf6f4a6ed4183bc15ca3acfdda4"
+    },
+    {
+      "path": "openapi/market-connectors/market-connectors.yaml",
+      "sha256": "5e83116f339df103157270ec82818b2f03981d2ad8b04e4517c0162e3e1afb13"
+    },
+    {
+      "path": "compatibility/market-broker-control/wire.schema.json",
+      "sha256": "f6aa66d748a925a3c34be53237d2f539ad5fd1c493a920748c34f1de7a341fdf"
+    },
+    {
+      "path": "scripts/market-host-source.mjs",
+      "sha256": "99e00f01814ad00ff95e67eb5e6be5ef29cba01b49bdaa04ff6d7ba5244e6642"
+    },
+    {
+      "path": "scripts/generate-market-provider.mjs",
+      "sha256": "701adeffb60dd35439158e4a623b5a4bf4fe760bdb15bcb619add44697e20f40"
+    },
+    {
+      "path": "scripts/market-broker-codegen.mjs",
+      "sha256": "d4218c6515c669f4a80a4f48f857bdd20d0509345fdb184df1da355c97856221"
+    },
+    {
+      "path": "scripts/sync-market-provider.mjs",
+      "sha256": "7c1c278e756d234726c98b7bef26d432e64919cef2eaa6a091fce5f66a7bd36f"
+    },
+    {
+      "path": "pnpm-lock.yaml",
+      "sha256": "57eece158a0405a85ea9b8fd2c382af130e4248897b67af587878737bbf86313"
+    }
+  ],
+  "generated": [
+    {
+      "path": "sdks/rust/market-provider/types.gen.rs",
+      "sha256": "6d2e5a6b291d3bbb002b48dd5fdea754637859547210c157f31089854132d637"
+    },
+    {
+      "path": "sdks/go/market-provider/types.gen.go",
+      "sha256": "f9718a3cd64fdb44c349e48bd7cc3cfaafff822b1fb90bd10625156dc5a5a589"
+    },
+    {
+      "path": "sdks/jsonschema/market-provider.schema.json",
+      "sha256": "488862a3cfa20525b9db9e3c53eb576ff18f55b38bdf258981679d42986a2568"
+    },
+    {
+      "path": "sdks/jsonschema/tushare-daily-output.schema.json",
+      "sha256": "2180738d5924978eff8c302adbf5e582a37cf8022abc43f3a8de4db117260da8"
+    }
+  ],
+  "consumer": "connectors",
+  "consumer_generated": [
+    {
+      "source": "sdks/rust/market-provider/types.gen.rs",
+      "path": "worker/src/provider_generated.rs",
+      "sha256": "6d2e5a6b291d3bbb002b48dd5fdea754637859547210c157f31089854132d637"
+    },
+    {
+      "source": "sdks/jsonschema/market-provider.schema.json",
+      "path": "api/market-provider.schema.json",
+      "sha256": "488862a3cfa20525b9db9e3c53eb576ff18f55b38bdf258981679d42986a2568"
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+{"event":"started","httpStatus":null,"safeFailure":null,"schemaVersion":1,"stage":"call_approval","unixMs":1791432643679}
+{"event":"consumed","httpStatus":null,"safeFailure":null,"schemaVersion":1,"stage":"call_admission","unixMs":1791432675334}
+{"event":"started","httpStatus":null,"safeFailure":null,"schemaVersion":1,"stage":"daily_execute","unixMs":1791432675334}
+{"event":"consumed","httpStatus":null,"safeFailure":null,"schemaVersion":1,"stage":"daily_http_permit","unixMs":1791432675334}
+{"event":"request","httpStatus":null,"safeFailure":null,"schemaVersion":1,"stage":"daily_http_send","unixMs":1791432675334}
+{"event":"response","httpStatus":200,"safeFailure":null,"schemaVersion":1,"stage":"daily_http_response","unixMs":1791432675508}
+{"event":"succeeded","httpStatus":null,"safeFailure":null,"schemaVersion":1,"stage":"daily_client_result","unixMs":1791432675520}
+{"event":"text_json","httpStatus":null,"safeFailure":null,"schemaVersion":1,"stage":"daily_result_envelope","unixMs":1791432675521}
+{"event":"records","httpStatus":null,"safeFailure":null,"schemaVersion":1,"stage":"daily_result_rows","unixMs":1791432675521}
+{"event":"succeeded","httpStatus":null,"safeFailure":null,"schemaVersion":1,"stage":"daily_normalize","unixMs":1791432675521}

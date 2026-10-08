@@ -1,0 +1,399 @@
+{
+  "schemaVersion": 1,
+  "profile": "generic-mcp-v1",
+  "services": [
+    {
+      "serviceId": "cue",
+      "displayName": "cue",
+      "authMode": "oauth",
+      "transport": "http",
+      "resource": "https://cue.humanmeetsai.com/mcp",
+      "credentialHeader": null
+    },
+    {
+      "serviceId": "baixiao-mcp",
+      "displayName": "百晓智能",
+      "authMode": "oauth",
+      "transport": "http",
+      "resource": "https://mcp.know-pa.cn/qw/mcp",
+      "credentialHeader": null
+    },
+    {
+      "serviceId": "dxe-mcp-server",
+      "displayName": "单小二",
+      "authMode": "oauth",
+      "transport": "http",
+      "resource": "https://api.zhongyifu.cn/mcp",
+      "credentialHeader": null
+    },
+    {
+      "serviceId": "Hologrow",
+      "displayName": "Hologrow",
+      "authMode": "oauth",
+      "transport": "http",
+      "resource": "https://mcp.hologrow.ai/mcp",
+      "credentialHeader": null
+    },
+    {
+      "serviceId": "X-Store",
+      "displayName": "好多店",
+      "authMode": "oauth",
+      "transport": "http",
+      "resource": "https://mcp-ai.coolstore.cn/mcp",
+      "credentialHeader": null
+    },
+    {
+      "serviceId": "yintai-open-platform",
+      "displayName": "银泰商业开放平台",
+      "authMode": "oauth",
+      "transport": "http",
+      "resource": "https://open.linkheer.com/mcp",
+      "credentialHeader": null
+    },
+    {
+      "serviceId": "yuyidata",
+      "displayName": "语忆Neosight",
+      "authMode": "oauth",
+      "transport": "http",
+      "resource": "https://service-api.yuyidata.com/gateway/ai-chat/mcp/v2/neosight",
+      "credentialHeader": null
+    },
+    {
+      "serviceId": "FTShare",
+      "displayName": "FTShare 金融数据",
+      "authMode": "api_key",
+      "transport": "http",
+      "resource": "https://market.ft.tech/gateway/mcp",
+      "credentialHeader": "FTSHARE_API_KEY"
+    },
+    {
+      "serviceId": "yunting-consumerlens",
+      "displayName": "云听ConsumerLens",
+      "authMode": "oauth",
+      "transport": "http",
+      "resource": "https://open-mcp.sv.yuntingai.com/mcp",
+      "credentialHeader": null
+    },
+    {
+      "serviceId": "google-calendar",
+      "displayName": "Google 日历",
+      "authMode": "oauth",
+      "transport": "http",
+      "resource": "https://calendarmcp.googleapis.com/mcp/v1",
+      "credentialHeader": null
+    },
+    {
+      "serviceId": "google-maps",
+      "displayName": "Google 地图",
+      "authMode": "api_key",
+      "transport": "http",
+      "resource": "https://mapstools.googleapis.com/mcp",
+      "credentialHeader": "X-Goog-Api-Key"
+    },
+    {
+      "serviceId": "speechclaw",
+      "displayName": "思必驰AI办公",
+      "authMode": "oauth",
+      "transport": "http",
+      "resource": "https://officeclaw.beta.duiopen.com/speechclaw/mcp",
+      "credentialHeader": null
+    },
+    {
+      "serviceId": "caoliao",
+      "displayName": "草料二维码",
+      "authMode": "oauth",
+      "transport": "http",
+      "resource": "https://open.cli.im/mcp",
+      "credentialHeader": null
+    },
+    {
+      "serviceId": "wavenote",
+      "displayName": "WaveNote",
+      "authMode": "oauth",
+      "transport": "http",
+      "resource": "https://mcp.wavenote.cn/mcp/audio",
+      "credentialHeader": null
+    },
+    {
+      "serviceId": "yida",
+      "displayName": "宜搭",
+      "authMode": "oauth",
+      "transport": "http",
+      "resource": "https://www.aliwork.com/openyida/agent-api/mcp",
+      "credentialHeader": null
+    },
+    {
+      "serviceId": "qingflow",
+      "displayName": "轻流",
+      "authMode": "oauth",
+      "transport": "http",
+      "resource": "https://mcp.qingflow.com/mcp",
+      "credentialHeader": null
+    },
+    {
+      "serviceId": "uupt",
+      "displayName": "UU跑腿",
+      "authMode": "oauth",
+      "transport": "http",
+      "resource": "https://api-open.uupt.com/mcp/order?source=qwenwork",
+      "credentialHeader": null
+    },
+    {
+      "serviceId": "fenbeitong",
+      "displayName": "分贝通",
+      "authMode": "oauth",
+      "transport": "http",
+      "resource": "https://mcp.fenbeitong.com/mcp/source/qwenwork",
+      "credentialHeader": null
+    },
+    {
+      "serviceId": "bazhuayu",
+      "displayName": "数阔八爪鱼",
+      "authMode": "oauth",
+      "transport": "http",
+      "resource": "https://mcp.bazhuayu.com",
+      "credentialHeader": null
+    },
+    {
+      "serviceId": "camscanner-mcp",
+      "displayName": "扫描全能王",
+      "authMode": "oauth",
+      "transport": "http",
+      "resource": "https://ai-tools.camscanner.com/mcp",
+      "credentialHeader": null
+    },
+    {
+      "serviceId": "todoist",
+      "displayName": "Todoist",
+      "authMode": "oauth",
+      "transport": "http",
+      "resource": "https://ai.todoist.net/mcp",
+      "credentialHeader": null
+    },
+    {
+      "serviceId": "agentkey-qwen",
+      "displayName": "Agentkey",
+      "authMode": "oauth",
+      "transport": "http",
+      "resource": "https://api.agentkey.app/qwen/v1/mcp",
+      "credentialHeader": null
+    },
+    {
+      "serviceId": "huida-erp",
+      "displayName": "惠搭ERP",
+      "authMode": "oauth",
+      "transport": "http",
+      "resource": "https://mcp.3cuan.com/mcp",
+      "credentialHeader": null
+    },
+    {
+      "serviceId": "FastMoss",
+      "displayName": "FastMoss",
+      "authMode": "oauth",
+      "transport": "http",
+      "resource": "https://mcp.fastmoss.com/mcp",
+      "credentialHeader": null
+    },
+    {
+      "serviceId": "smartsalary",
+      "displayName": "薪智·市场人才薪酬数据",
+      "authMode": "oauth",
+      "transport": "http",
+      "resource": "https://ai.smartsalary.cn/smartsalary-mcp/mcp",
+      "credentialHeader": null
+    },
+    {
+      "serviceId": "qixin_insight",
+      "displayName": "启信慧眼",
+      "authMode": "oauth",
+      "transport": "http",
+      "resource": "https://mcp.qixin.com/mcp",
+      "credentialHeader": null
+    },
+    {
+      "serviceId": "zerone",
+      "displayName": "执中·金融数据",
+      "authMode": "provider_credentials",
+      "transport": "http",
+      "resource": "https://ai.zerone.com.cn/mcp/pe",
+      "credentialHeader": null,
+      "credentialQuery": "api_key"
+    },
+    {
+      "serviceId": "patent-analysis",
+      "displayName": "智慧芽·专利分析",
+      "authMode": "oauth",
+      "transport": "http",
+      "resource": "https://connect.zhihuiya.com/e14e5f/logic-mcp",
+      "credentialHeader": null
+    },
+    {
+      "serviceId": "thinkingdata",
+      "displayName": "Agentic Engine",
+      "authMode": "provider_credentials",
+      "transport": "http",
+      "resource": "https://ta-sdk-service.thinkingdata.cn/mcp",
+      "credentialHeader": null
+    },
+    {
+      "serviceId": "morningstar",
+      "displayName": "晨星 Morningstar",
+      "authMode": "oauth",
+      "transport": "http",
+      "resource": "https://mcp.morningstar.cn/mcp",
+      "credentialHeader": null
+    },
+    {
+      "serviceId": "dichanai-mcp",
+      "displayName": "CRIC 克而瑞地产数据",
+      "authMode": "oauth",
+      "transport": "http",
+      "resource": "https://mcp.dichanai.com/mcp-server",
+      "credentialHeader": null
+    },
+    {
+      "serviceId": "Yingmi",
+      "displayName": "盈米基金",
+      "authMode": "oauth",
+      "transport": "http",
+      "resource": "https://stargate-partner.yingmi.com/mcp/v2/oauth/qieman",
+      "credentialHeader": null
+    },
+    {
+      "serviceId": "wind",
+      "displayName": "Wind Alice万得金融数据",
+      "authMode": "oauth",
+      "transport": "http",
+      "resource": "https://mcp.wind.com.cn/vserver_qwenwork/mcp/",
+      "credentialHeader": null
+    },
+    {
+      "serviceId": "yidian-company",
+      "displayName": "质数幻方·企业数据",
+      "authMode": "oauth",
+      "transport": "http",
+      "resource": "https://mcp.yidian.cn/mcp/company",
+      "credentialHeader": null
+    },
+    {
+      "serviceId": "investoday",
+      "displayName": "今日投资·金融数据",
+      "authMode": "oauth",
+      "transport": "http",
+      "resource": "https://data-api.investoday.net/data/mcp?source=qwen_work",
+      "credentialHeader": null
+    },
+    {
+      "serviceId": "dzh-mcp",
+      "displayName": "大智慧",
+      "authMode": "oauth",
+      "transport": "http",
+      "resource": "https://mcpali.dzh.com.cn/mcp",
+      "credentialHeader": null
+    },
+    {
+      "serviceId": "Octoparse-data-hub",
+      "displayName": "八爪鱼Data Hub",
+      "authMode": "oauth",
+      "transport": "http",
+      "resource": "https://mcp-v2.bazhuayu.com",
+      "credentialHeader": null
+    },
+    {
+      "serviceId": "tushareMcp",
+      "displayName": "Tushare·金融数据",
+      "authMode": "oauth",
+      "transport": "http",
+      "resource": "https://api.tushare.pro/mcp/",
+      "credentialHeader": null
+    },
+    {
+      "serviceId": "eastmoney",
+      "displayName": "东方财富妙想MCP",
+      "authMode": "oauth",
+      "transport": "http",
+      "resource": "https://mxapi.eastmoney.com/mxds/v2/mcp",
+      "credentialHeader": null
+    },
+    {
+      "serviceId": "gildata_finance_data_qwen",
+      "displayName": "恒生聚源金融问数",
+      "authMode": "oauth",
+      "transport": "http",
+      "resource": "https://ft.gildata.com/ai-sso/mcp/qoderwork",
+      "credentialHeader": null
+    },
+    {
+      "serviceId": "fanruan-growth-advisor",
+      "displayName": "MOSS增长谋士",
+      "authMode": "oauth",
+      "transport": "http",
+      "resource": "https://www.mossdo.com/api/v1/mcp",
+      "credentialHeader": null
+    },
+    {
+      "serviceId": "weibo",
+      "displayName": "微博",
+      "authMode": "oauth",
+      "transport": "http",
+      "resource": "https://cli.weibo.com/mcp",
+      "credentialHeader": null
+    },
+    {
+      "serviceId": "jinshuju",
+      "displayName": "金数据",
+      "authMode": "oauth",
+      "transport": "http",
+      "resource": "https://jinshuju.net/mcp",
+      "credentialHeader": null
+    },
+    {
+      "serviceId": "xiaoe-mcp",
+      "displayName": "小鹅通",
+      "authMode": "oauth",
+      "transport": "http",
+      "resource": "https://agent.xiaoe-tech.com/mcp",
+      "credentialHeader": null
+    },
+    {
+      "serviceId": "feisentry",
+      "displayName": "飞哨GEO",
+      "authMode": "oauth",
+      "transport": "http",
+      "resource": "https://mcp.feisentry.com.cn/mcp",
+      "credentialHeader": null
+    },
+    {
+      "serviceId": "xiaoliebian",
+      "displayName": "小裂变SCRM",
+      "authMode": "oauth",
+      "transport": "http",
+      "resource": "https://w.xiaoliebian.com/api/demo-wechat-work/mcp/scrm",
+      "credentialHeader": null
+    },
+    {
+      "serviceId": "ysk_mcp_3f824505d1faf80bc60c052729620929",
+      "displayName": "智客AI",
+      "authMode": "oauth",
+      "transport": "http",
+      "resource": "https://open.yscredit.com/ys-mcp/report",
+      "credentialHeader": null
+    },
+    {
+      "serviceId": "3chat",
+      "displayName": "3Chat私域客户运营",
+      "authMode": "oauth",
+      "transport": "http",
+      "resource": "https://app.3chatai.cn/mcp",
+      "credentialHeader": null
+    },
+    {
+      "serviceId": "xiaoliebian-geo",
+      "displayName": "小裂变GEO",
+      "authMode": "oauth",
+      "transport": "http",
+      "resource": "https://w.xiaoliebian.com/api/xiaoliebian-geo/mcp/geo",
+      "credentialHeader": null
+    }
+  ]
+}

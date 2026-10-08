@@ -8,13 +8,13 @@
 
 `yijie-connectors` 是外部平台 API、第三方应用和 MCP 工具的执行边界，负责平台客户端、OAuth/token vault 适配、权限 scope、限流、重试、熔断、幂等、高风险操作 guard 和外部调用审计。
 
-当前仓库只有最小 HTTP 骨架：
+当前对外 HTTP 仍为最小骨架；FEAT-157 另有本地未激活基础：
 
-- 只有 `cmd/connector-gateway` 和 `internal/app` 有实际实现；
+- `cmd/connector-gateway` 和 `internal/app` 保留 HTTP 骨架；`catalog/`、`worker/` 和 `internal/worker` 提供 FEAT-157 安全目录、默认只读状态协议、显式 Broker 私有控制模式与正常 EOF owner；
 - `/healthz`、`/readyz` 和 `/v1/status` 返回静态状态；
 - status 中列出的 Amazon、Temu、Shopee 和 TikTok Shop 只是规划平台，不代表已经接通；
-- MCP server、平台 client、OAuth、token vault、webhook、worker、限流、幂等和审计均未实现；
-- `make generate` 当前是占位命令。
+- 外部 MCP 激活、真实 OAuth/token vault、webhook、限流、幂等与业务审计尚未接通；默认状态 worker 不读凭据、不调用网络；Broker 模式仅开放官方 rmcp loopback 数据面，产品非空选择仍拒绝，不能称为真实服务已接入；
+- `make generate` 从 Contracts canonical source 同步 FEAT-157 Go/Rust/schema/本地候选来源；当前没有发布或生产 pin。
 
 当前健康检查成功只说明进程可响应，不能被描述为平台连接、凭据或写操作已经验证。
 
@@ -52,7 +52,7 @@
 - 第三方平台 API/webhook 以当前官方规范为外部权威；任何易界归一化 MCP tool、OpenAPI 和公共消息 schema 仍先在 `yijie-contracts` 定义、评审、执行兼容检查并形成不可变引用；
 - 每个工具必须声明名称、输入输出 schema、平台、权限 scope、风险等级、幂等语义、审计字段和错误模型；
 - 不手写与生成契约重复的 DTO，不直接编辑生成 client 或 schema；
-- 本仓固定精确 contract version、完整 commit 和可用时的 digest/generator 版本后，实现才可合并或启用；`make generate` 仍为占位时不能宣称已完成契约消费门禁；
+- 本仓固定精确 contract version、完整 commit 和可用时的 digest/generator 版本后，实现才可合并或启用；FEAT-157 的 development hashes 仅用于本地 source-first 检查，不是不可变发布门禁；
 - 接入平台前必须依据当前官方文档确认 API 版本、环境、认证流程、scope、配额、错误码和 webhook 规则；
 - 官方 SDK 与自建 client 的选择、SDK 版本和许可证必须明确确认；
 - sandbox、mock 和 production 配置严格隔离，默认本地开发不得访问生产环境。
@@ -101,7 +101,11 @@ dirty/floating sibling 只能用于本地候选验证，不能作为发布来源
 ```bash
 make lint     # gofmt 检查和 go vet
 make test     # race 单元测试和覆盖率
-make generate # 当前为占位，不能视为契约生成完成
+make generate # 同步 Contracts FEAT-157 canonical 派生物与本地候选来源
+make contract-check # 验证 FEAT-157 源与消费派生物一致
+make worker-test # 固定 Codex 库的本地 worker 安全单元测试
+make worker-lint # 固定来源、格式与 scoped Clippy
+make worker-build # 正规构建新 worker；不覆盖 Runtime 制品
 make dev      # 启动 connector-gateway 骨架
 ```
 
@@ -110,6 +114,8 @@ make dev      # 启动 connector-gateway 骨架
 - 可靠性测试覆盖 429、`Retry-After`、超时、连接中断、部分成功和重试上限；
 - webhook 测试覆盖签名失败、过期、重复、乱序和恶意 payload；
 - 真实平台集成测试必须由用户明确批准，并标识成本和副作用。
+
+FEAT-157 worker 详情见 `docs/market-connectors-foundation.md`。它使用固定 `yijie-codex` 库源和既有 Cargo 缓存，不修改/复制 Runtime 源码，不运行上游 stdio launcher；禁止用 fake executable 验证 owner。实际进程测试只用 canonical 新 worker、合成状态请求和正常 EOF，超时保留 owner 并报告 STOP_PENDING，不强杀。
 
 ## 完成标准
 
@@ -120,3 +126,17 @@ make dev      # 启动 connector-gateway 骨架
 - 平台差异有隔离实现，失败和未知结果没有被包装成成功；
 - `make lint`、`make test` 及相关 sandbox/集成测试通过；
 - 尚未接通的 vault、MCP、平台、webhook 或生产验证被明确说明。
+
+FEAT-157 后续本地候选增加 Host 直接拥有的私有 Broker 模式与官方 rmcp loopback Gateway；真实 provider 全部未资格化，产品非空选集仍拒绝。独立合成资格二进制不能充当产品 worker，详见 [Broker 控制说明](docs/market-broker-control.md)。
+
+
+FEAT-157 2026-10-08 后续候选：受管 Tushare OAuth/Keyring 与只读 metadata 已有真实 UI 证据。
+新 `tushare-daily-v1` 只实现单代码/单日的同源 daily 只读策略；需要 fresh Probe 完整 schema
+资格、Native 显式启用和当前 scope/选集/grant，以及每次实际调用的双批准与一次 HTTP 许可。
+其余服务仍未资格化；真实 daily 数据调用/完整 D4 尚待验收。以上候选进展不改变默认
+status-only 无 I/O 行为，也不把历史合成资格当成真实平台证据。详见 docs/tushare/。
+
+
+FEAT-157 2026-10-08 Owner后续确认：采用通用发现＋保守风险＋逐次审批，并明确移除淘宝闪购，活动目录变为50项。`generic-mcp-v1`已实现多服务精确绑定、冻结完整schema、未知风险按write请求一次审批、显式destructive无专用策略拒绝、未知结果不自动重发。该Accepted ADR-0021细化条款取代本文件对该local候选“非Tushare一律未实现”的历史描述；没有放宽token边界、审批或发布限制。Google两项根据官方现有远程MCP复用HTTP/Keyring，避免本地包明文token及独立运行时；日历需预览资格与自有注册应用。非Tushare仅代码审计与普通本地协议测试，不能要求49项真实验收。当前证据见 docs/market-provider-generic-code-audit-2026-10-08.md；不代表供应商账号权限或发布完成。
+
+FEAT-157 最新Owner范围覆盖：2026-10-08进一步移除豆蔻医生，活动目录revision 5为49项；AE提供官方文档后恢复范围，按导出的远程HTTP Header显式配置，不推断认证格式。其他48项仅代码审计与本地测试，真实验收仍仅Tushare。上述50/51项及暂缓描述保留为历史，当前以本段与最新逐项审计为准。

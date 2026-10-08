@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "repository": "https://github.com/36Dge/yijie-codex.git",
+  "sourceCommit": "7fd463bcef07f37b0211acd9f62b9f93ea0a4b12",
+  "subtree": "codex-rs",
+  "rustVersion": "1.95.0",
+  "mcpLibrary": "codex-rmcp-client",
+  "candidateOnly": true,
+  "release": false,
+  "policy": "Use the fixed library path dependency without modifying or copying Runtime sources; no external calls or credential IO are exposed by auth_status."
+}

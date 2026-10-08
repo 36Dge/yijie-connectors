@@ -1,0 +1,446 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-10-08",
+  "status": "REAL_DAILY_APPROVE_AND_REJECT_PASSED_D4_INCOMPLETE",
+  "realProviderQualified": true,
+  "providerProfile": "tushare-daily-v1",
+  "productArtifact": {
+    "schemaVersion": 2,
+    "candidateOnly": true,
+    "binary": "/Users/jack/Downloads/Personal_Info/CrossBSD/yijie-connectors/bin/market-worker/d31203bf223564da8a50e7639636a951bbb57cf3b8c96e1f1b83228e3a33f963/yijie-mcp-worker",
+    "sha256": "d31203bf223564da8a50e7639636a951bbb57cf3b8c96e1f1b83228e3a33f963",
+    "sizeBytes": 77028704,
+    "codexSource": "7fd463bcef07f37b0211acd9f62b9f93ea0a4b12",
+    "externalCallsEnabled": true,
+    "qualificationOnly": false,
+    "providerProfile": "tushare-daily-v1"
+  },
+  "sources": {
+    "worker/Cargo.toml": "82f4c66576077f92c9fb6e60776284cae8ab62409f47c26647fd0b43dd98153c",
+    "worker/Cargo.lock": "7cb54a1d617aa344a15c6a9ad13fc4fe1a74d49d5c178373c31f70c7095fe468",
+    "worker/source.lock.json": "e1e11408a149f9e796f4f1a492f59953313217ede5733739845a022eb069ac59",
+    "worker/src/main.rs": "6f684494b9b4a2443dfee79c9fc0d7314bda1fc1aeddb52159e9a23baf18930d",
+    "worker/src/broker.rs": "06de763039380f23d0cf37c5408b2ba5362967bc80bfa98d6e8cb43bde36f370",
+    "worker/src/gateway.rs": "b744c90ab382239d3d8300bbdba3f887f6528da8b5c5d478ec03a4ac74cf8252",
+    "worker/src/providers.rs": "3179d3f0499356837dae0f93af0575ec39cf18e6da97965157baa6546abc4ca0",
+    "worker/src/tushare_oauth.rs": "3ad70fe697bc394991c20967b404d415a16b9746f89bf74c0a4d1302f4451c8e",
+    "worker/src/native_library.rs": "2cdfcbc6e75a2b38382ffc6206b94bd2f285837a26f1f9b94b8bcbd3ac8f5b3b",
+    "worker/src/provider_generated.rs": "6d2e5a6b291d3bbb002b48dd5fdea754637859547210c157f31089854132d637",
+    "worker/src/broker_generated.rs": "21c4db767e1d02e19ae8f08fd701ed1f84c31d7db10e336855128e769efe9803",
+    "api/market-provider.candidate.json": "199989607ee672dd8e88c5a9403821cde52a91fd124453e2446a209891842508",
+    "api/market-broker-control.candidate.json": "2ac2fae399792e94f7f2e77f9911c33dd9e6697938effc3595dceeab8bfcc374",
+    "scripts/build-market-worker.sh": "68ec82db3c1f0054d5c79623ab60beba4d125eb1a371e9f97821680022122e79",
+    "worker/src/generated.rs": "85aaa479e6f053ba7094e4d77cfeff28e6244e9012b4ba27094d129444ba5e40",
+    "catalog/market-catalog.v1.json": "e1d480025ba6ed3a2fe1f317faad5f94defcd53799781d851feb029514b884a1",
+    "worker/src/daily.rs": "d5efd4ab1fba863b319de71373bbc699fd0a2de0075f9e5cf45d8a77ff9870e4",
+    "worker/src/selection_generated.rs": "902f396bac10b7ea109629a6cd6cca49cff393335a902455e31b7ced238c09c5",
+    "scripts/build-market-broker-qualification.sh": "b38c9458bf67d91cc5b220960fa86ab6f0241581b275ac4470ea0db164467692",
+    "internal/worker/worker.go": "d2dae8b0e61bde44a75f4a756fc9a793c467ad49fa8fc4fa6fe0c476b5b6a916",
+    "Makefile": "82119541f8f288d7dc9474583310b52915578c2cfc6f7d45e42aaed94b8631ce"
+  },
+  "checks": {
+    "workerDefaultTests": 38,
+    "workerBrokerQualificationFeatureTests": 45,
+    "defaultAndFeatureClippy": "PASS",
+    "canonicalStatusOnlyNormalEOF": "PASS: explicit current.json, d31203bf, real child normal EOF",
+    "contractsJS": 14,
+    "contractsGoPackages": 2,
+    "contractsRustTests": 7,
+    "nativeObservationRegressionTests": 3,
+    "nativeAllTargetClippy": "PASS",
+    "hostMarketRaceAndVet": "PASS",
+    "desktopDomainObservationActivityTests": 16,
+    "desktopLint": "PASS",
+    "desktopCanonicalBuild": "PASS",
+    "runtimeHistoryUI": "PASS: restored prior two messages and latest failed tool result after Host restart; no old approval callbacks fabricated",
+    "liveProviderRecoveryUI": "PASS: existing Keyring, explicit Enable f930ad2c-967d-4f75-b721-f228fa06645a, selected chip and unsent continuation draft",
+    "realDailyApproveAndReject": "PASS: only one actual read in additional batch; refusal sends no external request",
+    "finalHistoryReopen": "PASS: standard rebuilt app reopens successful model response and latest explicit rejected tool result, old pending callbacks not restored"
+  },
+  "realExternalObservations": {
+    "totalHistoricalDcr": null,
+    "totalHistoricalTokenExchange": null,
+    "totalHistoricalKeyringAccess": null,
+    "totalHistoricalMetadataGet": null,
+    "financialToolsCall": null,
+    "reason": "The first UI attempt had no phase counters. Recorded OAuth discovery counts exclude auth-status preflight discovery, whose public GET requests are not separately instrumented. Two authorized Kimi turns were completed before pause; first owner-approved Gateway call returned isError and second was owner-rejected. Original safe diagnostics cannot distinguish actual financial HTTP send count; one read budget is conservatively consumed.",
+    "paidModelTurns": 4,
+    "approvedBusinessRequestsBudgetUsed": 2
+  },
+  "notExecuted": [
+    "full FEAT-157 D4 / remaining Must acceptance",
+    "remaining 50 providers real verification",
+    "fault injection/force kill/attack fixtures (user prohibition)"
+  ],
+  "release": false,
+  "nativeSources": {
+    "src-tauri/migrations/chat/0033_market_provider_operations.sql": "d55e3b6da74d757819c09380354169ba0a2fab7fe54df16434588d6269cd445f",
+    "src-tauri/src/chat/connectors/provider.rs": "38dae20c06b3474b4253841122c6ff85eb3c1ccb1fcfbd4865be3e895ae23b3b",
+    "src-tauri/src/chat/connectors/store.rs": "2a87ce1653ca679acf82266d958c46d105b6c56a269892426bcb5b2600220a45",
+    "src-tauri/src/chat/connectors/mod.rs": "333bbeee6fc1097bac70b4a52dfd772b5e8ed5c1d6ab53a17d4ad0e80e3a700b"
+  },
+  "previousProductArtifactSha256": "6d4d37b2c54f5d2503e2c39978647af0d69ddbda0c59f9d999cdc3bf79c044f0",
+  "artifactHistory": [
+    {
+      "schemaVersion": 2,
+      "candidateOnly": true,
+      "binary": "/Users/jack/Downloads/Personal_Info/CrossBSD/yijie-connectors/bin/market-worker/f52d2f51109b6ce7779866b034cd0dbb8567f8683700453e98ca1b7164752e5e/yijie-mcp-worker",
+      "sha256": "f52d2f51109b6ce7779866b034cd0dbb8567f8683700453e98ca1b7164752e5e",
+      "sizeBytes": 76629120,
+      "codexSource": "7fd463bcef07f37b0211acd9f62b9f93ea0a4b12",
+      "externalCallsEnabled": true,
+      "qualificationOnly": false,
+      "providerProfile": "tushare-oauth-v1"
+    },
+    {
+      "schemaVersion": 2,
+      "candidateOnly": true,
+      "binary": "/Users/jack/Downloads/Personal_Info/CrossBSD/yijie-connectors/bin/market-worker/5ca3b39ce93382009266cf174e986ea420841dac46c8bcb14341300c6ece5fb9/yijie-mcp-worker",
+      "sha256": "5ca3b39ce93382009266cf174e986ea420841dac46c8bcb14341300c6ece5fb9",
+      "sizeBytes": 76631952,
+      "codexSource": "7fd463bcef07f37b0211acd9f62b9f93ea0a4b12",
+      "externalCallsEnabled": true,
+      "qualificationOnly": false,
+      "providerProfile": "tushare-oauth-v1"
+    },
+    {
+      "schemaVersion": 2,
+      "candidateOnly": true,
+      "binary": "/Users/jack/Downloads/Personal_Info/CrossBSD/yijie-connectors/bin/market-worker/1bcaa666c50fa4071e6e0a54f1d5aacc6eee162b4a3441bfac024334cab7ad06/yijie-mcp-worker",
+      "sha256": "1bcaa666c50fa4071e6e0a54f1d5aacc6eee162b4a3441bfac024334cab7ad06",
+      "sizeBytes": 76632320,
+      "codexSource": "7fd463bcef07f37b0211acd9f62b9f93ea0a4b12",
+      "externalCallsEnabled": true,
+      "qualificationOnly": false,
+      "providerProfile": "tushare-oauth-v1"
+    },
+    {
+      "schemaVersion": 2,
+      "candidateOnly": true,
+      "binary": "/Users/jack/Downloads/Personal_Info/CrossBSD/yijie-connectors/bin/market-worker/6d4d37b2c54f5d2503e2c39978647af0d69ddbda0c59f9d999cdc3bf79c044f0/yijie-mcp-worker",
+      "sha256": "6d4d37b2c54f5d2503e2c39978647af0d69ddbda0c59f9d999cdc3bf79c044f0",
+      "sizeBytes": 76689136,
+      "codexSource": "7fd463bcef07f37b0211acd9f62b9f93ea0a4b12",
+      "externalCallsEnabled": true,
+      "qualificationOnly": false,
+      "providerProfile": "tushare-oauth-v1"
+    }
+  ],
+  "historicalPublicMetadataObservations": {
+    "date": "2026-10-07",
+    "unauthenticatedPublicGet": 5,
+    "evidence": "public-metadata-2026-10-07.json"
+  },
+  "firstUndiagnosedUiAttempt": {
+    "uiAuthorizationAttempts": 1,
+    "dynamicClientRegistration": null,
+    "tokenExchange": null,
+    "keyringAccess": null,
+    "additionalMetadataGet": null,
+    "financialToolsCall": 0,
+    "authorizationBrowserPageObserved": false,
+    "originalOperationTerminalCode": "temporarily_unavailable",
+    "countsUnknownReason": "Original build did not record phase or HTTP attempts; terminal UI observation cannot infer DCR/token/Keyring counts.",
+    "countsRemainUnknown": true
+  },
+  "diagnosedUiAttempts": [
+    {
+      "operationId": "7c8e22be-e0b8-48a8-93cf-63d5742b8cd4",
+      "workerSha256": "6d4d37b2c54f5d2503e2c39978647af0d69ddbda0c59f9d999cdc3bf79c044f0",
+      "observedAt": "2026-10-07T16:47:48.080112+00:00",
+      "safeDiagnosticSnapshot": "evidence/7c8e22be-e0b8-48a8-93cf-63d5742b8cd4.jsonl",
+      "snapshotSha256": "4c995f875b2411f0a0cba8b955c51687d7ef5e48850f4b8df6847b4c221c61e8",
+      "recordedOAuthDiscoveryGetRequests": 3,
+      "recordedDcrRequests": 1,
+      "recordedDcrHttpStatuses": [
+        201
+      ],
+      "tokenExchangeStarted": 0,
+      "keyringPreflight": "succeeded",
+      "keyringCommitStarted": 0,
+      "browserHandoff": "Chrome official Yijie Tushare page confirmed by parent UI observation",
+      "state": "expired_and_normal_cleanup_confirmed",
+      "financialToolsCall": 0
+    },
+    {
+      "operationId": "d50c205a-6351-418d-9d4b-99ce3fd4c44c",
+      "workerSha256": "6d4d37b2c54f5d2503e2c39978647af0d69ddbda0c59f9d999cdc3bf79c044f0",
+      "observedAt": "2026-10-07T16:47:48.080112+00:00",
+      "safeDiagnosticSnapshot": "evidence/d50c205a-6351-418d-9d4b-99ce3fd4c44c.jsonl",
+      "snapshotSha256": "d7ab995df1e418423c38b30e989c188252f07fcced15ecc6bbdeb1fef2739e62",
+      "recordedOAuthDiscoveryGetRequests": 3,
+      "recordedDcrRequests": 1,
+      "recordedDcrHttpStatuses": [
+        201
+      ],
+      "tokenExchangeStarted": 0,
+      "keyringPreflight": "succeeded",
+      "keyringCommitStarted": 0,
+      "browserHandoff": "Chrome official Yijie Tushare page confirmed by parent UI observation",
+      "state": "expired_and_normal_cleanup_confirmed",
+      "financialToolsCall": 0
+    }
+  ],
+  "actualHostHome": "/Users/jack/Library/Application Support/com.yijie.ai/demo-fast-model-candidate-v1/host",
+  "diagnosticDirectory": "/Users/jack/Library/Application Support/com.yijie.ai/demo-fast-model-candidate-v1/host/market-worker/library-home/diagnostics/provider",
+  "successfulRealOAuthVerification": {
+    "observedAt": "2026-10-07T17:11:08.694482+00:00",
+    "operationId": "62a7c0e8-1e5a-436c-a774-808baa0fe783",
+    "oauth": "PASS",
+    "keyringOwnedCommit": "PASS",
+    "mcpInitialize": "PASS",
+    "toolsList": "PASS",
+    "schemaArtifact": "evidence/62a7c0e8-1e5a-436c-a774-808baa0fe783-schema.json",
+    "toolCount": 254,
+    "dailyInputSchemaSha256": "ec10409543d1ae690de2b5da5893a0e69387cdd5a398f976fb04d187fc632ae1",
+    "dailyNameMatches": 1,
+    "financialToolsCall": 0,
+    "businessQualification": "not_completed",
+    "D4": "not_completed"
+  },
+  "laterUserOAuthAttempts": [
+    {
+      "operationId": "62a7c0e8-1e5a-436c-a774-808baa0fe783",
+      "evidence": "evidence/62a7c0e8-1e5a-436c-a774-808baa0fe783.jsonl",
+      "sha256": "26e975a0fc25374d9388eaff39518af7b3e1020a4d665efef66a56bbbf2e8785",
+      "keyringCommitSucceeded": true,
+      "tokenTransportUnavailable": false,
+      "observedFinalStage": "metadata_artifact"
+    },
+    {
+      "operationId": "feb252e1-5388-4137-98c9-f316049cd84f",
+      "evidence": "evidence/feb252e1-5388-4137-98c9-f316049cd84f.jsonl",
+      "sha256": "017883ae3854fe5f64ae8c2c00a1d1a5b404d845d16d5027488c3a1e877fbde6",
+      "keyringCommitSucceeded": false,
+      "tokenTransportUnavailable": true,
+      "observedFinalStage": "cleanup"
+    }
+  ],
+  "implementationHistory": [
+    {
+      "productArtifact": {
+        "schemaVersion": 2,
+        "candidateOnly": true,
+        "binary": "/Users/jack/Downloads/Personal_Info/CrossBSD/yijie-connectors/bin/market-worker/6d4d37b2c54f5d2503e2c39978647af0d69ddbda0c59f9d999cdc3bf79c044f0/yijie-mcp-worker",
+        "sha256": "6d4d37b2c54f5d2503e2c39978647af0d69ddbda0c59f9d999cdc3bf79c044f0",
+        "sizeBytes": 76689136,
+        "codexSource": "7fd463bcef07f37b0211acd9f62b9f93ea0a4b12",
+        "externalCallsEnabled": true,
+        "qualificationOnly": false,
+        "providerProfile": "tushare-oauth-v1"
+      },
+      "sources": {
+        "worker/Cargo.toml": "82f4c66576077f92c9fb6e60776284cae8ab62409f47c26647fd0b43dd98153c",
+        "worker/Cargo.lock": "7cb54a1d617aa344a15c6a9ad13fc4fe1a74d49d5c178373c31f70c7095fe468",
+        "worker/source.lock.json": "e1e11408a149f9e796f4f1a492f59953313217ede5733739845a022eb069ac59",
+        "worker/src/main.rs": "2fcccd064daf32fd1d126019f2c379685e2785d9868694e7dfc57d4d1f14b898",
+        "worker/src/broker.rs": "7b186c46eaa7362e56e4cb9bee6c0f6f9801ec816e7780f97583d29c9c637f7c",
+        "worker/src/gateway.rs": "957ae3377fe779d4c03d4c98747cb837d5e11734195c4f45fcc48517c0029c1d",
+        "worker/src/providers.rs": "396b9a72785e986be61cf271bdcad444347d0d77d1bdaf682959a35b5bcec91e",
+        "worker/src/tushare_oauth.rs": "7b4050f7e838c3d733bd963edd3d356ee99569c208f6335f4ce3c3403b0fa605",
+        "worker/src/native_library.rs": "2cdfcbc6e75a2b38382ffc6206b94bd2f285837a26f1f9b94b8bcbd3ac8f5b3b",
+        "worker/src/provider_generated.rs": "32c7c07635acc2c40ecfe7eb7772e7c86db325202f06ae770ba0260c40086e94",
+        "worker/src/broker_generated.rs": "72fef5ddbb940e80cb26f5f61a1611f51d7b9b402e67f2b8a9dba10c2094d889",
+        "api/market-provider.candidate.json": "c878cbc4b0e5f6626442aaddfeffe03ac2ceec253d47e3e2179b8633800fae68",
+        "api/market-broker-control.candidate.json": "9cbd62c0d27a38fe7d8237a6aad4b854cd2cfeb0013f88226a4a103cf7d5a0f0",
+        "scripts/build-market-worker.sh": "d44792c8e3226681a3613eef521139e565fc4fcf64b9cde4584ca94b2b890b94",
+        "worker/src/generated.rs": "85aaa479e6f053ba7094e4d77cfeff28e6244e9012b4ba27094d129444ba5e40",
+        "catalog/market-catalog.v1.json": "e1d480025ba6ed3a2fe1f317faad5f94defcd53799781d851feb029514b884a1"
+      },
+      "checks": {
+        "workerDefaultTests": 28,
+        "workerBrokerQualificationFeatureTests": 35,
+        "clippy": "PASS",
+        "goStatusOwnerAndApp": "PASS",
+        "nativeProviderTransactionTests": 6,
+        "nativeConnectorTests": 32,
+        "nativeClippy": "PASS",
+        "nativeAuthorizationAvailabilityProjectionTest": "PASS",
+        "authorizationThenMetadata": "PASS: pending metadata; metadata failure/cancel/expiry preserve authorization; execution remains false",
+        "safeDiagnostics": "enum/numeric only; max128 files/8MiB allocation cap; per file128records x512bytes; create_new0600; stream failures recorded"
+      },
+      "nativeSources": {
+        "src-tauri/migrations/chat/0033_market_provider_operations.sql": "d55e3b6da74d757819c09380354169ba0a2fab7fe54df16434588d6269cd445f",
+        "src-tauri/src/chat/connectors/provider.rs": "bc35898f24df9f9f191dc9391318b179aff9f797b7ec3b3f2a4ad3a93b13d234",
+        "src-tauri/src/chat/connectors/store.rs": "aa58bb85901e110aa6c2ff687ed6a42511b980948122d85e67837bf487ebbe06",
+        "src-tauri/src/chat/connectors/mod.rs": "2eacc913afb51a553c465404b112ebfafdae96ddf3f3e3456ff2b1d76ef171d9"
+      }
+    },
+    {
+      "productArtifact": {
+        "schemaVersion": 2,
+        "candidateOnly": true,
+        "binary": "/Users/jack/Downloads/Personal_Info/CrossBSD/yijie-connectors/bin/market-worker/0aacce914f889a822fcc9e3774af273d77eef03b66f1c782309b2d259c371cfa/yijie-mcp-worker",
+        "sha256": "0aacce914f889a822fcc9e3774af273d77eef03b66f1c782309b2d259c371cfa",
+        "sizeBytes": 77025152,
+        "codexSource": "7fd463bcef07f37b0211acd9f62b9f93ea0a4b12",
+        "externalCallsEnabled": true,
+        "qualificationOnly": false,
+        "providerProfile": "tushare-daily-v1"
+      },
+      "sources": {
+        "worker/Cargo.toml": "82f4c66576077f92c9fb6e60776284cae8ab62409f47c26647fd0b43dd98153c",
+        "worker/Cargo.lock": "7cb54a1d617aa344a15c6a9ad13fc4fe1a74d49d5c178373c31f70c7095fe468",
+        "worker/source.lock.json": "e1e11408a149f9e796f4f1a492f59953313217ede5733739845a022eb069ac59",
+        "worker/src/main.rs": "6f684494b9b4a2443dfee79c9fc0d7314bda1fc1aeddb52159e9a23baf18930d",
+        "worker/src/broker.rs": "e6830af71b47275c2c4d031a4dd0b126069e9d3ed476869b705ac4d74fb7687e",
+        "worker/src/gateway.rs": "2485b1e845ad39ccf9671a48dc2d48492b745a0b69aa564fb5ee448fe343e56b",
+        "worker/src/providers.rs": "3179d3f0499356837dae0f93af0575ec39cf18e6da97965157baa6546abc4ca0",
+        "worker/src/tushare_oauth.rs": "cc50f3520554ab576993735a24459121a56cb0eb7dea1da5d9931e5395fd18a7",
+        "worker/src/native_library.rs": "2cdfcbc6e75a2b38382ffc6206b94bd2f285837a26f1f9b94b8bcbd3ac8f5b3b",
+        "worker/src/provider_generated.rs": "6d2e5a6b291d3bbb002b48dd5fdea754637859547210c157f31089854132d637",
+        "worker/src/broker_generated.rs": "72fef5ddbb940e80cb26f5f61a1611f51d7b9b402e67f2b8a9dba10c2094d889",
+        "api/market-provider.candidate.json": "48529c828e88c0657cb0ac8918b208c90ba328d5428bb716348044b1ce35d0f0",
+        "api/market-broker-control.candidate.json": "af03e951a718bfa11331d2698a4e01486487babb35e8a47485002063169024cb",
+        "scripts/build-market-worker.sh": "68ec82db3c1f0054d5c79623ab60beba4d125eb1a371e9f97821680022122e79",
+        "worker/src/generated.rs": "85aaa479e6f053ba7094e4d77cfeff28e6244e9012b4ba27094d129444ba5e40",
+        "catalog/market-catalog.v1.json": "e1d480025ba6ed3a2fe1f317faad5f94defcd53799781d851feb029514b884a1",
+        "worker/src/daily.rs": "1576ee8a03398e028e0bf276ce56123574bf86df49cae43db2054a6f0b5c91f7",
+        "worker/src/selection_generated.rs": "902f396bac10b7ea109629a6cd6cca49cff393335a902455e31b7ced238c09c5",
+        "scripts/build-market-broker-qualification.sh": "b38c9458bf67d91cc5b220960fa86ab6f0241581b275ac4470ea0db164467692",
+        "internal/worker/worker.go": "d2dae8b0e61bde44a75f4a756fc9a793c467ad49fa8fc4fa6fe0c476b5b6a916",
+        "Makefile": "82119541f8f288d7dc9474583310b52915578c2cfc6f7d45e42aaed94b8631ce"
+      },
+      "checks": {
+        "workerDefaultTests": 37,
+        "workerBrokerQualificationFeatureTests": 44,
+        "clippy": "PASS",
+        "goStatusOwnerAndApp": "PASS",
+        "nativeProviderTransactionTests": 9,
+        "nativeConnectorTests": 35,
+        "nativeClippy": "PASS (control_contract report)",
+        "nativeAuthorizationAvailabilityProjectionTest": "PASS",
+        "authorizationThenMetadata": "PASS: pending metadata; metadata failure/cancel/expiry preserve authorization; execution remains false",
+        "safeDiagnostics": "enum/numeric only; max128 files/8MiB allocation cap; per file128records x512bytes; create_new0600; stream failures recorded",
+        "goRace": "PASS",
+        "goVet": "PASS",
+        "dailyInProcessClient": "PASS: official rmcp server and fixed Codex in-process client, ordinary synthetic quote, normal close, no account/network",
+        "dailyPolicy": "PASS: fresh full-schema digest and recursive forwarded-input shape gate; same-source input/output constants; close required, <=1 row; one consumed HTTP permit; original leases immutable",
+        "independentWorkerReview": "host_owner reviewed and fixes verified: immutable same-generation cref, atomic catalog snapshot, Auth waits previous refresh owner, outcome-neutral errors",
+        "featureClippy": "PASS",
+        "canonicalStatusOnlyNormalEOF": "PASS: actual 0aacce914f889a822fcc9e3774af273d77eef03b66f1c782309b2d259c371cfa, no provider network or vault IO",
+        "freshRealDailyProbe": "PASS: d2ed9a82-70da-4484-86cb-b5aa7fd9d74a; 39.322s; exact schema and recursive input review passed; no financial call or model turn"
+      },
+      "realExternalObservations": {
+        "totalHistoricalDcr": null,
+        "totalHistoricalTokenExchange": null,
+        "totalHistoricalKeyringAccess": null,
+        "totalHistoricalMetadataGet": null,
+        "financialToolsCall": null,
+        "reason": "The first UI attempt had no phase counters. Recorded OAuth discovery counts exclude auth-status preflight discovery, whose public GET requests are not separately instrumented. Two authorized Kimi turns were completed before pause; first owner-approved Gateway call returned isError and second was owner-rejected. Original safe diagnostics cannot distinguish actual financial HTTP send count; one read budget is conservatively consumed.",
+        "paidModelTurns": 2,
+        "approvedBusinessRequestsBudgetUsed": 1
+      },
+      "notExecuted": [
+        "financial sample and paid model turns until user budget confirmation and explicit per-call approval",
+        "full real daily D4",
+        "remaining 50 providers real verification",
+        "fault injection/force kill/attack fixtures (user prohibition)"
+      ],
+      "label": "Before approved 02:09/02:11 real turns and recovery build"
+    }
+  ],
+  "dailyCandidate": {
+    "profile": "tushare-daily-v1",
+    "toolName": "tushare_daily",
+    "upstreamToolName": "daily",
+    "referenceInputSchemaSha256": "ec10409543d1ae690de2b5da5893a0e69387cdd5a398f976fb04d187fc632ae1",
+    "requiredArguments": [
+      "ts_code",
+      "trade_date"
+    ],
+    "requiredNumericResultFields": [
+      "close"
+    ],
+    "firstAcceptanceSample": {
+      "ts_code": "000001.SZ",
+      "trade_date": "20260105"
+    },
+    "sampleIsNotProductConstant": true,
+    "financialToolsCall": 0,
+    "realProviderQualified": true,
+    "qualificationScope": "Fresh exact daily schema and retained client capability only; not financial tools/call validation, execution approval, or D4 completion.",
+    "paidModelTurns": 0,
+    "businessValidation": "NOT_RUN",
+    "D4": "NOT_COMPLETED"
+  },
+  "qualificationScope": "Fresh exact daily schema and retained client capability only; not financial tools/call validation, execution approval, or D4 completion.",
+  "freshRealDailyProbe": {
+    "operationId": "d2ed9a82-70da-4484-86cb-b5aa7fd9d74a",
+    "workerSha256": "0aacce914f889a822fcc9e3774af273d77eef03b66f1c782309b2d259c371cfa",
+    "safeDiagnosticPath": "/Users/jack/Library/Application Support/com.yijie.ai/demo-fast-model-candidate-v1/host/market-worker/library-home/diagnostics/provider/d2ed9a82-70da-4484-86cb-b5aa7fd9d74a.jsonl",
+    "safeDiagnosticSha256": "40b7cf9fceb54438271bf869651068b156036d92802a910e2ba97511c449f9c6",
+    "safeMetadataArtifactPath": "/Users/jack/Library/Application Support/com.yijie.ai/demo-fast-model-candidate-v1/host/market-worker/library-home/qualification/tushare/d2ed9a82-70da-4484-86cb-b5aa7fd9d74a.json",
+    "safeMetadataArtifactSha256": "a34e2a70e2a59b038e0daf1d86581b66cb9b2036e73336907586977239671962",
+    "startedAtUnixMs": 1791396212495,
+    "completedAtUnixMs": 1791396251817,
+    "durationMs": {
+      "initializeIncludingKeyringAndClientSetup": 38964,
+      "toolsList": 343,
+      "artifact": 15,
+      "total": 39322
+    },
+    "metadataInitialize": "PASS",
+    "toolsList": "PASS",
+    "metadataArtifact": "PASS",
+    "toolCount": 254,
+    "dailyNameMatches": 1,
+    "dailyInputSchemaSha256": "ec10409543d1ae690de2b5da5893a0e69387cdd5a398f976fb04d187fc632ae1",
+    "dailyPolicyReviewPassed": true,
+    "artifactIsExecutionAuthorization": false,
+    "artifactQualification": "not_qualified",
+    "artifactExecutionAvailable": false,
+    "uiObservation": "Root observed Tushare enabled and selected in the application; this is separate from the metadata artifact.",
+    "keyringReuseBasis": "Code path requires fixed Codex Keyring usable OAuth state and reloads the same owned alias; successful initialization passes the no-anonymous-POST HTTP guard. No AuthRun/DCR is started by Probe. Credentials were not read for this audit; Keyring/network/refresh sub-durations are not separately measured.",
+    "financialToolsCall": 0,
+    "paidModelTurns": 0,
+    "budgetConfirmation": "PENDING_USER",
+    "businessValidation": "NOT_RUN",
+    "D4": "NOT_COMPLETED"
+  },
+  "recoveryProbe": {
+    "operationId": "f930ad2c-967d-4f75-b721-f228fa06645a",
+    "artifactSha256": "d31203bf223564da8a50e7639636a951bbb57cf3b8c96e1f1b83228e3a33f963",
+    "initialize": "succeeded",
+    "toolsList": "succeeded",
+    "metadataArtifact": "succeeded",
+    "uiEnabled": true,
+    "newOAuth": false
+  },
+  "additionalBudget20261008": {
+    "authorizedModelTurns": 4,
+    "authorizedReadQueries": 2,
+    "usedModelTurns": 2,
+    "usedReadQueries": 1,
+    "remainingModelTurns": 2,
+    "remainingReadQueries": 1,
+    "sample": {
+      "ts_code": "000001.SZ",
+      "trade_date": "20260105"
+    }
+  },
+  "realDailyValidation": {
+    "workerSha256": "d31203bf223564da8a50e7639636a951bbb57cf3b8c96e1f1b83228e3a33f963",
+    "localSessionId": "01a1178e-53f2-7db2-9ed1-6f2bd58c8ec9",
+    "approved": {
+      "callRef": "71aa137b-8a34-4a84-900a-886d3cf1d055",
+      "evidence": "docs/tushare/evidence/2026-10-08-71aa137b-8a34-4a84-900a-886d3cf1d055.jsonl",
+      "httpSendEvents": 1,
+      "httpStatus": 200,
+      "normalize": "succeeded",
+      "observedResult": {
+        "ts_code": "000001.SZ",
+        "trade_date": "20260105",
+        "close": 11.5
+      }
+    },
+    "rejected": {
+      "callRef": "cad59a16-a283-44e7-96aa-b3a455af786a",
+      "evidence": "docs/tushare/evidence/2026-10-08-cad59a16-a283-44e7-96aa-b3a455af786a.jsonl",
+      "httpSendEvents": 0,
+      "admission": "rejected",
+      "modelExplainedNotSent": true
+    },
+    "historicalFirstFailureCause": "unknown; current successful daily request is not retrospective root-cause evidence"
+  }
+}

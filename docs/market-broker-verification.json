@@ -1,0 +1,127 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-10-07",
+  "status": "LOCAL_CANDIDATE_PASS",
+  "contractImpact": "breaking",
+  "release": false,
+  "contractAuthority": "../yijie-contracts/compatibility/market-broker-control/wire.schema.json",
+  "contractSemantics": "../yijie-contracts/compatibility/market-broker-control/control.json",
+  "productArtifact": {
+    "schemaVersion": 1,
+    "candidateOnly": true,
+    "binary": "/Users/jack/Downloads/Personal_Info/CrossBSD/yijie-connectors/bin/market-worker/f36db7e719175d4a60b7f0133776704cfe5d30faaf930f8981f75dff4322f415/yijie-mcp-worker",
+    "sha256": "f36db7e719175d4a60b7f0133776704cfe5d30faaf930f8981f75dff4322f415",
+    "sizeBytes": 48862256,
+    "codexSource": "7fd463bcef07f37b0211acd9f62b9f93ea0a4b12",
+    "externalCallsEnabled": false,
+    "qualificationOnly": false
+  },
+  "qualificationArtifact": {
+    "schemaVersion": 1,
+    "candidateOnly": true,
+    "qualificationOnly": true,
+    "binary": "/Users/jack/Downloads/Personal_Info/CrossBSD/yijie-connectors/bin/market-broker-qualification/68d4e5c98d3ce46fc9703133f20bb8c2dc3e697ef6792219ec182f2893fb4fea/market-broker-qualification",
+    "sha256": "68d4e5c98d3ce46fc9703133f20bb8c2dc3e697ef6792219ec182f2893fb4fea",
+    "sizeBytes": 17822608,
+    "codexSource": "7fd463bcef07f37b0211acd9f62b9f93ea0a4b12",
+    "externalCallsEnabled": false,
+    "sources": {
+      "worker/Cargo.toml": "7e8a8f5fe1d6a741df0d003e24fa29a2d3539ad4b8349b4e5158237df6ce6589",
+      "worker/Cargo.lock": "48c41f810e468d159574cf956d0c946cee3ec491af16ed64bc8592c367d4d74c",
+      "worker/src/broker.rs": "790e2b3e855f20358afc6e5de1461156f0672bd73c40e21c0522448a7c533e73",
+      "worker/src/gateway.rs": "b758843030fbe4e74e5fd95166eedc03ae72f9bb28b7ce24becc6fc5f7ded473",
+      "worker/src/broker_generated.rs": "2d0b9e88e66784b286cfedaa508005013224d1af6b1be8d6ed7aa3b1e194a9fb",
+      "worker/src/selection_generated.rs": "902f396bac10b7ea109629a6cd6cca49cff393335a902455e31b7ced238c09c5",
+      "worker/src/generated.rs": "175d0d58a5be5507133ddc7a0922d5f2a184400d4c6041d33cecf8dab494437a",
+      "worker/qualification/broker.rs": "152f1fe22123c6bb511a59a6f9f51104b6968f2466c6ee20692c201373039fc3",
+      "worker/source.lock.json": "e1e11408a149f9e796f4f1a492f59953313217ede5733739845a022eb069ac59"
+    }
+  },
+  "sourceSha256": {
+    "worker/Cargo.toml": "7e8a8f5fe1d6a741df0d003e24fa29a2d3539ad4b8349b4e5158237df6ce6589",
+    "worker/Cargo.lock": "48c41f810e468d159574cf956d0c946cee3ec491af16ed64bc8592c367d4d74c",
+    "worker/src/main.rs": "043de044c7a21779b622cb003fbd4b1c8bf8b321a74ea6c4091af93c4b89806f",
+    "worker/src/broker.rs": "790e2b3e855f20358afc6e5de1461156f0672bd73c40e21c0522448a7c533e73",
+    "worker/src/gateway.rs": "b758843030fbe4e74e5fd95166eedc03ae72f9bb28b7ce24becc6fc5f7ded473",
+    "worker/src/native_library.rs": "2cdfcbc6e75a2b38382ffc6206b94bd2f285837a26f1f9b94b8bcbd3ac8f5b3b",
+    "worker/src/broker_generated.rs": "2d0b9e88e66784b286cfedaa508005013224d1af6b1be8d6ed7aa3b1e194a9fb",
+    "worker/src/selection_generated.rs": "902f396bac10b7ea109629a6cd6cca49cff393335a902455e31b7ced238c09c5",
+    "worker/src/generated.rs": "175d0d58a5be5507133ddc7a0922d5f2a184400d4c6041d33cecf8dab494437a",
+    "worker/qualification/broker.rs": "152f1fe22123c6bb511a59a6f9f51104b6968f2466c6ee20692c201373039fc3",
+    "scripts/build-market-worker.sh": "93398acc36f2614995cfb2a9281fa26ab6bd459a82e78285ad937b6c8bb2c56a",
+    "scripts/build-market-broker-qualification.sh": "58d5fc5da4861be4b7a8e69c6d8c80c986d8474c2e16862a754ca957785724d2",
+    "internal/worker/worker.go": "4e0bab789ccb8e7be4e9ba88deeb9abe4929ac041c9829805d8055d6c75b7b98",
+    "Makefile": "4db92b7d8a85adb4f84f382368fbd855e9dedac24c1109526787148bc43188e3",
+    "api/market-broker-control.candidate.json": "01fa7975c9d4bf6ab1a208b631b412456c2afbed3eab54ec62b271868ea73b3d"
+  },
+  "checks": [
+    {
+      "command": "cargo test --offline --locked --manifest-path worker/Cargo.toml --features broker-qualification --bin yijie-mcp-worker",
+      "status": "PASS",
+      "tests": 19,
+      "brokerTests": 16,
+      "priorFoundationTests": 3
+    },
+    {
+      "command": "make worker-lint",
+      "status": "PASS"
+    },
+    {
+      "command": "cargo clippy --offline --locked --manifest-path worker/Cargo.toml --features broker-qualification --all-targets --no-deps -- -D warnings",
+      "status": "PASS"
+    },
+    {
+      "command": "YIJIE_MARKET_WORKER_TEST_MANIFEST=<canonical product manifest> go test -race -count=1 -v ./internal/worker ./internal/app",
+      "status": "PASS",
+      "workerTests": 3,
+      "appTests": 1,
+      "realCanonicalStatusChildNormalEOF": true
+    },
+    {
+      "command": "make lint",
+      "status": "PASS"
+    },
+    {
+      "command": "git diff --check",
+      "status": "PASS"
+    },
+    {
+      "command": "bash scripts/build-market-worker.sh / bash scripts/build-market-broker-qualification.sh",
+      "status": "PASS",
+      "contentAddressed": true,
+      "existingBinaryBytesPreserved": true
+    }
+  ],
+  "runtimeQualification": {
+    "record": "../yijie/docs/features/FEAT-157-desktop-market-connectors/evidence/broker-qualification/run-06/result.json",
+    "verification": "../yijie/docs/features/FEAT-157-desktop-market-connectors/evidence/broker-qualification/run-06/verification.json",
+    "status": "PASS",
+    "syntheticOnly": true,
+    "controlFramesValidated": 40,
+    "externalProviderCalls": 0,
+    "normalRuntimeExit": 0,
+    "normalWorkerExit": 0
+  },
+  "retainedFindings": [
+    "Initial thread/start has no rollout to cold-resume before the first turn; source changed to explicit null initial thread and later actual thread/turn binding, without a model warmup.",
+    "Synthetic lookup needed accurate read-only annotations; no real provider qualification or approval policy was broadened.",
+    "Official rmcp 1.8 service.rs:1168 moves request metadata to RequestContext.meta; adapter fixed against that primary source.",
+    "Ordinary cancellation is observed before/after registration, while waiting for bind, and again inside the admission lock; pending state is cleared before any read is admitted.",
+    "Receipt capacity remains bounded and does not evict; Host retires the generation by normal EOF if revoke/shutdown hits capacity.",
+    "Final Rust1.95 nested-if style correction was rebuilt; both binary hashes and byte content exactly equal the run-06-tested artifacts. Only source spelling changed."
+  ],
+  "limitations": [
+    "All51 real providers remain not_qualified; product nonempty selection is denied.",
+    "Native authority to Host product submit, installation readiness/generation, production approval/results and Runtime environment assembly remain unwired.",
+    "No real OAuth, Keyring, account, platform write, paid model or external provider was used.",
+    "No immutable release pin, commit, push, deployment or D4 claim.",
+    "Current128-call bound counts all retained call records including terminal tombstones; normal generation retirement is needed when exhausted."
+  ],
+  "safety": {
+    "forceKill": false,
+    "executableSubstitution": false,
+    "permissionDamage": false,
+    "attackFixtures": false,
+    "platformSecretsReadOrWritten": false
+  }
+}

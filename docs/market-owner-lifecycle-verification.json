@@ -1,0 +1,43 @@
+{
+  "date": "2026-10-07",
+  "scope": "FEAT-157 owner lifecycle fixes only",
+  "contractImpact": "none",
+  "reason": "In-process owner lifecycle and cancellation; generated control wire and provider behavior unchanged.",
+  "checks": [
+    {
+      "command": "YIJIE_MARKET_WORKER_TEST_MANIFEST=$PWD/bin/market-worker/current.json go test -race ./internal/worker ./internal/app",
+      "status": "PASS"
+    },
+    {
+      "command": "make lint",
+      "status": "PASS"
+    },
+    {
+      "command": "git diff --check",
+      "status": "PASS"
+    }
+  ],
+  "workerArtifact": {
+    "schemaVersion": 1,
+    "candidateOnly": true,
+    "binary": "/Users/jack/Downloads/Personal_Info/CrossBSD/yijie-connectors/bin/market-worker/a36c06495d66db644ef4ded692eb92763aa32853bf612990389235974b0d64c3/yijie-mcp-worker",
+    "sha256": "a36c06495d66db644ef4ded692eb92763aa32853bf612990389235974b0d64c3",
+    "sizeBytes": 32275440,
+    "codexSource": "7fd463bcef07f37b0211acd9f62b9f93ea0a4b12",
+    "externalCallsEnabled": false
+  },
+  "changes": [
+    "Cancelled queries do not start a worker; queue wait honors context cancellation.",
+    "Close atomically and permanently closes admission before awaiting normal EOF exit.",
+    "Completion is broadcast so Query and Close do not consume each other's child exit notification.",
+    "STOP_PENDING retains owner; no signal or kill fallback."
+  ],
+  "sourceFiles": {
+    "internal/worker/worker.go": "83f356d79548bd943837fa1a856fc0bb366eee348e0fbfc44475fe7e2f91a25d",
+    "internal/worker/worker_test.go": "233c321b9343526d869b02dcd8aa20ca3dd504292cd232667331aed8e913caf9",
+    "internal/app/market.go": "c127c77f5adae858007f524a042cc8b37fedfd18df822ce745a9a06804551ab6"
+  },
+  "externalCalls": 0,
+  "realCredentialsReadOrWritten": 0,
+  "forceKillOrExecutableFixture": 0
+}

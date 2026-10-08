@@ -1,0 +1,524 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.yijie.ai/market-provider/v1",
+  "$defs": {
+    "CanonicalId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "not": {
+        "const": "00000000-0000-0000-0000-000000000000"
+      }
+    },
+    "SelectionRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "installationId",
+        "revision",
+        "generation"
+      ],
+      "properties": {
+        "installationId": {
+          "$ref": "#/$defs/CanonicalId"
+        },
+        "revision": {
+          "$ref": "#/$defs/Revision"
+        },
+        "generation": {
+          "$ref": "#/$defs/Revision"
+        }
+      },
+      "description": "No service label or secret is accepted as authority. Native and Host revalidate exact scope, generation, ready state and connector.use before a versioned turn is admitted."
+    },
+    "ServiceId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$",
+      "description": "Original case-sensitive catalog serverName. Syntactic acceptance does not replace exact registry lookup."
+    },
+    "ScopeBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ownerUserId",
+        "tenantId",
+        "nativeProcessEpoch",
+        "authorizationRevision",
+        "authorizationExpiresAtUnixMs"
+      ],
+      "properties": {
+        "ownerUserId": {
+          "$ref": "#/$defs/CanonicalId"
+        },
+        "tenantId": {
+          "$ref": "#/$defs/CanonicalId"
+        },
+        "nativeProcessEpoch": {
+          "$ref": "#/$defs/CanonicalId"
+        },
+        "authorizationRevision": {
+          "$ref": "#/$defs/Revision"
+        },
+        "authorizationExpiresAtUnixMs": {
+          "$ref": "#/$defs/UnixMilliseconds"
+        }
+      },
+      "description": "Trusted Native authorization projection after Host verification; process epoch/revision are fences, not bearer credentials. Native adapter is not yet exposed to the versioned Host provider. A structurally valid JSON object alone does not authorize a product request."
+    },
+    "ProviderBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "reference",
+        "serviceId",
+        "credentialRef"
+      ],
+      "properties": {
+        "reference": {
+          "$ref": "#/$defs/SelectionRef"
+        },
+        "serviceId": {
+          "$ref": "#/$defs/ServiceId"
+        },
+        "credentialRef": {
+          "$ref": "#/$defs/CanonicalId"
+        }
+      },
+      "description": "Native-created non-secret credential reference for the exact installation generation and revision. Keyring alias derives stable owner/tenant/service/installation/generation/credentialRef, excludes Native process epoch and display revision. Native authoritative probe may advance only the same generation revision; never treat a ready flag or OAuth completion as tool qualification."
+    },
+    "ProviderPayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "operationId",
+        "hostInstanceId",
+        "scope",
+        "binding"
+      ],
+      "properties": {
+        "operationId": {
+          "$ref": "#/$defs/CanonicalId"
+        },
+        "hostInstanceId": {
+          "$ref": "#/$defs/CanonicalId"
+        },
+        "scope": {
+          "$ref": "#/$defs/ScopeBinding"
+        },
+        "binding": {
+          "$ref": "#/$defs/ProviderBinding"
+        }
+      },
+      "description": "Host-owned pipe only, forwarded from the trusted Native control after current connector credentials/manage permission validation. No platform token, URL configuration or secret input. begin/probe need live authority; cancel/forget are reducing actions and must remain possible when an old operation expires."
+    },
+    "OperationState": {
+      "type": "string",
+      "enum": [
+        "starting",
+        "awaiting_user",
+        "succeeded",
+        "failed",
+        "cancelled"
+      ]
+    },
+    "AuthorizationStatus": {
+      "type": "string",
+      "enum": [
+        "unknown",
+        "unauthorized",
+        "authorizing",
+        "authorized",
+        "error"
+      ]
+    },
+    "ConnectionStatus": {
+      "type": "string",
+      "enum": [
+        "disconnected",
+        "connecting",
+        "connected",
+        "error"
+      ]
+    },
+    "Qualification": {
+      "type": "string",
+      "enum": [
+        "not_qualified",
+        "qualified"
+      ],
+      "description": "Qualification covers only the compiled, versioned allowlist whose exact upstream input schema was freshly checked by this owned worker actor. It never grants installation enablement or a tool call, and cannot be restored from persisted OAuth/probe history."
+    },
+    "ErrorCode": {
+      "type": "string",
+      "enum": [
+        "invalid_request",
+        "authority_mismatch",
+        "scope_expired",
+        "binding_mismatch",
+        "not_found",
+        "request_conflict",
+        "capacity_exceeded",
+        "unknown_service",
+        "unsupported_auth",
+        "keyring_unavailable",
+        "metadata_unavailable",
+        "authorization_rejected",
+        "authorization_timeout",
+        "not_qualified",
+        "cleanup_pending",
+        "temporarily_unavailable"
+      ]
+    },
+    "ProviderStatus": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "operationId",
+        "hostInstanceId",
+        "scope",
+        "binding",
+        "operationState",
+        "authorizationStatus",
+        "connectionStatus",
+        "qualification",
+        "executionAvailable"
+      ],
+      "properties": {
+        "operationId": {
+          "$ref": "#/$defs/CanonicalId"
+        },
+        "hostInstanceId": {
+          "$ref": "#/$defs/CanonicalId"
+        },
+        "scope": {
+          "$ref": "#/$defs/ScopeBinding"
+        },
+        "binding": {
+          "$ref": "#/$defs/ProviderBinding"
+        },
+        "operationState": {
+          "$ref": "#/$defs/OperationState"
+        },
+        "authorizationStatus": {
+          "$ref": "#/$defs/AuthorizationStatus"
+        },
+        "connectionStatus": {
+          "$ref": "#/$defs/ConnectionStatus"
+        },
+        "qualification": {
+          "$ref": "#/$defs/Qualification"
+        },
+        "executionAvailable": {
+          "type": "boolean",
+          "description": "Observation of a still-live owned authenticated client and qualified schema for the exact provider binding/profile. True requires qualified, authorized and connected facts; it is not installation Enable or a reusable execution grant. Fresh Native scope may poll a completed original operation without network while owner/Host/Native epoch/authorization revision/ref/credentialRef remain unchanged. Pending attempt deadlines and old turn/call TTL never extend. Closure, revocation or binding changes invalidate the fact; SQL/history cannot restore it. Current Native desired Enable, selection/grant and per-call approval remain mandatory."
+        },
+        "authorizationUrl": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        },
+        "errorCode": {
+          "$ref": "#/$defs/ErrorCode"
+        }
+      },
+      "description": "Readiness is an observation from this worker actor. OAuth success alone is never qualification/enabled status. authorizationUrl appears only while awaiting_user, is an allowlisted provider public authorization URL with transient OAuth state/PKCE values, contains no platform token/userinfo, and must be opened only by Native system browser without logging or persistence. Bound credentials never leave Connectors. For non-OAuth credential setup, authorizationUrl may instead be the worker-owned http://127.0.0.1:<port>/credential/<canonical nonce> page, only while awaiting_user under the same operation/deadline. It accepts credentials directly within the Connectors boundary, never through Native/Host/renderer. Native may open only this exact loopback shape for a catalog credential-setup service. No query, userinfo, fragment, external assets or redirected form submission. It is ephemeral and never persisted."
+    },
+    "AuthBeginRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "requestId",
+        "method",
+        "payload"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "type": "integer",
+          "const": 1
+        },
+        "requestId": {
+          "$ref": "#/$defs/CanonicalId"
+        },
+        "method": {
+          "type": "string",
+          "const": "provider_auth_begin"
+        },
+        "payload": {
+          "$ref": "#/$defs/ProviderPayload"
+        }
+      }
+    },
+    "AuthBeginResponse": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "schemaVersion",
+        "requestId",
+        "data"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "type": "integer",
+          "const": 1
+        },
+        "requestId": {
+          "$ref": "#/$defs/CanonicalId"
+        },
+        "data": {
+          "$ref": "#/$defs/ProviderStatus"
+        }
+      }
+    },
+    "AuthPollRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "requestId",
+        "method",
+        "payload"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "type": "integer",
+          "const": 1
+        },
+        "requestId": {
+          "$ref": "#/$defs/CanonicalId"
+        },
+        "method": {
+          "type": "string",
+          "const": "provider_auth_poll"
+        },
+        "payload": {
+          "$ref": "#/$defs/ProviderPayload"
+        }
+      }
+    },
+    "AuthPollResponse": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "schemaVersion",
+        "requestId",
+        "data"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "type": "integer",
+          "const": 1
+        },
+        "requestId": {
+          "$ref": "#/$defs/CanonicalId"
+        },
+        "data": {
+          "$ref": "#/$defs/ProviderStatus"
+        }
+      }
+    },
+    "AuthCancelRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "requestId",
+        "method",
+        "payload"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "type": "integer",
+          "const": 1
+        },
+        "requestId": {
+          "$ref": "#/$defs/CanonicalId"
+        },
+        "method": {
+          "type": "string",
+          "const": "provider_auth_cancel"
+        },
+        "payload": {
+          "$ref": "#/$defs/ProviderPayload"
+        }
+      }
+    },
+    "AuthCancelResponse": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "schemaVersion",
+        "requestId",
+        "data"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "type": "integer",
+          "const": 1
+        },
+        "requestId": {
+          "$ref": "#/$defs/CanonicalId"
+        },
+        "data": {
+          "$ref": "#/$defs/ProviderStatus"
+        }
+      }
+    },
+    "ForgetRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "requestId",
+        "method",
+        "payload"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "type": "integer",
+          "const": 1
+        },
+        "requestId": {
+          "$ref": "#/$defs/CanonicalId"
+        },
+        "method": {
+          "type": "string",
+          "const": "provider_forget"
+        },
+        "payload": {
+          "$ref": "#/$defs/ProviderPayload"
+        }
+      }
+    },
+    "ForgetResponse": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "schemaVersion",
+        "requestId",
+        "data"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "type": "integer",
+          "const": 1
+        },
+        "requestId": {
+          "$ref": "#/$defs/CanonicalId"
+        },
+        "data": {
+          "$ref": "#/$defs/ProviderStatus"
+        }
+      }
+    },
+    "ProbeRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "requestId",
+        "method",
+        "payload"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "type": "integer",
+          "const": 1
+        },
+        "requestId": {
+          "$ref": "#/$defs/CanonicalId"
+        },
+        "method": {
+          "type": "string",
+          "const": "provider_probe"
+        },
+        "payload": {
+          "$ref": "#/$defs/ProviderPayload"
+        }
+      }
+    },
+    "ProbeResponse": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "schemaVersion",
+        "requestId",
+        "data"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "type": "integer",
+          "const": 1
+        },
+        "requestId": {
+          "$ref": "#/$defs/CanonicalId"
+        },
+        "data": {
+          "$ref": "#/$defs/ProviderStatus"
+        }
+      }
+    },
+    "Error": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "schemaVersion",
+        "code",
+        "retryable"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "type": "integer",
+          "const": 1
+        },
+        "requestId": {
+          "$ref": "#/$defs/CanonicalId"
+        },
+        "code": {
+          "$ref": "#/$defs/ErrorCode"
+        },
+        "retryable": {
+          "type": "boolean",
+          "const": false
+        }
+      }
+    },
+    "TushareDailyArguments": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ts_code",
+        "trade_date"
+      ],
+      "properties": {
+        "ts_code": {
+          "type": "string",
+          "minLength": 9,
+          "maxLength": 9,
+          "pattern": "^[0-9]{6}\\.(SH|SZ|BJ)$",
+          "description": "One six-digit A-share instrument code with SH, SZ or BJ suffix. This checks syntax, not current listing existence. No lists, separators or whitespace."
+        },
+        "trade_date": {
+          "type": "string",
+          "minLength": 8,
+          "maxLength": 8,
+          "pattern": "^(?:(?:[0-9]{3}[1-9]|[0-9]{2}[1-9][0-9]|[0-9][1-9][0-9]{2}|[1-9][0-9]{3})(?:(?:01|03|05|07|08|10|12)(?:0[1-9]|[12][0-9]|3[01])|(?:04|06|09|11)(?:0[1-9]|[12][0-9]|30)|02(?:0[1-9]|1[0-9]|2[0-8]))|(?:[0-9]{2}(?:0[48]|[2468][048]|[13579][26])|(?:0[48]|[2468][048]|[13579][26])00)0229)$",
+          "description": "Exactly one valid Gregorian date in YYYYMMDD, years 0001 through 9999, including leap-year validation. No date range."
+        }
+      },
+      "description": "Yijie-owned normalized input for the tushare-daily-v1 Gateway tool tushare_daily. Only these two strings are forwarded to exact upstream daily after validation and one-call approval; no fields, range, limit or other provider arguments are accepted. This is not the full upstream input schema."
+    },
+    "Revision": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 9007199254740991
+    },
+    "UnixMilliseconds": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 9007199254740991
+    }
+  }
+}

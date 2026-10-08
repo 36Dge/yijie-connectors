@@ -1,0 +1,497 @@
+{
+  "schemaVersion": 1,
+  "catalogRevision": 2,
+  "purpose": "non-executable qualification evidence only; no external target is accepted",
+  "providers": [
+    {
+      "serviceId": "cue",
+      "referenceEndpointOrCommand": "https://cue.humanmeetsai.com/mcp",
+      "referenceAuthType": "oauth",
+      "transport": "http",
+      "qualification": "not_run",
+      "activationAllowed": false,
+      "verifiedTargets": [],
+      "supportedTools": []
+    },
+    {
+      "serviceId": "baixiao-mcp",
+      "referenceEndpointOrCommand": "https://mcp.know-pa.cn/qw/mcp",
+      "referenceAuthType": "oauth",
+      "transport": "http",
+      "qualification": "not_run",
+      "activationAllowed": false,
+      "verifiedTargets": [],
+      "supportedTools": []
+    },
+    {
+      "serviceId": "dxe-mcp-server",
+      "referenceEndpointOrCommand": "https://api.zhongyifu.cn/mcp",
+      "referenceAuthType": "oauth",
+      "transport": "http",
+      "qualification": "not_run",
+      "activationAllowed": false,
+      "verifiedTargets": [],
+      "supportedTools": []
+    },
+    {
+      "serviceId": "Hologrow",
+      "referenceEndpointOrCommand": "https://mcp.hologrow.ai/mcp",
+      "referenceAuthType": "oauth",
+      "transport": "http",
+      "qualification": "not_run",
+      "activationAllowed": false,
+      "verifiedTargets": [],
+      "supportedTools": []
+    },
+    {
+      "serviceId": "X-Store",
+      "referenceEndpointOrCommand": "https://mcp-ai.coolstore.cn/mcp",
+      "referenceAuthType": "oauth",
+      "transport": "http",
+      "qualification": "not_run",
+      "activationAllowed": false,
+      "verifiedTargets": [],
+      "supportedTools": []
+    },
+    {
+      "serviceId": "yintai-open-platform",
+      "referenceEndpointOrCommand": "https://open.linkheer.com/mcp",
+      "referenceAuthType": "oauth",
+      "transport": "http",
+      "qualification": "not_run",
+      "activationAllowed": false,
+      "verifiedTargets": [],
+      "supportedTools": []
+    },
+    {
+      "serviceId": "yuyidata",
+      "referenceEndpointOrCommand": "https://service-api.yuyidata.com/gateway/ai-chat/mcp/v2/neosight",
+      "referenceAuthType": "oauth",
+      "transport": "http",
+      "qualification": "not_run",
+      "activationAllowed": false,
+      "verifiedTargets": [],
+      "supportedTools": []
+    },
+    {
+      "serviceId": "FTShare",
+      "referenceEndpointOrCommand": "https://market.ft.tech/gateway/mcp",
+      "referenceAuthType": "none",
+      "transport": "http",
+      "qualification": "not_run",
+      "activationAllowed": false,
+      "verifiedTargets": [],
+      "supportedTools": []
+    },
+    {
+      "serviceId": "yunting-consumerlens",
+      "referenceEndpointOrCommand": "https://open-mcp.sv.yuntingai.com/mcp",
+      "referenceAuthType": "oauth",
+      "transport": "http",
+      "qualification": "not_run",
+      "activationAllowed": false,
+      "verifiedTargets": [],
+      "supportedTools": []
+    },
+    {
+      "serviceId": "google-calendar",
+      "referenceEndpointOrCommand": "command: npx @cocal/google-calendar-mcp",
+      "referenceAuthType": "none",
+      "transport": "stdio",
+      "qualification": "not_run",
+      "activationAllowed": false,
+      "verifiedTargets": [],
+      "supportedTools": []
+    },
+    {
+      "serviceId": "google-maps",
+      "referenceEndpointOrCommand": "command: npx -y @modelcontextprotocol/server-google-maps",
+      "referenceAuthType": "none",
+      "transport": "stdio",
+      "qualification": "not_run",
+      "activationAllowed": false,
+      "verifiedTargets": [],
+      "supportedTools": []
+    },
+    {
+      "serviceId": "speechclaw",
+      "referenceEndpointOrCommand": "https://officeclaw.beta.duiopen.com/speechclaw/mcp",
+      "referenceAuthType": "oauth",
+      "transport": "http",
+      "qualification": "not_run",
+      "activationAllowed": false,
+      "verifiedTargets": [],
+      "supportedTools": []
+    },
+    {
+      "serviceId": "caoliao",
+      "referenceEndpointOrCommand": "https://open.cli.im/mcp",
+      "referenceAuthType": "oauth",
+      "transport": "http",
+      "qualification": "not_run",
+      "activationAllowed": false,
+      "verifiedTargets": [],
+      "supportedTools": []
+    },
+    {
+      "serviceId": "wavenote",
+      "referenceEndpointOrCommand": "https://mcp.wavenote.cn/mcp/audio",
+      "referenceAuthType": "oauth",
+      "transport": "http",
+      "qualification": "not_run",
+      "activationAllowed": false,
+      "verifiedTargets": [],
+      "supportedTools": []
+    },
+    {
+      "serviceId": "yida",
+      "referenceEndpointOrCommand": "https://www.aliwork.com/openyida/agent-api/mcp",
+      "referenceAuthType": "oauth",
+      "transport": "http",
+      "qualification": "not_run",
+      "activationAllowed": false,
+      "verifiedTargets": [],
+      "supportedTools": []
+    },
+    {
+      "serviceId": "qingflow",
+      "referenceEndpointOrCommand": "https://mcp.qingflow.com/mcp",
+      "referenceAuthType": "oauth",
+      "transport": "http",
+      "qualification": "not_run",
+      "activationAllowed": false,
+      "verifiedTargets": [],
+      "supportedTools": []
+    },
+    {
+      "serviceId": "uupt",
+      "referenceEndpointOrCommand": "https://api-open.uupt.com/mcp/order?source=qwenwork",
+      "referenceAuthType": "oauth",
+      "transport": "http",
+      "qualification": "not_run",
+      "activationAllowed": false,
+      "verifiedTargets": [],
+      "supportedTools": []
+    },
+    {
+      "serviceId": "fenbeitong",
+      "referenceEndpointOrCommand": "https://mcp.fenbeitong.com/mcp/source/qwenwork",
+      "referenceAuthType": "oauth",
+      "transport": "http",
+      "qualification": "not_run",
+      "activationAllowed": false,
+      "verifiedTargets": [],
+      "supportedTools": []
+    },
+    {
+      "serviceId": "bazhuayu",
+      "referenceEndpointOrCommand": "https://mcp.bazhuayu.com",
+      "referenceAuthType": "oauth",
+      "transport": "http",
+      "qualification": "not_run",
+      "activationAllowed": false,
+      "verifiedTargets": [],
+      "supportedTools": []
+    },
+    {
+      "serviceId": "camscanner-mcp",
+      "referenceEndpointOrCommand": "https://ai-tools.camscanner.com/mcp",
+      "referenceAuthType": "oauth",
+      "transport": "http",
+      "qualification": "not_run",
+      "activationAllowed": false,
+      "verifiedTargets": [],
+      "supportedTools": []
+    },
+    {
+      "serviceId": "todoist",
+      "referenceEndpointOrCommand": "https://ai.todoist.net/mcp",
+      "referenceAuthType": "oauth",
+      "transport": "http",
+      "qualification": "not_run",
+      "activationAllowed": false,
+      "verifiedTargets": [],
+      "supportedTools": []
+    },
+    {
+      "serviceId": "agentkey-qwen",
+      "referenceEndpointOrCommand": "https://api.agentkey.app/qwen/v1/mcp",
+      "referenceAuthType": "oauth",
+      "transport": "http",
+      "qualification": "not_run",
+      "activationAllowed": false,
+      "verifiedTargets": [],
+      "supportedTools": []
+    },
+    {
+      "serviceId": "huida-erp",
+      "referenceEndpointOrCommand": "https://mcp.3cuan.com/mcp",
+      "referenceAuthType": "oauth",
+      "transport": "http",
+      "qualification": "not_run",
+      "activationAllowed": false,
+      "verifiedTargets": [],
+      "supportedTools": []
+    },
+    {
+      "serviceId": "FastMoss",
+      "referenceEndpointOrCommand": "https://mcp.fastmoss.com/mcp",
+      "referenceAuthType": "oauth",
+      "transport": "http",
+      "qualification": "not_run",
+      "activationAllowed": false,
+      "verifiedTargets": [],
+      "supportedTools": []
+    },
+    {
+      "serviceId": "smartsalary",
+      "referenceEndpointOrCommand": "https://ai.smartsalary.cn/smartsalary-mcp/mcp",
+      "referenceAuthType": "oauth",
+      "transport": "http",
+      "qualification": "not_run",
+      "activationAllowed": false,
+      "verifiedTargets": [],
+      "supportedTools": []
+    },
+    {
+      "serviceId": "qixin_insight",
+      "referenceEndpointOrCommand": "https://mcp.qixin.com/mcp",
+      "referenceAuthType": "oauth",
+      "transport": "http",
+      "qualification": "not_run",
+      "activationAllowed": false,
+      "verifiedTargets": [],
+      "supportedTools": []
+    },
+    {
+      "serviceId": "zerone",
+      "referenceEndpointOrCommand": "https://ai.zerone.com.cn/mcp/pe",
+      "referenceAuthType": "none",
+      "transport": "http",
+      "qualification": "not_run",
+      "activationAllowed": false,
+      "verifiedTargets": [],
+      "supportedTools": []
+    },
+    {
+      "serviceId": "patent-analysis",
+      "referenceEndpointOrCommand": "https://connect.zhihuiya.com/e14e5f/logic-mcp",
+      "referenceAuthType": "oauth",
+      "transport": "http",
+      "qualification": "not_run",
+      "activationAllowed": false,
+      "verifiedTargets": [],
+      "supportedTools": []
+    },
+    {
+      "serviceId": "thinkingdata",
+      "referenceEndpointOrCommand": "https://ta-sdk-service.thinkingdata.cn/mcp",
+      "referenceAuthType": "none",
+      "transport": "http",
+      "qualification": "not_run",
+      "activationAllowed": false,
+      "verifiedTargets": [],
+      "supportedTools": []
+    },
+    {
+      "serviceId": "morningstar",
+      "referenceEndpointOrCommand": "https://mcp.morningstar.cn/mcp",
+      "referenceAuthType": "oauth",
+      "transport": "http",
+      "qualification": "not_run",
+      "activationAllowed": false,
+      "verifiedTargets": [],
+      "supportedTools": []
+    },
+    {
+      "serviceId": "dichanai-mcp",
+      "referenceEndpointOrCommand": "https://mcp.dichanai.com/mcp-server",
+      "referenceAuthType": "oauth",
+      "transport": "http",
+      "qualification": "not_run",
+      "activationAllowed": false,
+      "verifiedTargets": [],
+      "supportedTools": []
+    },
+    {
+      "serviceId": "Yingmi",
+      "referenceEndpointOrCommand": "https://stargate-partner.yingmi.com/mcp/v2/oauth/qieman",
+      "referenceAuthType": "oauth",
+      "transport": "http",
+      "qualification": "not_run",
+      "activationAllowed": false,
+      "verifiedTargets": [],
+      "supportedTools": []
+    },
+    {
+      "serviceId": "wind",
+      "referenceEndpointOrCommand": "https://mcp.wind.com.cn/vserver_qwenwork/mcp/",
+      "referenceAuthType": "oauth",
+      "transport": "http",
+      "qualification": "not_run",
+      "activationAllowed": false,
+      "verifiedTargets": [],
+      "supportedTools": []
+    },
+    {
+      "serviceId": "yidian-company",
+      "referenceEndpointOrCommand": "https://mcp.yidian.cn/mcp/company",
+      "referenceAuthType": "oauth",
+      "transport": "http",
+      "qualification": "not_run",
+      "activationAllowed": false,
+      "verifiedTargets": [],
+      "supportedTools": []
+    },
+    {
+      "serviceId": "investoday",
+      "referenceEndpointOrCommand": "https://data-api.investoday.net/data/mcp?source=qwen_work",
+      "referenceAuthType": "oauth",
+      "transport": "http",
+      "qualification": "not_run",
+      "activationAllowed": false,
+      "verifiedTargets": [],
+      "supportedTools": []
+    },
+    {
+      "serviceId": "dzh-mcp",
+      "referenceEndpointOrCommand": "https://mcpali.dzh.com.cn/mcp",
+      "referenceAuthType": "oauth",
+      "transport": "http",
+      "qualification": "not_run",
+      "activationAllowed": false,
+      "verifiedTargets": [],
+      "supportedTools": []
+    },
+    {
+      "serviceId": "Octoparse-data-hub",
+      "referenceEndpointOrCommand": "https://mcp-v2.bazhuayu.com",
+      "referenceAuthType": "oauth",
+      "transport": "http",
+      "qualification": "not_run",
+      "activationAllowed": false,
+      "verifiedTargets": [],
+      "supportedTools": []
+    },
+    {
+      "serviceId": "tushareMcp",
+      "referenceEndpointOrCommand": "https://api.tushare.pro/mcp/",
+      "referenceAuthType": "oauth",
+      "transport": "http",
+      "qualification": "not_run",
+      "activationAllowed": false,
+      "verifiedTargets": [],
+      "supportedTools": []
+    },
+    {
+      "serviceId": "eastmoney",
+      "referenceEndpointOrCommand": "https://mxapi.eastmoney.com/mxds/v2/mcp",
+      "referenceAuthType": "oauth",
+      "transport": "http",
+      "qualification": "not_run",
+      "activationAllowed": false,
+      "verifiedTargets": [],
+      "supportedTools": []
+    },
+    {
+      "serviceId": "gildata_finance_data_qwen",
+      "referenceEndpointOrCommand": "https://ft.gildata.com/ai-sso/mcp/qoderwork",
+      "referenceAuthType": "oauth",
+      "transport": "http",
+      "qualification": "not_run",
+      "activationAllowed": false,
+      "verifiedTargets": [],
+      "supportedTools": []
+    },
+    {
+      "serviceId": "fanruan-growth-advisor",
+      "referenceEndpointOrCommand": "https://www.mossdo.com/api/v1/mcp",
+      "referenceAuthType": "oauth",
+      "transport": "http",
+      "qualification": "not_run",
+      "activationAllowed": false,
+      "verifiedTargets": [],
+      "supportedTools": []
+    },
+    {
+      "serviceId": "weibo",
+      "referenceEndpointOrCommand": "https://cli.weibo.com/mcp",
+      "referenceAuthType": "oauth",
+      "transport": "http",
+      "qualification": "not_run",
+      "activationAllowed": false,
+      "verifiedTargets": [],
+      "supportedTools": []
+    },
+    {
+      "serviceId": "jinshuju",
+      "referenceEndpointOrCommand": "https://jinshuju.net/mcp",
+      "referenceAuthType": "oauth",
+      "transport": "http",
+      "qualification": "not_run",
+      "activationAllowed": false,
+      "verifiedTargets": [],
+      "supportedTools": []
+    },
+    {
+      "serviceId": "xiaoe-mcp",
+      "referenceEndpointOrCommand": "https://agent.xiaoe-tech.com/mcp",
+      "referenceAuthType": "oauth",
+      "transport": "http",
+      "qualification": "not_run",
+      "activationAllowed": false,
+      "verifiedTargets": [],
+      "supportedTools": []
+    },
+    {
+      "serviceId": "feisentry",
+      "referenceEndpointOrCommand": "https://mcp.feisentry.com.cn/mcp",
+      "referenceAuthType": "oauth",
+      "transport": "http",
+      "qualification": "not_run",
+      "activationAllowed": false,
+      "verifiedTargets": [],
+      "supportedTools": []
+    },
+    {
+      "serviceId": "xiaoliebian",
+      "referenceEndpointOrCommand": "https://w.xiaoliebian.com/api/demo-wechat-work/mcp/scrm",
+      "referenceAuthType": "oauth",
+      "transport": "http",
+      "qualification": "not_run",
+      "activationAllowed": false,
+      "verifiedTargets": [],
+      "supportedTools": []
+    },
+    {
+      "serviceId": "ysk_mcp_3f824505d1faf80bc60c052729620929",
+      "referenceEndpointOrCommand": "https://open.yscredit.com/ys-mcp/report",
+      "referenceAuthType": "oauth",
+      "transport": "http",
+      "qualification": "not_run",
+      "activationAllowed": false,
+      "verifiedTargets": [],
+      "supportedTools": []
+    },
+    {
+      "serviceId": "3chat",
+      "referenceEndpointOrCommand": "https://app.3chatai.cn/mcp",
+      "referenceAuthType": "oauth",
+      "transport": "http",
+      "qualification": "not_run",
+      "activationAllowed": false,
+      "verifiedTargets": [],
+      "supportedTools": []
+    },
+    {
+      "serviceId": "xiaoliebian-geo",
+      "referenceEndpointOrCommand": "https://w.xiaoliebian.com/api/xiaoliebian-geo/mcp/geo",
+      "referenceAuthType": "oauth",
+      "transport": "http",
+      "qualification": "not_run",
+      "activationAllowed": false,
+      "verifiedTargets": [],
+      "supportedTools": []
+    }
+  ]
+}

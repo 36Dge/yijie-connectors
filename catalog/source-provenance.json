@@ -1,0 +1,47 @@
+{
+  "feature": "FEAT-157",
+  "authority": "yijie-connectors/catalog/market-catalog.v1.json",
+  "referenceSource": "yijie/docs/features/FEAT-157-desktop-market-connectors/sources/catalog-51.json",
+  "referenceSha256": "498fb059f59bec42526086822c2e2e3100e16ce7ef744c4dcc3f98ba0932c85e",
+  "catalogRevision": 5,
+  "runtimeActivation": "All provider candidates require separate accepted endpoint, authentication, supported-tool and scope qualification; no source reference is executable.",
+  "scopeOverride": {
+    "date": "2026-10-08",
+    "authority": "Owner removed Taobao Flash Sale and Doukou Doctor; supplied official Agentic Engine documentation and resumed its implementation",
+    "excludedServiceIds": [
+      "taobao-flash-sale-retail",
+      "doukou-doctor"
+    ],
+    "activeServiceCount": 49,
+    "deferredServiceIds": [],
+    "currentImplementationScope": 49
+  },
+  "providerOverrides": [
+    {
+      "serviceId": "google-maps",
+      "source": "https://developers.google.com/maps/ai/grounding-lite",
+      "transport": "http",
+      "authentication": "X-Goog-Api-Key",
+      "asOf": "2026-10-08"
+    },
+    {
+      "serviceId": "google-calendar",
+      "source": "https://developers.google.com/workspace/calendar/api/guides/configure-mcp-server",
+      "transport": "http",
+      "authentication": "pre-registered OAuth client; Workspace Developer Preview required",
+      "asOf": "2026-10-08"
+    },
+    {
+      "serviceId": "thinkingdata",
+      "sources": [
+        "https://docs.thinkingai.cn/zh/manual/mcp",
+        "https://docs.thinkingai.cn/zh/manual/mcp_integration",
+        "https://www.thinkingai.cn/product/mcp-service/"
+      ],
+      "transport": "http",
+      "authentication": "explicit Header name/value copied from the AE exported remote configuration; no inferred Bearer or API_TOKEN-to-HTTP mapping",
+      "endpointAuthority": "original Owner reference endpoint retained; public docs do not independently confirm this endpoint authentication header",
+      "asOf": "2026-10-08"
+    }
+  ]
+}

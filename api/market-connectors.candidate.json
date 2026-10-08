@@ -1,0 +1,57 @@
+{
+  "schema_version": 1,
+  "contract_version": "0.2.0",
+  "feature": "FEAT-157",
+  "mode": "local_worktree_candidate",
+  "release": false,
+  "repository": "https://github.com/36Dge/yijie-contracts.git",
+  "base_commit": "1a213ac8383e95ac6ec69363937687904fa3591c",
+  "sources": [
+    {
+      "path": "openapi/market-connectors/market-connectors.yaml",
+      "sha256": "5e83116f339df103157270ec82818b2f03981d2ad8b04e4517c0162e3e1afb13"
+    },
+    {
+      "path": "scripts/generate-market-connectors.mjs",
+      "sha256": "2e8c063547a3619a4d0617846a8904be6e541f1dc938cd571b8c864ea2010e23"
+    },
+    {
+      "path": "scripts/sync-market-connectors.mjs",
+      "sha256": "ced59ca54a8280104767f66c036afd7bc1eba0ff03a54ac92c3e2dc8da214479"
+    },
+    {
+      "path": "pnpm-lock.yaml",
+      "sha256": "57eece158a0405a85ea9b8fd2c382af130e4248897b67af587878737bbf86313"
+    }
+  ],
+  "generated": [
+    {
+      "path": "sdks/go/market-connectors/types.gen.go",
+      "sha256": "96996d652c04850335f88fd429e51fa447f428a1cd401a1f2a9ba2723adae571"
+    },
+    {
+      "path": "sdks/rust/market-connectors/types.gen.rs",
+      "sha256": "f35b3de294c088669ee5d2cea879a3ab479d044b11687fb6da336cf7a1b65903"
+    },
+    {
+      "path": "sdks/typescript/src/domain/market-connectors.generated.ts",
+      "sha256": "d8d44a5cc86ac19379511f2d273a4b8d8a0168a2fa2f5554373f94f2867b9e73"
+    },
+    {
+      "path": "sdks/typescript/src/api/generated/market-connectors-validator.gen.js",
+      "sha256": "11af82c04e801ab125c4a7f75c0c6cfc4f103105774b84b41ce936ebf682643b"
+    },
+    {
+      "path": "sdks/typescript/src/api/generated/market-connectors-validator.gen.d.ts",
+      "sha256": "99041be31e0f341713219f18ee310162029dca8224231c59b98e3f0848f415d6"
+    },
+    {
+      "path": "sdks/jsonschema/market-connectors.schema.json",
+      "sha256": "f1588e55802cc1fd8f68f35eecf415371dc879320b0bbfbeab118e7867744d79"
+    }
+  ],
+  "generators": {
+    "types": "market-connectors source-local schema subset v1",
+    "validators": "Ajv 8.20.0 standalone ESM; no runtime dependency"
+  }
+}

@@ -1,0 +1,59 @@
+[package]
+name = "yijie-mcp-worker"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[features]
+stdio-qualification = []
+broker-qualification = []
+
+[[bin]]
+name = "market-broker-qualification"
+path = "qualification/broker.rs"
+required-features = ["broker-qualification"]
+
+[[bin]]
+name = "stdio-qualification-server"
+path = "qualification/stdio_server.rs"
+required-features = ["stdio-qualification"]
+
+[[test]]
+name = "stdio_bridge"
+path = "tests/stdio_bridge.rs"
+required-features = ["stdio-qualification"]
+
+[dependencies]
+codex-config = { path = "../../yijie-codex/codex-rs/config" }
+codex-exec-server = { path = "../../yijie-codex/codex-rs/exec-server" }
+codex-rmcp-client = { path = "../../yijie-codex/codex-rs/rmcp-client" }
+codex-keyring-store = { path = "../../yijie-codex/codex-rs/keyring-store" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.10"
+axum = "0.8"
+rmcp = { version = "=1.8.0", default-features = false, features = ["server", "auth", "elicitation", "transport-streamable-http-server"] }
+tokio = { version = "1", features = ["io-util", "macros", "net", "rt-multi-thread", "sync", "time"] }
+tokio-util = "0.7"
+uuid = { version = "1", features = ["v4"] }
+oauth2 = { version = "=5.0.0", default-features = false }
+url = "=2.5.8"
+jsonschema = { version = "=0.58.6", default-features = false }
+
+[dev-dependencies]
+futures = "0.3"
+tokio = { version = "1", features = ["io-util", "macros", "process", "rt-multi-thread", "sync", "time"] }
+
+# Preserve the fixed upstream workspace's relevant dependency overrides.
+[patch.crates-io]
+tokio-tungstenite = { git = "https://github.com/openai-oss-forks/tokio-tungstenite", rev = "0e5b2d73aa18dd9f0a50ee9ff199d5aef7594186" }
+tungstenite = { git = "https://github.com/openai-oss-forks/tungstenite-rs", rev = "4fffad30fe373adbdcffab9545e9e9bf4f2fc19f" }
+
+[patch."ssh://git@github.com/openai-oss-forks/tungstenite-rs.git"]
+tungstenite = { git = "https://github.com/openai-oss-forks/tungstenite-rs", rev = "4fffad30fe373adbdcffab9545e9e9bf4f2fc19f" }
+
+[profile.dev]
+debug = 0
+
+[profile.test]
+debug = 0

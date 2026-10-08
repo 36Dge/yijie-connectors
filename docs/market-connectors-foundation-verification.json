@@ -1,0 +1,79 @@
+{
+  "feature": "FEAT-157",
+  "date": "2026-10-07",
+  "scope": "local catalogue + actual fixed-library status-only worker; not external provider qualification",
+  "catalog": {
+    "path": "catalog/market-catalog.v1.json",
+    "sha256": "e1d480025ba6ed3a2fe1f317faad5f94defcd53799781d851feb029514b884a1",
+    "entries": 51,
+    "availableEntries": 0
+  },
+  "contractsCandidate": {
+    "path": "api/market-connectors.candidate.json",
+    "sha256": "ba3901f993fcada605eba30189479bf6a562e6e882cdd83b0a46ab8bd567fbdb",
+    "immutableRelease": false
+  },
+  "worker": {
+    "schemaVersion": 1,
+    "candidateOnly": true,
+    "binary": "/Users/jack/Downloads/Personal_Info/CrossBSD/yijie-connectors/bin/market-worker/a36c06495d66db644ef4ded692eb92763aa32853bf612990389235974b0d64c3/yijie-mcp-worker",
+    "sha256": "a36c06495d66db644ef4ded692eb92763aa32853bf612990389235974b0d64c3",
+    "sizeBytes": 32275440,
+    "codexSource": "7fd463bcef07f37b0211acd9f62b9f93ea0a4b12",
+    "externalCallsEnabled": false
+  },
+  "checks": [
+    {
+      "command": "python3 scripts/check-worker-source.py",
+      "status": "PASS"
+    },
+    {
+      "command": "make contract-check",
+      "status": "PASS"
+    },
+    {
+      "command": "make worker-lint",
+      "status": "PASS"
+    },
+    {
+      "command": "make worker-test",
+      "status": "PASS",
+      "tests": 3
+    },
+    {
+      "command": "make worker-build",
+      "status": "PASS"
+    },
+    {
+      "command": "YIJIE_MARKET_WORKER_TEST_MANIFEST=<project>/bin/market-worker/current.json go test -race -cover ./...",
+      "status": "PASS",
+      "actualProcess": "built worker; cue and ordinary unknown-service requests, normal EOF"
+    },
+    {
+      "command": "make lint",
+      "status": "PASS"
+    },
+    {
+      "command": "git diff --check",
+      "status": "PASS"
+    }
+  ],
+  "earlierCorrections": [
+    "Initial compile needed std::io::Read import; fixed in worker source.",
+    "Contracts generator changed during development; resynchronized through canonical generator.",
+    "Generated optional-ID validation Clippy issue fixed by Contracts source generator; no consumer handwritten edit or lint suppression."
+  ],
+  "externalCalls": 0,
+  "oauthCalls": 0,
+  "credentialsReadOrWritten": 0,
+  "modelCalls": 0,
+  "forceKillOrAttackFixtures": 0,
+  "notRun": [
+    "Actual Keychain credential storage and OAuth browser/callback",
+    "Real external HTTP MCP or stdio providers",
+    "Public authenticated management API and Native wiring",
+    "Gateway turn ability and approval binding",
+    "All 51 real service qualification",
+    "Packaging signing/release/production activation"
+  ]
+}

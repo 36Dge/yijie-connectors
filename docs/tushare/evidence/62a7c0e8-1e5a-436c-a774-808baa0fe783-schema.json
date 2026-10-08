@@ -1,0 +1,62 @@
+{
+  "dailyCandidate": {
+    "inputSchemaSha256": "ec10409543d1ae690de2b5da5893a0e69387cdd5a398f976fb04d187fc632ae1",
+    "name": "daily",
+    "structure": {
+      "properties": {
+        "end_date": {
+          "constraintReviewRequired": false,
+          "types": [
+            "integer",
+            "string"
+          ]
+        },
+        "fields": {
+          "constraintReviewRequired": true,
+          "types": [
+            "array"
+          ]
+        },
+        "start_date": {
+          "constraintReviewRequired": false,
+          "types": [
+            "integer",
+            "string"
+          ]
+        },
+        "trade_date": {
+          "constraintReviewRequired": false,
+          "types": [
+            "integer",
+            "string"
+          ]
+        },
+        "ts_code": {
+          "constraintReviewRequired": false,
+          "types": [
+            "integer",
+            "string"
+          ]
+        }
+      },
+      "requiredKnownFields": [],
+      "topLevelConstraintReviewRequired": false,
+      "types": [
+        "object"
+      ],
+      "unknownPropertyCount": 0,
+      "unknownRequiredCount": 0
+    }
+  },
+  "dailyNameMatches": 1,
+  "executionAvailable": false,
+  "financialToolCalls": 0,
+  "operationId": "62a7c0e8-1e5a-436c-a774-808baa0fe783",
+  "providerProfile": "tushare-oauth-v1",
+  "qualification": "not_qualified",
+  "schemaVersion": 1,
+  "serviceId": "tushareMcp",
+  "supplierTextOmitted": true,
+  "toolCatalogSha256": "c4b48192a01e1c6b153c85107a46ea7f0f0f6d1919fdf014e104a00aedc6ef0f",
+  "toolCount": 254
+}

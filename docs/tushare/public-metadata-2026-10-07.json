@@ -1,0 +1,105 @@
+{
+  "schemaVersion": 1,
+  "observedAt": "2026-10-07T13:36:40.039940+00:00",
+  "kind": "unauthenticated_public_metadata_only",
+  "credentialsRead": false,
+  "financialDataCalls": 0,
+  "requests": [
+    {
+      "url": "https://api.tushare.pro/mcp/",
+      "method": "GET",
+      "status": 401,
+      "headers": {
+        "Content-Type": "application/json",
+        "www-authenticate": "Bearer resource_metadata=\"https://api.tushare.pro/.well-known/oauth-protected-resource/mcp/\""
+      },
+      "bodyBytes": 26,
+      "bodySha256": "244af7930034d6790b9408b42fafec0ef8b0421f474fea29edf0629fc41aa643",
+      "body": {
+        "error": "missing_token"
+      }
+    },
+    {
+      "url": "https://api.tushare.pro/.well-known/oauth-protected-resource",
+      "method": "GET",
+      "status": 200,
+      "headers": {
+        "Content-Type": "application/json"
+      },
+      "bodyBytes": 91,
+      "bodySha256": "31984e3557af66f57dc3c69161aff9a8c341ceb70b8b18b1e1f09c3984db81c1",
+      "body": {
+        "resource": "https://api.tushare.pro/mcp/",
+        "authorization_servers": [
+          "https://tushare.pro"
+        ]
+      }
+    },
+    {
+      "url": "https://api.tushare.pro/.well-known/oauth-authorization-server",
+      "method": "GET",
+      "status": 200,
+      "headers": {
+        "Content-Type": "application/json; charset=utf-8"
+      },
+      "bodyBytes": 94,
+      "bodySha256": "58bbebfd1c0bd0ce26b80125fe572df6976d4e8357c493c25001dcacec51973a",
+      "body": {
+        "request_id": "",
+        "code": 40101,
+        "data": null,
+        "msg": "不是合格的json格式，EOF",
+        "detail": ""
+      }
+    },
+    {
+      "url": "https://api.tushare.pro/.well-known/oauth-protected-resource/mcp/",
+      "method": "GET",
+      "status": 200,
+      "headers": {
+        "Content-Type": "application/json"
+      },
+      "bodyBytes": 91,
+      "bodySha256": "31984e3557af66f57dc3c69161aff9a8c341ceb70b8b18b1e1f09c3984db81c1",
+      "body": {
+        "resource": "https://api.tushare.pro/mcp/",
+        "authorization_servers": [
+          "https://tushare.pro"
+        ]
+      }
+    },
+    {
+      "url": "https://tushare.pro/.well-known/oauth-authorization-server",
+      "method": "GET",
+      "status": 200,
+      "headers": {
+        "Content-Type": "application/json"
+      },
+      "bodyBytes": 432,
+      "bodySha256": "a90afcc83de1cea07eb90e5d2eef431e5161a46857ce58165588573db3309ecd",
+      "body": {
+        "issuer": "https://tushare.pro",
+        "authorization_endpoint": "https://tushare.pro/oauth/authorize",
+        "token_endpoint": "https://tushare.pro/oauth/token",
+        "registration_endpoint": "https://tushare.pro/oauth/register",
+        "token_endpoint_auth_methods_supported": [
+          "none"
+        ],
+        "response_types_supported": [
+          "code"
+        ],
+        "grant_types_supported": [
+          "authorization_code",
+          "refresh_token"
+        ],
+        "code_challenge_methods_supported": [
+          "S256"
+        ],
+        "scopes_supported": [
+          "mcp:tools"
+        ]
+      }
+    }
+  ],
+  "observedThrough": "2026-10-07T13:37:39.007708+00:00"
+}

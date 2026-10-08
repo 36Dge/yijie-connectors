@@ -1,0 +1,741 @@
+{
+  "catalogRevision": 5,
+  "catalog": [
+    {
+      "serviceId": "cue",
+      "serverName": "cue",
+      "displayName": "cue",
+      "categoryId": "knowledge_docs",
+      "categoryLabel": "知识文档",
+      "description": "知识文档应用连接；授权、支持工具与实际服务可用性待验证。",
+      "iconAssetId": "cue",
+      "transport": "http",
+      "authMode": "oauth",
+      "availability": "unverified",
+      "blockerCodes": [
+        "provider_onboarding_required"
+      ]
+    },
+    {
+      "serviceId": "baixiao-mcp",
+      "serverName": "baixiao-mcp",
+      "displayName": "百晓智能",
+      "categoryId": "knowledge_docs",
+      "categoryLabel": "知识文档",
+      "description": "知识文档应用连接；授权、支持工具与实际服务可用性待验证。",
+      "iconAssetId": "baixiao-mcp",
+      "transport": "http",
+      "authMode": "oauth",
+      "availability": "unverified",
+      "blockerCodes": [
+        "provider_onboarding_required"
+      ]
+    },
+    {
+      "serviceId": "dxe-mcp-server",
+      "serverName": "dxe-mcp-server",
+      "displayName": "单小二",
+      "categoryId": "ecommerce_retail",
+      "categoryLabel": "电商零售",
+      "description": "电商零售应用连接；授权、支持工具与实际服务可用性待验证。",
+      "iconAssetId": "dxe-mcp-server",
+      "transport": "http",
+      "authMode": "oauth",
+      "availability": "unverified",
+      "blockerCodes": [
+        "provider_onboarding_required"
+      ]
+    },
+    {
+      "serviceId": "Hologrow",
+      "serverName": "Hologrow",
+      "displayName": "Hologrow",
+      "categoryId": "ecommerce_retail",
+      "categoryLabel": "电商零售",
+      "description": "电商零售应用连接；授权、支持工具与实际服务可用性待验证。",
+      "iconAssetId": "Hologrow",
+      "transport": "http",
+      "authMode": "oauth",
+      "availability": "unverified",
+      "blockerCodes": [
+        "provider_onboarding_required"
+      ]
+    },
+    {
+      "serviceId": "X-Store",
+      "serverName": "X-Store",
+      "displayName": "好多店",
+      "categoryId": "ecommerce_retail",
+      "categoryLabel": "电商零售",
+      "description": "电商零售应用连接；授权、支持工具与实际服务可用性待验证。",
+      "iconAssetId": "X-Store",
+      "transport": "http",
+      "authMode": "oauth",
+      "availability": "unverified",
+      "blockerCodes": [
+        "provider_onboarding_required"
+      ]
+    },
+    {
+      "serviceId": "yintai-open-platform",
+      "serverName": "yintai-open-platform",
+      "displayName": "银泰商业开放平台",
+      "categoryId": "ecommerce_retail",
+      "categoryLabel": "电商零售",
+      "description": "电商零售应用连接；授权、支持工具与实际服务可用性待验证。",
+      "iconAssetId": "yintai-open-platform",
+      "transport": "http",
+      "authMode": "oauth",
+      "availability": "unverified",
+      "blockerCodes": [
+        "provider_onboarding_required"
+      ]
+    },
+    {
+      "serviceId": "yuyidata",
+      "serverName": "yuyidata",
+      "displayName": "语忆Neosight",
+      "categoryId": "ecommerce_retail",
+      "categoryLabel": "电商零售",
+      "description": "电商零售应用连接；授权、支持工具与实际服务可用性待验证。",
+      "iconAssetId": "yuyidata",
+      "transport": "http",
+      "authMode": "oauth",
+      "availability": "unverified",
+      "blockerCodes": [
+        "provider_onboarding_required"
+      ]
+    },
+    {
+      "serviceId": "FTShare",
+      "serverName": "FTShare",
+      "displayName": "FTShare 金融数据",
+      "categoryId": "data_analytics",
+      "categoryLabel": "数据分析",
+      "description": "金融数据应用连接；需配置服务 API Key，并完成实际接入验证。",
+      "iconAssetId": "FTShare",
+      "transport": "http",
+      "authMode": "api_key",
+      "availability": "needs_setup",
+      "blockerCodes": [
+        "not_configured",
+        "provider_onboarding_required"
+      ]
+    },
+    {
+      "serviceId": "yunting-consumerlens",
+      "serverName": "yunting-consumerlens",
+      "displayName": "云听ConsumerLens",
+      "categoryId": "data_analytics",
+      "categoryLabel": "数据分析",
+      "description": "数据分析应用连接；授权、支持工具与实际服务可用性待验证。",
+      "iconAssetId": "yunting-consumerlens",
+      "transport": "http",
+      "authMode": "oauth",
+      "availability": "unverified",
+      "blockerCodes": [
+        "provider_onboarding_required"
+      ]
+    },
+    {
+      "serviceId": "google-calendar",
+      "serverName": "google-calendar",
+      "displayName": "Google 日历",
+      "categoryId": "productivity",
+      "categoryLabel": "效率工具",
+      "description": "连接 Google 官方日历 MCP，查询日程与空闲时间。需加入 Workspace 开发者预览并配置自有 OAuth 应用。",
+      "iconAssetId": "google-calendar",
+      "transport": "http",
+      "authMode": "oauth",
+      "availability": "unverified",
+      "blockerCodes": [
+        "provider_onboarding_required"
+      ]
+    },
+    {
+      "serviceId": "google-maps",
+      "serverName": "google-maps",
+      "displayName": "Google 地图",
+      "categoryId": "productivity",
+      "categoryLabel": "效率工具",
+      "description": "连接 Google 官方地图 MCP，查询地点、天气和路线。需启用 Maps Grounding Lite 并配置 API Key。",
+      "iconAssetId": "google-maps",
+      "transport": "http",
+      "authMode": "api_key",
+      "availability": "unverified",
+      "blockerCodes": [
+        "provider_onboarding_required"
+      ]
+    },
+    {
+      "serviceId": "speechclaw",
+      "serverName": "speechclaw",
+      "displayName": "思必驰AI办公",
+      "categoryId": "productivity",
+      "categoryLabel": "效率工具",
+      "description": "效率工具应用连接；授权、支持工具与实际服务可用性待验证。",
+      "iconAssetId": "speechclaw",
+      "transport": "http",
+      "authMode": "oauth",
+      "availability": "unverified",
+      "blockerCodes": [
+        "provider_onboarding_required"
+      ]
+    },
+    {
+      "serviceId": "caoliao",
+      "serverName": "caoliao",
+      "displayName": "草料二维码",
+      "categoryId": "productivity",
+      "categoryLabel": "效率工具",
+      "description": "效率工具应用连接；授权、支持工具与实际服务可用性待验证。",
+      "iconAssetId": "caoliao",
+      "transport": "http",
+      "authMode": "oauth",
+      "availability": "unverified",
+      "blockerCodes": [
+        "provider_onboarding_required"
+      ]
+    },
+    {
+      "serviceId": "wavenote",
+      "serverName": "wavenote",
+      "displayName": "WaveNote",
+      "categoryId": "productivity",
+      "categoryLabel": "效率工具",
+      "description": "效率工具应用连接；授权、支持工具与实际服务可用性待验证。",
+      "iconAssetId": "wavenote",
+      "transport": "http",
+      "authMode": "oauth",
+      "availability": "unverified",
+      "blockerCodes": [
+        "provider_onboarding_required"
+      ]
+    },
+    {
+      "serviceId": "yida",
+      "serverName": "yida",
+      "displayName": "宜搭",
+      "categoryId": "productivity",
+      "categoryLabel": "效率工具",
+      "description": "效率工具应用连接；授权、支持工具与实际服务可用性待验证。",
+      "iconAssetId": "yida",
+      "transport": "http",
+      "authMode": "oauth",
+      "availability": "unverified",
+      "blockerCodes": [
+        "provider_onboarding_required"
+      ]
+    },
+    {
+      "serviceId": "qingflow",
+      "serverName": "qingflow",
+      "displayName": "轻流",
+      "categoryId": "productivity",
+      "categoryLabel": "效率工具",
+      "description": "效率工具应用连接；授权、支持工具与实际服务可用性待验证。",
+      "iconAssetId": "qingflow",
+      "transport": "http",
+      "authMode": "oauth",
+      "availability": "unverified",
+      "blockerCodes": [
+        "provider_onboarding_required"
+      ]
+    },
+    {
+      "serviceId": "uupt",
+      "serverName": "uupt",
+      "displayName": "UU跑腿",
+      "categoryId": "productivity",
+      "categoryLabel": "效率工具",
+      "description": "效率工具应用连接；授权、支持工具与实际服务可用性待验证。",
+      "iconAssetId": "uupt",
+      "transport": "http",
+      "authMode": "oauth",
+      "availability": "unverified",
+      "blockerCodes": [
+        "provider_onboarding_required"
+      ]
+    },
+    {
+      "serviceId": "fenbeitong",
+      "serverName": "fenbeitong",
+      "displayName": "分贝通",
+      "categoryId": "productivity",
+      "categoryLabel": "效率工具",
+      "description": "效率工具应用连接；授权、支持工具与实际服务可用性待验证。",
+      "iconAssetId": "fenbeitong",
+      "transport": "http",
+      "authMode": "oauth",
+      "availability": "unverified",
+      "blockerCodes": [
+        "provider_onboarding_required"
+      ]
+    },
+    {
+      "serviceId": "bazhuayu",
+      "serverName": "bazhuayu",
+      "displayName": "数阔八爪鱼",
+      "categoryId": "productivity",
+      "categoryLabel": "效率工具",
+      "description": "效率工具应用连接；授权、支持工具与实际服务可用性待验证。",
+      "iconAssetId": "bazhuayu",
+      "transport": "http",
+      "authMode": "oauth",
+      "availability": "unverified",
+      "blockerCodes": [
+        "provider_onboarding_required"
+      ]
+    },
+    {
+      "serviceId": "camscanner-mcp",
+      "serverName": "camscanner-mcp",
+      "displayName": "扫描全能王",
+      "categoryId": "productivity",
+      "categoryLabel": "效率工具",
+      "description": "效率工具应用连接；授权、支持工具与实际服务可用性待验证。",
+      "iconAssetId": "camscanner-mcp",
+      "transport": "http",
+      "authMode": "oauth",
+      "availability": "unverified",
+      "blockerCodes": [
+        "provider_onboarding_required"
+      ]
+    },
+    {
+      "serviceId": "todoist",
+      "serverName": "todoist",
+      "displayName": "Todoist",
+      "categoryId": "productivity",
+      "categoryLabel": "效率工具",
+      "description": "效率工具应用连接；授权、支持工具与实际服务可用性待验证。",
+      "iconAssetId": "todoist",
+      "transport": "http",
+      "authMode": "oauth",
+      "availability": "unverified",
+      "blockerCodes": [
+        "provider_onboarding_required"
+      ]
+    },
+    {
+      "serviceId": "agentkey-qwen",
+      "serverName": "agentkey-qwen",
+      "displayName": "Agentkey",
+      "categoryId": "productivity",
+      "categoryLabel": "效率工具",
+      "description": "效率工具应用连接；授权、支持工具与实际服务可用性待验证。",
+      "iconAssetId": "agentkey-qwen",
+      "transport": "http",
+      "authMode": "oauth",
+      "availability": "unverified",
+      "blockerCodes": [
+        "provider_onboarding_required"
+      ]
+    },
+    {
+      "serviceId": "huida-erp",
+      "serverName": "huida-erp",
+      "displayName": "惠搭ERP",
+      "categoryId": "productivity",
+      "categoryLabel": "效率工具",
+      "description": "效率工具应用连接；授权、支持工具与实际服务可用性待验证。",
+      "iconAssetId": "huida-erp",
+      "transport": "http",
+      "authMode": "oauth",
+      "availability": "unverified",
+      "blockerCodes": [
+        "provider_onboarding_required"
+      ]
+    },
+    {
+      "serviceId": "FastMoss",
+      "serverName": "FastMoss",
+      "displayName": "FastMoss",
+      "categoryId": "industry_data",
+      "categoryLabel": "行业数据",
+      "description": "行业数据应用连接；授权、支持工具与实际服务可用性待验证。",
+      "iconAssetId": "FastMoss",
+      "transport": "http",
+      "authMode": "oauth",
+      "availability": "unverified",
+      "blockerCodes": [
+        "provider_onboarding_required"
+      ]
+    },
+    {
+      "serviceId": "smartsalary",
+      "serverName": "smartsalary",
+      "displayName": "薪智·市场人才薪酬数据",
+      "categoryId": "industry_data",
+      "categoryLabel": "行业数据",
+      "description": "行业数据应用连接；授权、支持工具与实际服务可用性待验证。",
+      "iconAssetId": "smartsalary",
+      "transport": "http",
+      "authMode": "oauth",
+      "availability": "unverified",
+      "blockerCodes": [
+        "provider_onboarding_required"
+      ]
+    },
+    {
+      "serviceId": "qixin_insight",
+      "serverName": "qixin_insight",
+      "displayName": "启信慧眼",
+      "categoryId": "industry_data",
+      "categoryLabel": "行业数据",
+      "description": "行业数据应用连接；授权、支持工具与实际服务可用性待验证。",
+      "iconAssetId": "qixin_insight",
+      "transport": "http",
+      "authMode": "oauth",
+      "availability": "unverified",
+      "blockerCodes": [
+        "provider_onboarding_required"
+      ]
+    },
+    {
+      "serviceId": "zerone",
+      "serverName": "zerone",
+      "displayName": "执中·金融数据",
+      "categoryId": "industry_data",
+      "categoryLabel": "行业数据",
+      "description": "接入条件待补全；供应商授权或凭据协议尚未确认。",
+      "iconAssetId": "zerone",
+      "transport": "http",
+      "authMode": "provider_credentials",
+      "availability": "unverified",
+      "blockerCodes": [
+        "provider_onboarding_required"
+      ]
+    },
+    {
+      "serviceId": "patent-analysis",
+      "serverName": "patent-analysis",
+      "displayName": "智慧芽·专利分析",
+      "categoryId": "industry_data",
+      "categoryLabel": "行业数据",
+      "description": "行业数据应用连接；授权、支持工具与实际服务可用性待验证。",
+      "iconAssetId": "patent-analysis",
+      "transport": "http",
+      "authMode": "oauth",
+      "availability": "unverified",
+      "blockerCodes": [
+        "provider_onboarding_required"
+      ]
+    },
+    {
+      "serviceId": "thinkingdata",
+      "serverName": "thinkingdata",
+      "displayName": "Agentic Engine",
+      "categoryId": "industry_data",
+      "categoryLabel": "行业数据",
+      "description": "连接 Agentic Engine 的数据分析与实验能力。按 AE 导出的远程 HTTP 配置填写认证信息，实际工具与数据权限以账户授权为准。",
+      "iconAssetId": "thinkingdata",
+      "transport": "http",
+      "authMode": "provider_credentials",
+      "availability": "unverified",
+      "blockerCodes": [
+        "provider_onboarding_required"
+      ]
+    },
+    {
+      "serviceId": "morningstar",
+      "serverName": "morningstar",
+      "displayName": "晨星 Morningstar",
+      "categoryId": "industry_data",
+      "categoryLabel": "行业数据",
+      "description": "行业数据应用连接；授权、支持工具与实际服务可用性待验证。",
+      "iconAssetId": "morningstar",
+      "transport": "http",
+      "authMode": "oauth",
+      "availability": "unverified",
+      "blockerCodes": [
+        "provider_onboarding_required"
+      ]
+    },
+    {
+      "serviceId": "dichanai-mcp",
+      "serverName": "dichanai-mcp",
+      "displayName": "CRIC 克而瑞地产数据",
+      "categoryId": "industry_data",
+      "categoryLabel": "行业数据",
+      "description": "行业数据应用连接；授权、支持工具与实际服务可用性待验证。",
+      "iconAssetId": "dichanai-mcp",
+      "transport": "http",
+      "authMode": "oauth",
+      "availability": "unverified",
+      "blockerCodes": [
+        "provider_onboarding_required"
+      ]
+    },
+    {
+      "serviceId": "Yingmi",
+      "serverName": "Yingmi",
+      "displayName": "盈米基金",
+      "categoryId": "industry_data",
+      "categoryLabel": "行业数据",
+      "description": "行业数据应用连接；授权、支持工具与实际服务可用性待验证。",
+      "iconAssetId": "Yingmi",
+      "transport": "http",
+      "authMode": "oauth",
+      "availability": "unverified",
+      "blockerCodes": [
+        "provider_onboarding_required"
+      ]
+    },
+    {
+      "serviceId": "wind",
+      "serverName": "wind",
+      "displayName": "Wind Alice万得金融数据",
+      "categoryId": "industry_data",
+      "categoryLabel": "行业数据",
+      "description": "行业数据应用连接；授权、支持工具与实际服务可用性待验证。",
+      "iconAssetId": "wind",
+      "transport": "http",
+      "authMode": "oauth",
+      "availability": "unverified",
+      "blockerCodes": [
+        "provider_onboarding_required"
+      ]
+    },
+    {
+      "serviceId": "yidian-company",
+      "serverName": "yidian-company",
+      "displayName": "质数幻方·企业数据",
+      "categoryId": "industry_data",
+      "categoryLabel": "行业数据",
+      "description": "行业数据应用连接；授权、支持工具与实际服务可用性待验证。",
+      "iconAssetId": "yidian-company",
+      "transport": "http",
+      "authMode": "oauth",
+      "availability": "unverified",
+      "blockerCodes": [
+        "provider_onboarding_required"
+      ]
+    },
+    {
+      "serviceId": "investoday",
+      "serverName": "investoday",
+      "displayName": "今日投资·金融数据",
+      "categoryId": "industry_data",
+      "categoryLabel": "行业数据",
+      "description": "行业数据应用连接；授权、支持工具与实际服务可用性待验证。",
+      "iconAssetId": "investoday",
+      "transport": "http",
+      "authMode": "oauth",
+      "availability": "unverified",
+      "blockerCodes": [
+        "provider_onboarding_required"
+      ]
+    },
+    {
+      "serviceId": "dzh-mcp",
+      "serverName": "dzh-mcp",
+      "displayName": "大智慧",
+      "categoryId": "industry_data",
+      "categoryLabel": "行业数据",
+      "description": "行业数据应用连接；授权、支持工具与实际服务可用性待验证。",
+      "iconAssetId": "dzh-mcp",
+      "transport": "http",
+      "authMode": "oauth",
+      "availability": "unverified",
+      "blockerCodes": [
+        "provider_onboarding_required"
+      ]
+    },
+    {
+      "serviceId": "Octoparse-data-hub",
+      "serverName": "Octoparse-data-hub",
+      "displayName": "八爪鱼Data Hub",
+      "categoryId": "industry_data",
+      "categoryLabel": "行业数据",
+      "description": "行业数据应用连接；授权、支持工具与实际服务可用性待验证。",
+      "iconAssetId": "Octoparse-data-hub",
+      "transport": "http",
+      "authMode": "oauth",
+      "availability": "unverified",
+      "blockerCodes": [
+        "provider_onboarding_required"
+      ]
+    },
+    {
+      "serviceId": "tushareMcp",
+      "serverName": "tushareMcp",
+      "displayName": "Tushare·金融数据",
+      "categoryId": "industry_data",
+      "categoryLabel": "行业数据",
+      "description": "行业数据应用连接；授权、支持工具与实际服务可用性待验证。",
+      "iconAssetId": "tushareMcp",
+      "transport": "http",
+      "authMode": "oauth",
+      "availability": "unverified",
+      "blockerCodes": [
+        "provider_onboarding_required"
+      ]
+    },
+    {
+      "serviceId": "eastmoney",
+      "serverName": "eastmoney",
+      "displayName": "东方财富妙想MCP",
+      "categoryId": "industry_data",
+      "categoryLabel": "行业数据",
+      "description": "行业数据应用连接；授权、支持工具与实际服务可用性待验证。",
+      "iconAssetId": "eastmoney",
+      "transport": "http",
+      "authMode": "oauth",
+      "availability": "unverified",
+      "blockerCodes": [
+        "provider_onboarding_required"
+      ]
+    },
+    {
+      "serviceId": "gildata_finance_data_qwen",
+      "serverName": "gildata_finance_data_qwen",
+      "displayName": "恒生聚源金融问数",
+      "categoryId": "industry_data",
+      "categoryLabel": "行业数据",
+      "description": "行业数据应用连接；授权、支持工具与实际服务可用性待验证。",
+      "iconAssetId": "gildata_finance_data_qwen",
+      "transport": "http",
+      "authMode": "oauth",
+      "availability": "unverified",
+      "blockerCodes": [
+        "provider_onboarding_required"
+      ]
+    },
+    {
+      "serviceId": "fanruan-growth-advisor",
+      "serverName": "fanruan-growth-advisor",
+      "displayName": "MOSS增长谋士",
+      "categoryId": "marketing",
+      "categoryLabel": "市场营销",
+      "description": "市场营销应用连接；授权、支持工具与实际服务可用性待验证。",
+      "iconAssetId": "fanruan-growth-advisor",
+      "transport": "http",
+      "authMode": "oauth",
+      "availability": "unverified",
+      "blockerCodes": [
+        "provider_onboarding_required"
+      ]
+    },
+    {
+      "serviceId": "weibo",
+      "serverName": "weibo",
+      "displayName": "微博",
+      "categoryId": "marketing",
+      "categoryLabel": "市场营销",
+      "description": "市场营销应用连接；授权、支持工具与实际服务可用性待验证。",
+      "iconAssetId": "weibo",
+      "transport": "http",
+      "authMode": "oauth",
+      "availability": "unverified",
+      "blockerCodes": [
+        "provider_onboarding_required"
+      ]
+    },
+    {
+      "serviceId": "jinshuju",
+      "serverName": "jinshuju",
+      "displayName": "金数据",
+      "categoryId": "marketing",
+      "categoryLabel": "市场营销",
+      "description": "市场营销应用连接；授权、支持工具与实际服务可用性待验证。",
+      "iconAssetId": "jinshuju",
+      "transport": "http",
+      "authMode": "oauth",
+      "availability": "unverified",
+      "blockerCodes": [
+        "provider_onboarding_required"
+      ]
+    },
+    {
+      "serviceId": "xiaoe-mcp",
+      "serverName": "xiaoe-mcp",
+      "displayName": "小鹅通",
+      "categoryId": "marketing",
+      "categoryLabel": "市场营销",
+      "description": "市场营销应用连接；授权、支持工具与实际服务可用性待验证。",
+      "iconAssetId": "xiaoe-mcp",
+      "transport": "http",
+      "authMode": "oauth",
+      "availability": "unverified",
+      "blockerCodes": [
+        "provider_onboarding_required"
+      ]
+    },
+    {
+      "serviceId": "feisentry",
+      "serverName": "feisentry",
+      "displayName": "飞哨GEO",
+      "categoryId": "marketing",
+      "categoryLabel": "市场营销",
+      "description": "市场营销应用连接；授权、支持工具与实际服务可用性待验证。",
+      "iconAssetId": "feisentry",
+      "transport": "http",
+      "authMode": "oauth",
+      "availability": "unverified",
+      "blockerCodes": [
+        "provider_onboarding_required"
+      ]
+    },
+    {
+      "serviceId": "xiaoliebian",
+      "serverName": "xiaoliebian",
+      "displayName": "小裂变SCRM",
+      "categoryId": "marketing",
+      "categoryLabel": "市场营销",
+      "description": "市场营销应用连接；授权、支持工具与实际服务可用性待验证。",
+      "iconAssetId": "xiaoliebian",
+      "transport": "http",
+      "authMode": "oauth",
+      "availability": "unverified",
+      "blockerCodes": [
+        "provider_onboarding_required"
+      ]
+    },
+    {
+      "serviceId": "ysk_mcp_3f824505d1faf80bc60c052729620929",
+      "serverName": "ysk_mcp_3f824505d1faf80bc60c052729620929",
+      "displayName": "智客AI",
+      "categoryId": "marketing",
+      "categoryLabel": "市场营销",
+      "description": "市场营销应用连接；授权、支持工具与实际服务可用性待验证。",
+      "iconAssetId": "ysk_mcp_3f824505d1faf80bc60c052729620929",
+      "transport": "http",
+      "authMode": "oauth",
+      "availability": "unverified",
+      "blockerCodes": [
+        "provider_onboarding_required"
+      ]
+    },
+    {
+      "serviceId": "3chat",
+      "serverName": "3chat",
+      "displayName": "3Chat私域客户运营",
+      "categoryId": "marketing",
+      "categoryLabel": "市场营销",
+      "description": "市场营销应用连接；授权、支持工具与实际服务可用性待验证。",
+      "iconAssetId": "3chat",
+      "transport": "http",
+      "authMode": "oauth",
+      "availability": "unverified",
+      "blockerCodes": [
+        "provider_onboarding_required"
+      ]
+    },
+    {
+      "serviceId": "xiaoliebian-geo",
+      "serverName": "xiaoliebian-geo",
+      "displayName": "小裂变GEO",
+      "categoryId": "marketing",
+      "categoryLabel": "市场营销",
+      "description": "市场营销应用连接；授权、支持工具与实际服务可用性待验证。",
+      "iconAssetId": "xiaoliebian-geo",
+      "transport": "http",
+      "authMode": "oauth",
+      "availability": "unverified",
+      "blockerCodes": [
+        "provider_onboarding_required"
+      ]
+    }
+  ]
+}

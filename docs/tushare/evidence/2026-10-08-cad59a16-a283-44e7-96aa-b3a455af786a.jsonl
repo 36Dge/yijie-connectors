@@ -1,0 +1,2 @@
+{"event":"started","httpStatus":null,"safeFailure":null,"schemaVersion":1,"stage":"call_approval","unixMs":1791423144785}
+{"event":"rejected","httpStatus":null,"safeFailure":null,"schemaVersion":1,"stage":"call_admission","unixMs":1791423167823}
