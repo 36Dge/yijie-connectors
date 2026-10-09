@@ -323,6 +323,36 @@ pub(crate) mod tests {
     fn tool() -> Tool {
         Tool::new("search", "普通合成工具", serde_json::json!({"type":"object","properties":{"query":{"type":"string","minLength":1}},"required":["query"],"additionalProperties":false}).as_object().unwrap().clone())
     }
+    #[test]
+    fn cross_border_large_catalog_remains_complete_and_bounded() {
+        let catalog = |count: usize| {
+            (0..count)
+                .map(|index| {
+                    let mut value = tool();
+                    value.name = format!("catalog_query_{index}").into();
+                    value
+                })
+                .collect()
+        };
+        let discovered = definitions("lingxing", catalog(320)).unwrap();
+        assert_eq!(discovered.len(), 320);
+        assert!(discovered.iter().all(|d| {
+            d.review(
+                serde_json::json!({"query":"ordinary public catalog"})
+                    .as_object()
+                    .unwrap(),
+            )
+            .is_ok()
+        }));
+        assert_eq!(
+            definitions("lingxing", catalog(wire::GENERIC_MAX_TOOLS_PER_SERVICE))
+                .unwrap()
+                .len(),
+            wire::GENERIC_MAX_TOOLS_PER_SERVICE
+        );
+        assert!(definitions("lingxing", catalog(wire::GENERIC_MAX_TOOLS_PER_SERVICE + 1)).is_err());
+        assert!(discovered.len() <= wire::GENERIC_MAX_TOOLS_PER_SELECTION);
+    }
     use rmcp::{ServerHandler, ServiceExt};
     use std::sync::{
         Mutex,

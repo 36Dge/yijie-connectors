@@ -22,6 +22,8 @@ use tokio::sync::oneshot;
 use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
 
+mod presentation;
+
 const STORE: &str = "Yijie Market Credentials";
 #[derive(Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -92,7 +94,31 @@ fn validate(service: &str, name: &str, value: &str) -> Result<(), Failure> {
     {
         return Err(Failure::InvalidMetadata);
     }
+    if provider_registry::get(service).and_then(|spec| spec.credential_scheme.as_deref())
+        == Some("bearer")
+        && !value
+            .strip_prefix("Bearer ")
+            .is_some_and(|token| !token.is_empty() && !token.chars().any(char::is_whitespace))
+    {
+        return Err(Failure::InvalidMetadata);
+    }
     Ok(())
+}
+fn input_value(service: &str, scheme: &str, value: &str) -> Result<String, Failure> {
+    let fixed_bearer = provider_registry::get(service)
+        .and_then(|spec| spec.credential_scheme.as_deref())
+        == Some("bearer");
+    if fixed_bearer && scheme != "bearer" {
+        return Err(Failure::InvalidMetadata);
+    }
+    match scheme {
+        "raw" => Ok(value.to_owned()),
+        "bearer" => Ok(format!(
+            "Bearer {}",
+            value.strip_prefix("Bearer ").unwrap_or(value)
+        )),
+        _ => Err(Failure::InvalidMetadata),
+    }
 }
 pub fn load(alias: &str, service: &str) -> Result<Option<HeaderCredential>, Failure> {
     crate::tushare_oauth::validate_library_home()?;
@@ -169,7 +195,10 @@ fn reply(status: StatusCode, text: String) -> Response {
     let headers = response.headers_mut();
     headers.insert(header::CACHE_CONTROL, "no-store".parse().unwrap());
     headers.insert("content-security-policy","default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'".parse().unwrap());
-    headers.insert("referrer-policy", "no-referrer".parse().unwrap());
+    // Native browser POST navigations under no-referrer send Origin: null,
+    // which cannot pass our exact same-origin admission. Keep the Origin for
+    // this owned form while withholding referrers from every external site.
+    headers.insert("referrer-policy", "same-origin".parse().unwrap());
     headers.insert("x-content-type-options", "nosniff".parse().unwrap());
     response
 }
@@ -180,7 +209,13 @@ fn current(state: &FormState, headers: &HeaderMap) -> bool {
 }
 async fn page(State(state): State<FormState>, headers: HeaderMap) -> Response {
     if !current(&state, &headers) || state.sender.lock().expect("configuration").is_none() {
+        if state.service == "sorftime" {
+            return presentation::status(StatusCode::GONE, presentation::Status::Expired);
+        }
         return reply(StatusCode::GONE, "配置窗口已失效，请返回易界。".into());
+    }
+    if state.service == "sorftime" {
+        return presentation::form(&state, None);
     }
     if state.service == crate::google_calendar::SERVICE {
         return reply(
@@ -207,12 +242,20 @@ async fn page(State(state): State<FormState>, headers: HeaderMap) -> Response {
             escape(spec.resource.as_deref().unwrap_or_default())
         )
     } else {
-        String::new()
+        format!("<p>{}</p>{}", escape(spec.configuration_hint.as_deref().unwrap_or_default()),
+            spec.documentation_url.as_deref().map(|url| format!(r#"<p><a href="{}" target="_blank" rel="noopener noreferrer">查看官方接入说明</a></p>"#, escape(url))).unwrap_or_default())
+    };
+    let scheme_options = if spec.credential_scheme.as_deref() == Some("bearer") {
+        r#"<option value="bearer">API Key（自动添加 Bearer 前缀）</option>"#
+    } else if fixed {
+        r#"<option value="raw">直接使用凭据值</option>"#
+    } else {
+        r#"<option value="raw">直接使用凭据值</option><option value="bearer">Bearer Token</option>"#
     };
     reply(
         StatusCode::OK,
         format!(
-            r#"<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>易界连接器安全配置</title><style>body{{font:16px system-ui;max-width:600px;margin:10vh auto;padding:24px;color:#242424;background:#fff}}label{{display:block;margin:20px 0}}input,select,button{{box-sizing:border-box;width:100%;padding:12px;margin-top:8px;font:inherit}}button{{background:#d3f36b;border:1px solid #333;border-radius:8px}}small{{display:block;line-height:1.6}}</style><h1>配置 {title}</h1><p>凭据直接交给本机易界连接器并保存到系统钥匙串，不进入对话或模型。</p>{guidance}<form method="post" action="{path}" autocomplete="off"><input type="hidden" name="nonce" value="{nonce}"><label>{field_label}<input name="name" value="{name}" maxlength="128" required {locked} autocomplete="off"></label><small>请按服务方提供的接入文档填写。固定参数由易界提供，请直接填写凭据值。</small><label>凭据格式<select name="scheme"><option value="raw">直接使用凭据值</option>{bearer_option}</select></label><label>凭据<input name="value" type="password" maxlength="4096" required autocomplete="off"></label><button type="submit">保存到系统钥匙串</button></form><p>此窗口只保存配置，不代表连接或工具调用已成功。返回易界查看检查结果。</p></html>"#,
+            r#"<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>易界连接器安全配置</title><style>body{{font:16px system-ui;max-width:600px;margin:10vh auto;padding:24px;color:#242424;background:#fff}}label{{display:block;margin:20px 0}}input,select,button{{box-sizing:border-box;width:100%;padding:12px;margin-top:8px;font:inherit}}button{{background:#d3f36b;border:1px solid #333;border-radius:8px}}small{{display:block;line-height:1.6}}</style><h1>配置 {title}</h1><p>凭据直接交给本机易界连接器并保存到系统钥匙串，不进入对话或模型。</p>{guidance}<form method="post" action="{path}" autocomplete="off"><input type="hidden" name="nonce" value="{nonce}"><label>{field_label}<input name="name" value="{name}" maxlength="128" required {locked} autocomplete="off"></label><small>请按服务方提供的接入文档填写。固定参数由易界提供，请直接填写凭据值。</small><label>凭据格式<select name="scheme">{scheme_options}</select></label><label>凭据<input name="value" type="password" maxlength="4096" required autocomplete="off"></label><button type="submit">保存到系统钥匙串</button></form><p>此窗口只保存配置，不代表连接或工具调用已成功。返回易界查看检查结果。</p></html>"#,
             title = escape(&spec.display_name),
             path = state.path,
             nonce = state.nonce,
@@ -222,11 +265,7 @@ async fn page(State(state): State<FormState>, headers: HeaderMap) -> Response {
             } else {
                 "认证 Header 名称"
             },
-            bearer_option = if fixed {
-                ""
-            } else {
-                r#"<option value="bearer">Bearer Token</option>"#
-            },
+            scheme_options = scheme_options,
         ),
     )
 }
@@ -239,7 +278,23 @@ async fn submit(
         || headers.get(header::ORIGIN).and_then(|v| v.to_str().ok()) != Some(state.origin.as_str())
         || form.get("nonce") != Some(&state.nonce)
     {
+        if state.service == "sorftime" {
+            return presentation::status(StatusCode::FORBIDDEN, presentation::Status::Expired);
+        }
         return reply(StatusCode::FORBIDDEN, "配置请求已失效。".into());
+    }
+    if state.service == "sorftime" {
+        // The same single-use admission gates save and explicit user cancellation.
+        // Once a submission owns the sender, cancel cannot claim to undo its save.
+        let mut sender = state.sender.lock().expect("configuration");
+        if sender.is_none() {
+            return presentation::status(StatusCode::GONE, presentation::Status::Processed);
+        }
+        if form.get("action").is_some_and(|action| action == "cancel") {
+            sender.take();
+            state.cancellation.cancel();
+            return presentation::status(StatusCode::OK, presentation::Status::Cancelled);
+        }
     }
     let credential = if state.service == crate::google_calendar::SERVICE {
         let (Some(client_id), Some(client_secret)) =
@@ -260,14 +315,27 @@ async fn submit(
         let (Some(name), Some(value), Some(scheme)) =
             (form.get("name"), form.get("value"), form.get("scheme"))
         else {
+            if state.service == "sorftime" {
+                return presentation::form(&state, Some("请粘贴完整的 Account-SK。"));
+            }
             return reply(StatusCode::BAD_REQUEST, "请填写完整配置。".into());
         };
-        let value = match scheme.as_str() {
-            "raw" => value.clone(),
-            "bearer" => format!("Bearer {value}"),
-            _ => return reply(StatusCode::BAD_REQUEST, "凭据格式不可用。".into()),
+        let value = match input_value(&state.service, scheme, value) {
+            Ok(value) => value,
+            Err(_) => {
+                if state.service == "sorftime" {
+                    return presentation::form(&state, Some("请重新复制完整的 Account-SK。"));
+                }
+                return reply(StatusCode::BAD_REQUEST, "凭据格式不可用。".into());
+            }
         };
         if validate(&state.service, name, &value).is_err() {
+            if state.service == "sorftime" {
+                return presentation::form(
+                    &state,
+                    Some("Account-SK 格式不正确，请重新复制完整密钥。"),
+                );
+            }
             return reply(
                 StatusCode::BAD_REQUEST,
                 "Header或凭据格式不符合要求，请返回填写。".into(),
@@ -285,6 +353,12 @@ async fn submit(
         .expect("configuration")
         .take()
         .is_some_and(|tx| tx.send(credential).is_ok());
+    if state.service == "sorftime" {
+        if result {
+            return presentation::status(StatusCode::OK, presentation::Status::Submitted);
+        }
+        return presentation::status(StatusCode::GONE, presentation::Status::Processed);
+    }
     if result && state.service == crate::google_calendar::SERVICE {
         reply(
             StatusCode::OK,
@@ -457,6 +531,7 @@ mod tests {
         let response = page(State(state.clone()), headers.clone()).await;
         assert_eq!(response.status(), StatusCode::OK);
         assert_eq!(response.headers()[header::CACHE_CONTROL], "no-store");
+        assert_eq!(response.headers()["referrer-policy"], "same-origin");
         let response = submit(
             State(state.clone()),
             headers.clone(),
@@ -485,6 +560,178 @@ mod tests {
             StatusCode::GONE
         );
         assert_eq!(page(State(state), headers).await.status(), StatusCode::GONE);
+    }
+    #[tokio::test]
+    async fn sorftime_market_configuration_uses_owned_bearer_form_without_legacy_environment() {
+        let (mut state, rx, headers) = form_state(Duration::from_secs(60));
+        state.service = "sorftime".into();
+        let response = page(State(state.clone()), headers.clone()).await;
+        let bytes = axum::body::to_bytes(response.into_body(), 65536)
+            .await
+            .unwrap();
+        let html = String::from_utf8(bytes.to_vec()).unwrap();
+        assert!(html.contains("value=\"Authorization\""));
+        assert!(html.contains("<label for=\"account-sk\">Account-SK</label>"));
+        assert!(html.contains("https://open.sorftime.com/mcp"));
+        assert!(!html.contains("自动添加 Bearer"));
+        assert!(!html.contains("认证 Header"));
+        assert!(!html.contains("YIJIE_FEAT144"));
+        let mut form = ordinary_form(&state);
+        form.insert("name".into(), "Authorization".into());
+        form.insert("scheme".into(), "bearer".into());
+        form.insert("value".into(), "Bearer ordinary-local-value".into());
+        assert_eq!(
+            submit(State(state), headers, Form(form)).await.status(),
+            StatusCode::OK
+        );
+        let CredentialInput::Header(received) = rx.await.unwrap() else {
+            panic!("expected header")
+        };
+        assert_eq!(received.value, "Bearer ordinary-local-value");
+        assert_eq!(
+            received.resource_url("https://mcp.sorftime.com/").unwrap(),
+            "https://mcp.sorftime.com/"
+        );
+        assert!(input_value("sorftime", "raw", "ordinary-local-value").is_err());
+    }
+    fn sorftime_form(state: &FormState, value: &str) -> HashMap<String, String> {
+        let mut form = ordinary_form(state);
+        form.insert("name".into(), "Authorization".into());
+        form.insert("scheme".into(), "bearer".into());
+        form.insert("value".into(), value.into());
+        form
+    }
+    async fn body_text(response: Response) -> String {
+        String::from_utf8(
+            axum::body::to_bytes(response.into_body(), 131072)
+                .await
+                .unwrap()
+                .to_vec(),
+        )
+        .unwrap()
+    }
+    #[tokio::test]
+    async fn sorftime_empty_input_can_be_corrected_and_receipt_does_not_claim_connection() {
+        let (mut state, mut rx, headers) = form_state(Duration::from_secs(60));
+        state.service = "sorftime".into();
+        let invalid = submit(
+            State(state.clone()),
+            headers.clone(),
+            Form(sorftime_form(&state, "")),
+        )
+        .await;
+        assert_eq!(invalid.status(), StatusCode::BAD_REQUEST);
+        let html = body_text(invalid).await;
+        assert!(html.contains("aria-invalid=\"true\""));
+        assert!(html.contains("Account-SK 格式不正确"));
+        assert!(matches!(
+            rx.try_recv(),
+            Err(oneshot::error::TryRecvError::Empty)
+        ));
+        let response = submit(
+            State(state.clone()),
+            headers.clone(),
+            Form(sorftime_form(&state, "ordinary-local-value")),
+        )
+        .await;
+        assert_eq!(response.status(), StatusCode::OK);
+        let html = body_text(response).await;
+        assert!(html.contains("连接请求已提交"));
+        assert!(!html.contains("ordinary-local-value"));
+        assert!(!html.contains("已连接"));
+        assert!(!html.contains("已保存"));
+        assert!(rx.await.is_ok());
+        // A later cancel must not pretend to roll back a submitted key.
+        let mut cancel = sorftime_form(&state, "");
+        cancel.insert("action".into(), "cancel".into());
+        let response = submit(State(state), headers, Form(cancel)).await;
+        assert_eq!(response.status(), StatusCode::GONE);
+        assert!(!body_text(response).await.contains("未保存本次"));
+    }
+    #[tokio::test]
+    async fn sorftime_cancel_without_key_closes_admission_without_sending_credential() {
+        let (mut state, rx, headers) = form_state(Duration::from_secs(60));
+        state.service = "sorftime".into();
+        let form = [
+            ("nonce".into(), state.nonce.clone()),
+            ("action".into(), "cancel".into()),
+        ]
+        .into_iter()
+        .collect();
+        let response = submit(State(state.clone()), headers.clone(), Form(form)).await;
+        assert_eq!(response.status(), StatusCode::OK);
+        assert!(body_text(response).await.contains("已取消连接"));
+        assert!(state.cancellation.is_cancelled());
+        assert!(rx.await.is_err());
+        let response = submit(
+            State(state.clone()),
+            headers,
+            Form(sorftime_form(&state, "ordinary-local-value")),
+        )
+        .await;
+        assert_eq!(response.status(), StatusCode::FORBIDDEN);
+    }
+    #[tokio::test]
+    async fn sorftime_pages_keep_security_headers_and_render_all_normal_states() {
+        let (mut state, _rx, headers) = form_state(Duration::from_secs(60));
+        state.service = "sorftime".into();
+        let responses = [
+            ("form", page(State(state.clone()), headers.clone()).await),
+            (
+                "error",
+                presentation::form(&state, Some("请粘贴 Account-SK。")),
+            ),
+            (
+                "submitted",
+                presentation::status(StatusCode::OK, presentation::Status::Submitted),
+            ),
+            (
+                "cancelled",
+                presentation::status(StatusCode::OK, presentation::Status::Cancelled),
+            ),
+            (
+                "processed",
+                presentation::status(StatusCode::GONE, presentation::Status::Processed),
+            ),
+        ];
+        async fn inspect(name: &str, response: Response) {
+            assert_eq!(response.headers()[header::CACHE_CONTROL], "no-store");
+            assert_eq!(response.headers()["referrer-policy"], "same-origin");
+            let csp = response.headers()["content-security-policy"]
+                .to_str()
+                .unwrap()
+                .to_owned();
+            assert!(csp.contains("default-src 'none'"));
+            assert!(csp.contains("form-action 'self'"));
+            assert!(csp.contains("frame-ancestors 'none'"));
+            let nonce = csp
+                .split("script-src 'nonce-")
+                .nth(1)
+                .unwrap()
+                .split('\'')
+                .next()
+                .unwrap();
+            let html = body_text(response).await;
+            assert!(html.contains(&format!("<script nonce=\"{nonce}\">")));
+            assert!(!html.contains("<script src="));
+            assert!(!html.contains("<img src="));
+            assert!(!html.contains("<select"));
+            // Optional local visual QA export uses the production renderer and CSP.
+            // No listener, keyring, provider or model is opened by this test.
+            if let Ok(directory) = std::env::var("YIJIE_CREDENTIAL_PREVIEW_DIR") {
+                let directory = std::path::Path::new(&directory);
+                std::fs::create_dir_all(directory).unwrap();
+                std::fs::write(directory.join(format!("{name}.html")), html).unwrap();
+                std::fs::write(directory.join(format!("{name}.csp")), csp).unwrap();
+            }
+        }
+        for (name, response) in responses {
+            inspect(name, response).await;
+        }
+        state.deadline = Instant::now();
+        let response = page(State(state), headers).await;
+        assert_eq!(response.status(), StatusCode::GONE);
+        inspect("expired", response).await;
     }
     #[tokio::test]
     async fn agentic_configuration_uses_explicit_exported_header_without_inferred_scheme() {

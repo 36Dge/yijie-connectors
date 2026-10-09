@@ -36,6 +36,7 @@ pub const TUSHARE_ISSUER: &str = "https://tushare.pro";
 pub const TUSHARE_SCOPE: &str = "mcp:tools";
 const MAX_OAUTH_BYTES: usize = 1024 * 1024;
 const MAX_FLOW_TTL: Duration = Duration::from_secs(300);
+const WORKER_USER_AGENT: &str = concat!("yijie-mcp-worker/", env!("CARGO_PKG_VERSION"));
 #[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Failure {
@@ -64,6 +65,9 @@ pub enum Stage {
     TokenExchange,
     KeyringCommit,
     MetadataInitialize,
+    MetadataHttpAdmission,
+    MetadataHttpSend,
+    MetadataHttpResponse,
     MetadataToolsList,
     MetadataArtifact,
     Cleanup,
@@ -262,7 +266,11 @@ impl Target {
             });
         }
         let spec = crate::provider_registry::get(service)
-            .filter(|s| s.auth_mode == "oauth" || crate::credentials::supports(service))
+            .filter(|s| {
+                s.auth_mode == "oauth"
+                    || crate::credentials::supports(service)
+                    || crate::provider_registry::keyless(service)
+            })
             .ok_or(Failure::InvalidMetadata)?;
         let resource = spec.resource.clone().ok_or(Failure::InvalidMetadata)?;
         Ok(Self {
@@ -532,6 +540,7 @@ pub struct TushareHttpClient {
     credential: Option<crate::credentials::HeaderCredential>,
     target: Target,
     permit: Option<Arc<crate::daily::HttpPermit>>,
+    metadata_diagnostic: Diagnostic,
 }
 impl Default for TushareHttpClient {
     fn default() -> Self {
@@ -539,11 +548,12 @@ impl Default for TushareHttpClient {
             target: Target::official(),
             permit: None,
             credential: None,
+            metadata_diagnostic: Diagnostic::default(),
         }
     }
 }
 impl TushareHttpClient {
-    fn call_diagnostic(&self, request: &HttpRequestParams) -> Diagnostic {
+    fn request_diagnostic(&self, request: &HttpRequestParams) -> (Diagnostic, Stage, Stage, Stage) {
         if request.url == self.target.resource
             && request.method == "POST"
             && request
@@ -554,13 +564,24 @@ impl TushareHttpClient {
                     value.get("method").and_then(serde_json::Value::as_str) == Some("tools/call")
                 })
         {
-            return self
+            let diagnostic = self
                 .permit
                 .as_ref()
                 .map(|permit| permit.diagnostic())
                 .unwrap_or_default();
+            return (
+                diagnostic,
+                Stage::DailyHttpAdmission,
+                Stage::DailyHttpSend,
+                Stage::DailyHttpResponse,
+            );
         }
-        Diagnostic::default()
+        (
+            self.metadata_diagnostic.clone(),
+            Stage::MetadataHttpAdmission,
+            Stage::MetadataHttpSend,
+            Stage::MetadataHttpResponse,
+        )
     }
     fn admitted(
         &self,
@@ -700,6 +721,16 @@ impl TushareHttpClient {
         }
         request.redirect_policy = HttpRedirectPolicy::Stop;
         request.timeout_ms = Some(request.timeout_ms.unwrap_or(15_000).min(15_000));
+        // Identify the actual worker on every admitted MCP HTTP request.
+        // Sorftime's prior verified transport required a User-Agent; the fixed
+        // rmcp/Reqwest adapters do not supply one. Do not imitate another client.
+        request
+            .headers
+            .retain(|header| !header.name.eq_ignore_ascii_case("user-agent"));
+        request.headers.push(HttpHeader {
+            name: "User-Agent".into(),
+            value: WORKER_USER_AGENT.into(),
+        });
         Ok(request)
     }
 }
@@ -710,28 +741,18 @@ impl HttpClient for TushareHttpClient {
     ) -> Pin<Box<dyn Future<Output = Result<HttpRequestResponse, ExecServerError>> + Send + '_>>
     {
         Box::pin(async move {
-            let diagnostic = self.call_diagnostic(&request);
+            let (diagnostic, admission, send, response_stage) = self.request_diagnostic(&request);
             let request = self.admitted(request).inspect_err(|_| {
-                diagnostic.emit(Stage::DailyHttpAdmission, Event::PolicyRejected, None, None);
+                diagnostic.emit(admission, Event::PolicyRejected, None, None);
             })?;
-            diagnostic.emit(Stage::DailyHttpSend, Event::Request, None, None);
+            diagnostic.emit(send, Event::Request, None, None);
             let endpoint = request.url.clone();
             let method = request.method.clone();
             let response = ReqwestHttpClient.http_request(request).await.map_err(|_| {
-                diagnostic.emit(
-                    Stage::DailyHttpResponse,
-                    Event::TransportUnavailable,
-                    None,
-                    None,
-                );
+                diagnostic.emit(response_stage, Event::TransportUnavailable, None, None);
                 ExecServerError::HttpRequest("Tushare transport unavailable".into())
             })?;
-            diagnostic.emit(
-                Stage::DailyHttpResponse,
-                Event::Response,
-                Some(response.status),
-                None,
-            );
+            diagnostic.emit(response_stage, Event::Response, Some(response.status), None);
             if endpoint != self.target.resource
                 && (200..300).contains(&response.status)
                 && let (Some(permit), Ok(value)) = (
@@ -763,30 +784,20 @@ impl HttpClient for TushareHttpClient {
         >,
     > {
         Box::pin(async move {
-            let diagnostic = self.call_diagnostic(&request);
+            let (diagnostic, admission, send, response_stage) = self.request_diagnostic(&request);
             let request = self.admitted(request).inspect_err(|_| {
-                diagnostic.emit(Stage::DailyHttpAdmission, Event::PolicyRejected, None, None);
+                diagnostic.emit(admission, Event::PolicyRejected, None, None);
             })?;
-            diagnostic.emit(Stage::DailyHttpSend, Event::Request, None, None);
+            diagnostic.emit(send, Event::Request, None, None);
             let endpoint = request.url.clone();
             let result = ReqwestHttpClient
                 .http_request_stream(request)
                 .await
                 .map_err(|_| {
-                    diagnostic.emit(
-                        Stage::DailyHttpResponse,
-                        Event::TransportUnavailable,
-                        None,
-                        None,
-                    );
+                    diagnostic.emit(response_stage, Event::TransportUnavailable, None, None);
                     ExecServerError::HttpRequest("Tushare transport unavailable".into())
                 })?;
-            diagnostic.emit(
-                Stage::DailyHttpResponse,
-                Event::Response,
-                Some(result.0.status),
-                None,
-            );
+            diagnostic.emit(response_stage, Event::Response, Some(result.0.status), None);
             self.target
                 .observe_challenges(&endpoint, &result.0)
                 .map_err(|_| ExecServerError::HttpRequest("OAuth discovery unavailable".into()))?;
@@ -807,6 +818,14 @@ pub async fn connect_for_service(
     alias: &str,
     service: &str,
     permit: Option<Arc<crate::daily::HttpPermit>>,
+) -> Result<codex_rmcp_client::RmcpClient, Failure> {
+    connect_for_service_with_diagnostic(alias, service, permit, Diagnostic::default()).await
+}
+pub async fn connect_for_service_with_diagnostic(
+    alias: &str,
+    service: &str,
+    permit: Option<Arc<crate::daily::HttpPermit>>,
+    metadata_diagnostic: Diagnostic,
 ) -> Result<codex_rmcp_client::RmcpClient, Failure> {
     let mut target = Target::for_service(service)?;
     if service == crate::google_calendar::SERVICE {
@@ -838,6 +857,7 @@ pub async fn connect_for_service(
             permit,
             target,
             credential,
+            metadata_diagnostic,
         }),
         None,
     )
@@ -922,6 +942,9 @@ pub async fn keyring_readiness(alias: &str) -> Result<bool, Failure> {
     keyring_readiness_for(alias, "tushareMcp").await
 }
 pub async fn keyring_readiness_for(alias: &str, service: &str) -> Result<bool, Failure> {
+    if crate::provider_registry::keyless(service) {
+        return Ok(true); // No account credential; Enable must still discover tools.
+    }
     if service == crate::google_calendar::SERVICE && crate::google_calendar::load(alias)?.is_none()
     {
         return Ok(false);
@@ -943,6 +966,7 @@ pub async fn keyring_readiness_for(alias: &str, service: &str) -> Result<bool, F
             target,
             credential: None,
             permit: None,
+            metadata_diagnostic: Diagnostic::default(),
         }),
     )
     .await
@@ -953,6 +977,9 @@ pub fn forget_keyring(alias: &str) -> Result<(), Failure> {
     forget_keyring_resource(alias, TUSHARE_RESOURCE)
 }
 pub fn forget_for_service(alias: &str, service: &str) -> Result<(), Failure> {
+    if crate::provider_registry::keyless(service) {
+        return Ok(()); // Broker revocation/normal transport shutdown still run.
+    }
     if service == crate::google_calendar::SERVICE {
         crate::google_calendar::forget(alias)?;
     }
@@ -1299,7 +1326,11 @@ async fn run_flow(
                 AuthorizationSession::new(
                     manager,
                     &if target.policy.is_some() {
-                        vec![]
+                        crate::provider_registry::services()
+                            .iter()
+                            .find(|spec| spec.resource.as_deref() == Some(target.resource.as_str()))
+                            .map(|spec| spec.oauth_scopes.iter().map(String::as_str).collect())
+                            .unwrap_or_default()
                     } else {
                         vec![TUSHARE_SCOPE]
                     },
@@ -1489,6 +1520,147 @@ mod tests {
             .unwrap();
         assert_eq!(admitted.timeout_ms, Some(15_000));
     }
+    #[tokio::test]
+    async fn ordinary_http_metadata_sends_worker_identity_and_records_only_safe_status() {
+        use axum::{
+            Json, Router, extract::State, http::HeaderMap, response::IntoResponse, routing::post,
+        };
+        type Observed = Arc<Mutex<Vec<(String, bool, bool)>>>;
+        async fn rpc(
+            State(observed): State<Observed>,
+            headers: HeaderMap,
+            Json(body): Json<serde_json::Value>,
+        ) -> axum::response::Response {
+            let method = body["method"].as_str().unwrap().to_string();
+            observed.lock().unwrap().push((
+                method.clone(),
+                headers.get("user-agent").and_then(|v| v.to_str().ok()) == Some(WORKER_USER_AGENT),
+                headers.get("authorization").and_then(|v| v.to_str().ok())
+                    == Some("Bearer ordinary-local-key"),
+            ));
+            let result = match method.as_str() {
+                "initialize" => {
+                    serde_json::json!({"protocolVersion":body["params"]["protocolVersion"],"capabilities":{"tools":{}},"serverInfo":{"name":"ordinary-local-mcp","version":"1"}})
+                }
+                "tools/list" => serde_json::json!({"tools":[]}),
+                "notifications/initialized" => return StatusCode::NO_CONTENT.into_response(),
+                _ => panic!("only normal metadata expected"),
+            };
+            Json(serde_json::json!({"jsonrpc":"2.0","id":body["id"],"result":result}))
+                .into_response()
+        }
+        let observed: Observed = Arc::default();
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let resource = format!("http://{}/mcp", listener.local_addr().unwrap());
+        let stop = CancellationToken::new();
+        let stopped = stop.clone();
+        let server = Router::new()
+            .route("/mcp", post(rpc))
+            .with_state(observed.clone());
+        let task = tokio::spawn(async move {
+            axum::serve(listener, server)
+                .with_graceful_shutdown(stopped.cancelled_owned())
+                .await
+                .unwrap();
+        });
+        let path = std::env::temp_dir().join(format!(
+            "yijie-metadata-diagnostic-{}.jsonl",
+            Uuid::new_v4()
+        ));
+        let diagnostic = Diagnostic(Some(Arc::new(Mutex::new(DiagnosticFile {
+            file: std::fs::OpenOptions::new()
+                .write(true)
+                .create_new(true)
+                .open(&path)
+                .unwrap(),
+            count: 0,
+        }))));
+        let credential = serde_json::from_value(serde_json::json!({"serviceId":"sorftime","name":"Authorization","value":"Bearer ordinary-local-key"})).unwrap();
+        // Only the ordinary test owns this loopback target; product targets still
+        // come exclusively from the reviewed HTTPS registry and Keyring.
+        let client = codex_rmcp_client::RmcpClient::new_streamable_http_client(
+            "ordinary-local-metadata",
+            &resource,
+            None,
+            Some(HashMap::from([(
+                "Authorization".into(),
+                "Bearer ordinary-local-key".into(),
+            )])),
+            None,
+            OAuthCredentialsStoreMode::Keyring,
+            AuthKeyringBackendKind::Direct,
+            Arc::new(TushareHttpClient {
+                target: Target {
+                    resource: resource.clone(),
+                    issuer: String::new(),
+                    policy: None,
+                    google_client: None,
+                },
+                credential: Some(credential),
+                permit: None,
+                metadata_diagnostic: diagnostic.clone(),
+            }),
+            None,
+        )
+        .await
+        .unwrap();
+        client
+            .initialize(
+                rmcp::model::InitializeRequestParams::new(
+                    rmcp::model::ClientCapabilities::default(),
+                    rmcp::model::Implementation::new("ordinary-local-test", "1"),
+                ),
+                Some(Duration::from_secs(2)),
+                Box::new(|_, _| {
+                    Box::pin(async {
+                        Ok(codex_rmcp_client::ElicitationResponse {
+                            action: codex_rmcp_client::ElicitationAction::Decline,
+                            content: None,
+                            meta: None,
+                        })
+                    })
+                }),
+            )
+            .await
+            .unwrap();
+        assert!(
+            client
+                .list_tools(None, Some(Duration::from_secs(2)))
+                .await
+                .unwrap()
+                .tools
+                .is_empty()
+        );
+        client.shutdown().await;
+        drop(client);
+        stop.cancel();
+        tokio::time::timeout(Duration::from_secs(2), task)
+            .await
+            .unwrap()
+            .unwrap();
+        let records = observed.lock().unwrap();
+        assert!(records.iter().any(|r| r.0 == "initialize"));
+        assert!(records.iter().any(|r| r.0 == "tools/list"));
+        assert!(records.iter().all(|r| r.1 && r.2));
+        drop(records);
+        drop(diagnostic);
+        let log = std::fs::read_to_string(&path).unwrap();
+        std::fs::remove_file(path).unwrap();
+        assert!(!log.contains("ordinary-local-key"));
+        assert!(!log.contains(&resource));
+        assert!(log.lines().any(|line| {
+            let v: serde_json::Value = serde_json::from_str(line).unwrap();
+            v["stage"] == "metadata_http_response" && v["httpStatus"] == 200
+        }));
+        assert!(log.lines().all(|line| {
+            serde_json::from_str::<serde_json::Value>(line)
+                .unwrap()
+                .as_object()
+                .unwrap()
+                .len()
+                == 6
+        }));
+    }
     #[test]
     fn normal_zerone_query_is_injected_after_single_call_admission() {
         let credential:crate::credentials::HeaderCredential=serde_json::from_value(serde_json::json!({"serviceId":"zerone","name":"api_key","value":"ordinary-local-value"})).unwrap();
@@ -1497,6 +1669,7 @@ mod tests {
             credential: Some(credential),
             target: Target::for_service("zerone").unwrap(),
             permit: Some(permit.clone()),
+            metadata_diagnostic: Diagnostic::default(),
         };
         let args = serde_json::json!({"name":"普通合成企业"});
         permit.arm(
@@ -1518,7 +1691,9 @@ mod tests {
             admitted.url,
             "https://ai.zerone.com.cn/mcp/pe?api_key=ordinary-local-value"
         );
-        assert!(admitted.headers.is_empty());
+        assert_eq!(admitted.headers.len(), 1);
+        assert_eq!(admitted.headers[0].name, "User-Agent");
+        assert_eq!(admitted.headers[0].value, WORKER_USER_AGENT);
         assert_eq!(client.target.resource, "https://ai.zerone.com.cn/mcp/pe");
         assert_eq!(admitted.timeout_ms, Some(15_000));
         assert!(client.admitted(request()).is_err());

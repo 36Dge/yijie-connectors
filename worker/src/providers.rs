@@ -223,6 +223,7 @@ impl Providers {
         }
         if crate::provider_registry::oauth(&payload.binding.service_id).is_none()
             && !crate::credentials::supports(&payload.binding.service_id)
+            && !crate::provider_registry::keyless(&payload.binding.service_id)
         {
             return Err(wire::ErrorCode::UnsupportedAuth);
         }
@@ -361,6 +362,9 @@ impl Providers {
         kind: Kind,
     ) -> Result<wire::ProviderStatus, wire::ErrorCode> {
         self.validate_authority(&payload)?;
+        if kind == Kind::Auth && crate::provider_registry::keyless(&payload.binding.service_id) {
+            return Err(wire::ErrorCode::UnsupportedAuth);
+        }
         if let Some(status) = self.existing(&payload, Some(kind))? {
             return Ok(status);
         }
@@ -778,7 +782,7 @@ async fn run_probe_with_diagnostic(
         .service_id
         .clone();
     let permit = Arc::new(crate::daily::HttpPermit::default());
-    let connect = tokio::select! {biased;_=cancelled.cancelled()=>return,_=tokio::time::sleep_until(end.into())=>{failed(&status,wire::ErrorCode::ScopeExpired);return;},result=tushare_oauth::connect_for_service(alias,&service,activation.as_ref().map(|_|permit.clone()))=>result};
+    let connect = tokio::select! {biased;_=cancelled.cancelled()=>return,_=tokio::time::sleep_until(end.into())=>{failed(&status,wire::ErrorCode::ScopeExpired);return;},result=tushare_oauth::connect_for_service_with_diagnostic(alias,&service,activation.as_ref().map(|_|permit.clone()),diagnostic.clone())=>result};
     diagnostic.emit(
         tushare_oauth::Stage::MetadataInitialize,
         if connect.is_ok() {
@@ -833,6 +837,8 @@ async fn run_probe_with_diagnostic(
                 let tools = if service == crate::google_calendar::SERVICE {
                     let config = crate::google_calendar::load(alias).ok()??;
                     crate::google_calendar::tools_for_scopes(&config, tools.tools.clone())
+                } else if service == crate::shopify::SERVICE {
+                    crate::shopify::catalog_tools(tools.tools.clone()).ok()?
                 } else {
                     tools.tools.clone()
                 };

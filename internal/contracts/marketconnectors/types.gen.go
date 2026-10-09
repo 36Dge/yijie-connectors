@@ -119,17 +119,18 @@ func (v *Permission) UnmarshalJSON(b []byte) error {
 type CategoryId string
 
 const (
-	CategoryIdKnowledgeDocs   CategoryId = "knowledge_docs"
-	CategoryIdEcommerceRetail CategoryId = "ecommerce_retail"
-	CategoryIdDataAnalytics   CategoryId = "data_analytics"
-	CategoryIdProductivity    CategoryId = "productivity"
-	CategoryIdIndustryData    CategoryId = "industry_data"
-	CategoryIdMarketing       CategoryId = "marketing"
+	CategoryIdKnowledgeDocs        CategoryId = "knowledge_docs"
+	CategoryIdEcommerceRetail      CategoryId = "ecommerce_retail"
+	CategoryIdCrossBorderEcommerce CategoryId = "cross_border_ecommerce"
+	CategoryIdDataAnalytics        CategoryId = "data_analytics"
+	CategoryIdProductivity         CategoryId = "productivity"
+	CategoryIdIndustryData         CategoryId = "industry_data"
+	CategoryIdMarketing            CategoryId = "marketing"
 )
 
 func (v CategoryId) Validate() error {
 	switch v {
-	case CategoryIdKnowledgeDocs, CategoryIdEcommerceRetail, CategoryIdDataAnalytics, CategoryIdProductivity, CategoryIdIndustryData, CategoryIdMarketing:
+	case CategoryIdKnowledgeDocs, CategoryIdEcommerceRetail, CategoryIdCrossBorderEcommerce, CategoryIdDataAnalytics, CategoryIdProductivity, CategoryIdIndustryData, CategoryIdMarketing:
 		return nil
 	default:
 		return errors.New("invalid connector enum")
@@ -185,12 +186,13 @@ const (
 	AuthModeLocalOauth          AuthMode = "local_oauth"
 	AuthModeStdioApiKey         AuthMode = "stdio_api_key"
 	AuthModeProviderGateway     AuthMode = "provider_gateway"
+	AuthModeNone                AuthMode = "none"
 	AuthModeUnknown             AuthMode = "unknown"
 )
 
 func (v AuthMode) Validate() error {
 	switch v {
-	case AuthModeOauth, AuthModeApiKey, AuthModeProviderCredentials, AuthModeLocalOauth, AuthModeStdioApiKey, AuthModeProviderGateway, AuthModeUnknown:
+	case AuthModeOauth, AuthModeApiKey, AuthModeProviderCredentials, AuthModeLocalOauth, AuthModeStdioApiKey, AuthModeProviderGateway, AuthModeNone, AuthModeUnknown:
 		return nil
 	default:
 		return errors.New("invalid connector enum")
@@ -896,7 +898,7 @@ func (v Snapshot) Validate() error {
 	if v.Catalog == nil {
 		return errors.New("null connector array")
 	}
-	if len(v.Catalog) > 51 {
+	if len(v.Catalog) > 58 {
 		return errors.New("invalid connector array length")
 	}
 	for _, item := range v.Catalog {
@@ -907,7 +909,7 @@ func (v Snapshot) Validate() error {
 	if v.Installations == nil {
 		return errors.New("null connector array")
 	}
-	if len(v.Installations) > 51 {
+	if len(v.Installations) > 58 {
 		return errors.New("invalid connector array length")
 	}
 	for _, item := range v.Installations {
@@ -1164,7 +1166,7 @@ func (v SelectionValidation) Validate() error {
 	if v.Selection == nil {
 		return errors.New("null connector array")
 	}
-	if len(v.Selection) > 51 {
+	if len(v.Selection) > 58 {
 		return errors.New("invalid connector array length")
 	}
 	for _, item := range v.Selection {
@@ -1655,7 +1657,7 @@ func (v SelectionValidatePayload) Validate() error {
 	if v.Selection == nil {
 		return errors.New("null connector array")
 	}
-	if len(v.Selection) > 51 {
+	if len(v.Selection) > 58 {
 		return errors.New("invalid connector array length")
 	}
 	for i, uniqueItem := range v.Selection {

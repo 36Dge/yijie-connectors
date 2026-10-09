@@ -394,6 +394,106 @@
       "transport": "http",
       "resource": "https://w.xiaoliebian.com/api/xiaoliebian-geo/mcp/geo",
       "credentialHeader": null
+    },
+    {
+      "serviceId": "lingxing",
+      "displayName": "领星 ERP",
+      "authMode": "api_key",
+      "transport": "http",
+      "resource": "https://openmcp.lingxing.com/mcp-servers/lingxing-mcp",
+      "credentialHeader": "X-Mcp-Key",
+      "documentationUrl": "https://www.lingxing.com/help/article/mcp",
+      "configurationHint": "在领星 ERP 的 MCP 页面复制当前账号的密钥；不要填写密钥名称。"
+    },
+    {
+      "serviceId": "sif",
+      "displayName": "Sif",
+      "authMode": "api_key",
+      "transport": "http",
+      "resource": "https://mcp.sif.com/mcp",
+      "credentialHeader": null,
+      "documentationUrl": "https://blog.sif.com/article/mcp-install/Sif-MCP安装文档",
+      "configurationHint": "在 Sif MCP 页面获取密钥；易界只在发送请求时加入官方认证参数。",
+      "credentialQuery": "secret-key"
+    },
+    {
+      "serviceId": "keepa",
+      "displayName": "Keepa",
+      "authMode": "oauth",
+      "transport": "http",
+      "resource": "https://keepa.com/mcp",
+      "credentialHeader": null,
+      "documentationUrl": "https://keepa.com/api-docs/mcp.html",
+      "configurationHint": "登录 Keepa 账号完成授权。"
+    },
+    {
+      "serviceId": "pangolinfo",
+      "displayName": "Pangolinfo",
+      "authMode": "api_key",
+      "transport": "http",
+      "resource": "https://mcp.pangolinfo.com/mcp",
+      "credentialHeader": "Authorization",
+      "documentationUrl": "https://docs.pangolinfo.com/en-help-center/mcp/amazon-insight/connect",
+      "configurationHint": "填写 Pangolinfo API Key；易界自动添加 Bearer 前缀。",
+      "credentialScheme": "bearer"
+    },
+    {
+      "serviceId": "datahawk",
+      "displayName": "DataHawk",
+      "authMode": "oauth",
+      "transport": "http",
+      "resource": "https://mcp.datahawk.co/mcp",
+      "credentialHeader": null,
+      "documentationUrl": "https://docs.datahawk.co/help-center/modules/datahawkmcp/setup",
+      "configurationHint": "登录 DataHawk，授权已关联的数据工作区。"
+    },
+    {
+      "serviceId": "seller-labs",
+      "displayName": "Seller Labs",
+      "authMode": "oauth",
+      "transport": "http",
+      "resource": "https://ignite-api.sellerlabs.com/mcp",
+      "credentialHeader": null,
+      "documentationUrl": "https://www.sellerlabs.com/knowledge-base/connecting-the-seller-labs-mcp-server-via-claude-code-app/",
+      "configurationHint": "登录 Seller Labs 完成 OAuth；每次工具调用仍需独立批准。",
+      "oauthScopes": [
+        "openid",
+        "mcp",
+        "offline_access",
+        "execute_sql",
+        "get_org_info"
+      ]
+    },
+    {
+      "serviceId": "shopify",
+      "displayName": "Shopify MCP",
+      "authMode": "none",
+      "transport": "http",
+      "resource": "https://catalog.shopify.com/api/ucp/mcp",
+      "credentialHeader": null,
+      "documentationUrl": "https://shopify.dev/docs/agents/catalog",
+      "configurationHint": "Global Catalog 使用官方 UCP Agent Profile；无需填写密钥，启用时检查公开商品工具。"
+    },
+    {
+      "serviceId": "sellersprite",
+      "displayName": "卖家精灵",
+      "authMode": "api_key",
+      "transport": "http",
+      "resource": "https://mcp.sellersprite.com/mcp",
+      "credentialHeader": "secret-key",
+      "documentationUrl": "https://open.sellersprite.com/mcp/16",
+      "configurationHint": "填写开放平台“我的密钥”中的密钥字符串，不是密钥名称。"
+    },
+    {
+      "serviceId": "sorftime",
+      "displayName": "Sorftime",
+      "authMode": "api_key",
+      "transport": "http",
+      "resource": "https://mcp.sorftime.com/",
+      "credentialHeader": "Authorization",
+      "documentationUrl": "https://www.sorftime.com/en-US/mcp/Codex",
+      "configurationHint": "填写 Sorftime MCP 密钥；易界自动添加 Bearer 前缀。旧版授权不会沿用，请在这里重新配置连接器。",
+      "credentialScheme": "bearer"
     }
   ]
 }

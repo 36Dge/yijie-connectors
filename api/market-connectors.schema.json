@@ -52,6 +52,7 @@
       "enum": [
         "knowledge_docs",
         "ecommerce_retail",
+        "cross_border_ecommerce",
         "data_analytics",
         "productivity",
         "industry_data",
@@ -74,6 +75,7 @@
         "local_oauth",
         "stdio_api_key",
         "provider_gateway",
+        "none",
         "unknown"
       ]
     },
@@ -355,14 +357,14 @@
           "items": {
             "$ref": "#/$defs/CatalogEntry"
           },
-          "maxItems": 51
+          "maxItems": 58
         },
         "installations": {
           "type": "array",
           "items": {
             "$ref": "#/$defs/Installation"
           },
-          "maxItems": 51
+          "maxItems": 58
         },
         "capabilities": {
           "type": "array",
@@ -451,7 +453,7 @@
           "items": {
             "$ref": "#/$defs/SelectionDisplay"
           },
-          "maxItems": 51
+          "maxItems": 58
         },
         "executionAvailable": {
           "type": "boolean"
@@ -621,7 +623,7 @@
           "items": {
             "$ref": "#/$defs/SelectionRef"
           },
-          "maxItems": 51,
+          "maxItems": 58,
           "uniqueItems": true
         }
       },

@@ -53,7 +53,7 @@ impl SelectionSnapshot {
         }
         {
             let value_selection = &self.selection;
-            if value_selection.len() > 51 {
+            if value_selection.len() > 58 {
                 return Err("invalid broker collection");
             }
             for item in value_selection.iter() {
@@ -106,7 +106,7 @@ fn canonical_id(s: &str) -> bool {
         })
 }
 pub fn validate_selection(refs: &[SelectionRef]) -> Result<(), &'static str> {
-    if refs.len() > 51 {
+    if refs.len() > 58 {
         return Err("too many connector references");
     }
     for (i, r) in refs.iter().enumerate() {

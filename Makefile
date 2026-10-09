@@ -29,7 +29,7 @@ worker-test: contract-check
 
 worker-lint: contract-check
 	python3 scripts/check-worker-source.py
-	rustfmt --edition 2024 --config skip_children=true --check worker/src/main.rs worker/src/native_library.rs worker/src/broker.rs worker/src/daily.rs worker/src/gateway.rs worker/src/providers.rs worker/src/generic.rs worker/src/google_calendar.rs worker/src/provider_registry.rs worker/src/oauth_policy.rs worker/src/credentials.rs worker/src/secret_guard.rs worker/src/tushare_oauth.rs worker/qualification/broker.rs
+	rustfmt --edition 2024 --config skip_children=true --check worker/src/main.rs worker/src/native_library.rs worker/src/broker.rs worker/src/daily.rs worker/src/gateway.rs worker/src/providers.rs worker/src/generic.rs worker/src/google_calendar.rs worker/src/shopify.rs worker/src/provider_registry.rs worker/src/oauth_policy.rs worker/src/credentials.rs worker/src/credentials/presentation.rs worker/src/secret_guard.rs worker/src/tushare_oauth.rs worker/qualification/broker.rs
 	CARGO_TARGET_DIR="$(abspath ../yijie-codex/codex-rs/target)" cargo clippy --offline --locked --manifest-path worker/Cargo.toml --no-deps -- -D warnings
 
 worker-stdio-qualification:

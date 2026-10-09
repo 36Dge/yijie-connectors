@@ -8,7 +8,7 @@ import (
 
 func TestManagedPublicCatalogContractAndSafeProjection(t *testing.T) {
 	revision, entries, err := Read()
-	if err != nil || revision != 5 || len(entries) != 49 {
+	if err != nil || revision != 7 || len(entries) != 58 {
 		t.Fatalf("catalog unavailable: revision=%d entries=%d error=%v", revision, len(entries), err)
 	}
 	counts := map[string]int{}
@@ -18,7 +18,7 @@ func TestManagedPublicCatalogContractAndSafeProjection(t *testing.T) {
 		}
 		counts[string(item.CategoryId)]++
 	}
-	want := map[string]int{"knowledge_docs": 2, "ecommerce_retail": 5, "data_analytics": 2, "productivity": 14, "industry_data": 17, "marketing": 9}
+	want := map[string]int{"knowledge_docs": 2, "ecommerce_retail": 5, "cross_border_ecommerce": 10, "data_analytics": 2, "productivity": 14, "industry_data": 16, "marketing": 9}
 	if !reflect.DeepEqual(counts, want) {
 		t.Fatalf("catalog categories differ: %v", counts)
 	}

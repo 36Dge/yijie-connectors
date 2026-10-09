@@ -3,7 +3,7 @@
   "authority": "yijie-connectors/catalog/market-catalog.v1.json",
   "referenceSource": "yijie/docs/features/FEAT-157-desktop-market-connectors/sources/catalog-51.json",
   "referenceSha256": "498fb059f59bec42526086822c2e2e3100e16ce7ef744c4dcc3f98ba0932c85e",
-  "catalogRevision": 5,
+  "catalogRevision": 7,
   "runtimeActivation": "All provider candidates require separate accepted endpoint, authentication, supported-tool and scope qualification; no source reference is executable.",
   "scopeOverride": {
     "date": "2026-10-08",
@@ -12,9 +12,9 @@
       "taobao-flash-sale-retail",
       "doukou-doctor"
     ],
-    "activeServiceCount": 49,
+    "activeServiceCount": 58,
     "deferredServiceIds": [],
-    "currentImplementationScope": 49
+    "currentImplementationScope": 58
   },
   "providerOverrides": [
     {
@@ -42,6 +42,132 @@
       "authentication": "explicit Header name/value copied from the AE exported remote configuration; no inferred Bearer or API_TOKEN-to-HTTP mapping",
       "endpointAuthority": "original Owner reference endpoint retained; public docs do not independently confirm this endpoint authentication header",
       "asOf": "2026-10-08"
+    }
+  ],
+  "crossBorderExtension": {
+    "date": "2026-10-08",
+    "sourcePdf": "连接器_跨境电商.pdf",
+    "sourceSha256": "2ab0fc75dc643e9fa6393ab295c4af8bfd9ea7962944e949f3010402cdd6526f",
+    "ownerShopifyChoice": "Global Catalog",
+    "services": [
+      {
+        "serviceId": "lingxing",
+        "displayName": "领星 ERP",
+        "officialDocumentation": "https://www.lingxing.com/help/article/mcp",
+        "resource": "https://openmcp.lingxing.com/mcp-servers/lingxing-mcp",
+        "authMode": "api_key",
+        "credentialHeader": "X-Mcp-Key",
+        "credentialQuery": null,
+        "credentialScheme": null,
+        "sourceIcon": "领星ERP.svg",
+        "iconSha256": "998139ca8d47194193b53c83d3f977d71201b925f9d01916491030e5f7c92a62"
+      },
+      {
+        "serviceId": "sif",
+        "displayName": "Sif",
+        "officialDocumentation": "https://blog.sif.com/article/mcp-install/Sif-MCP安装文档",
+        "resource": "https://mcp.sif.com/mcp",
+        "authMode": "api_key",
+        "credentialHeader": null,
+        "credentialQuery": "secret-key",
+        "credentialScheme": null,
+        "sourceIcon": "sif.svg",
+        "iconSha256": "314ce33ba7b02820196fcba9f633393ba7518b784208495e1fe8776a47ca4433"
+      },
+      {
+        "serviceId": "keepa",
+        "displayName": "Keepa",
+        "officialDocumentation": "https://keepa.com/api-docs/mcp.html",
+        "resource": "https://keepa.com/mcp",
+        "authMode": "oauth",
+        "credentialHeader": null,
+        "credentialQuery": null,
+        "credentialScheme": null,
+        "sourceIcon": "keepa.svg",
+        "iconSha256": "361745562bec017bc0e1fe8e5693acd94803238adcefd61f8e56ae43b93119fe"
+      },
+      {
+        "serviceId": "pangolinfo",
+        "displayName": "Pangolinfo",
+        "officialDocumentation": "https://docs.pangolinfo.com/en-help-center/mcp/amazon-insight/connect",
+        "resource": "https://mcp.pangolinfo.com/mcp",
+        "authMode": "api_key",
+        "credentialHeader": "Authorization",
+        "credentialQuery": null,
+        "credentialScheme": "bearer",
+        "sourceIcon": "Pangolinfo.svg",
+        "iconSha256": "dccbed1cfda07aee40ca0a685b4564c2466ac087da7fef36d63079d3480016e6"
+      },
+      {
+        "serviceId": "datahawk",
+        "displayName": "DataHawk",
+        "officialDocumentation": "https://docs.datahawk.co/help-center/modules/datahawkmcp/setup",
+        "resource": "https://mcp.datahawk.co/mcp",
+        "authMode": "oauth",
+        "credentialHeader": null,
+        "credentialQuery": null,
+        "credentialScheme": null,
+        "sourceIcon": "DataHawk.svg",
+        "iconSha256": "2a3c131c35e2ac3423fce83cd927be8e1f80b104e6f63739220dcdd9ccb563c7"
+      },
+      {
+        "serviceId": "seller-labs",
+        "displayName": "Seller Labs",
+        "officialDocumentation": "https://www.sellerlabs.com/knowledge-base/connecting-the-seller-labs-mcp-server-via-claude-code-app/",
+        "resource": "https://ignite-api.sellerlabs.com/mcp",
+        "authMode": "oauth",
+        "credentialHeader": null,
+        "credentialQuery": null,
+        "credentialScheme": null,
+        "sourceIcon": "sellerLabs.svg",
+        "iconSha256": "770e7c1cc54f92d33ef29de6fa266d138cef1edbb31b4ad5211a8064c8230a1f"
+      },
+      {
+        "serviceId": "shopify",
+        "displayName": "Shopify MCP",
+        "officialDocumentation": "https://shopify.dev/docs/agents/catalog",
+        "resource": "https://catalog.shopify.com/api/ucp/mcp",
+        "authMode": "none",
+        "credentialHeader": null,
+        "credentialQuery": null,
+        "credentialScheme": null,
+        "sourceIcon": "shopify.svg",
+        "iconSha256": "d4bf6a986afcdae6f1222ccbdc138a8313e230d0c72d036b0413b1653fb18e40"
+      },
+      {
+        "serviceId": "sellersprite",
+        "displayName": "卖家精灵",
+        "officialDocumentation": "https://open.sellersprite.com/mcp/16",
+        "resource": "https://mcp.sellersprite.com/mcp",
+        "authMode": "api_key",
+        "credentialHeader": "secret-key",
+        "credentialQuery": null,
+        "credentialScheme": null,
+        "sourceIcon": "卖家精灵.svg",
+        "iconSha256": "88ee778b8fb94bc4573809b894c3e93bfbe939e4b118aa36260b41a8f70d2805"
+      },
+      {
+        "serviceId": "sorftime",
+        "displayName": "Sorftime",
+        "officialDocumentation": "https://www.sorftime.com/en-US/mcp/Codex",
+        "resource": "https://mcp.sorftime.com/",
+        "authMode": "api_key",
+        "credentialHeader": "Authorization",
+        "credentialQuery": null,
+        "credentialScheme": "bearer",
+        "sourceIcon": "Sorftime.svg",
+        "iconSha256": "d2f2d0c9315815939b4ea20bea952f77f1622d4d68a81ed9e9a2eb17b3295f25"
+      }
+    ]
+  },
+  "categoryOverrides": [
+    {
+      "date": "2026-10-08",
+      "authority": "Owner explicitly moved FastMoss from industry data to cross-border ecommerce",
+      "serviceId": "FastMoss",
+      "previousCategoryId": "industry_data",
+      "categoryId": "cross_border_ecommerce",
+      "changesExecutionOrCredentials": false
     }
   ]
 }

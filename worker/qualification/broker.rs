@@ -35,6 +35,8 @@ mod secret_guard;
 #[allow(dead_code)]
 #[path = "../src/selection_generated.rs"]
 mod selection_generated;
+#[path = "../src/shopify.rs"]
+mod shopify;
 #[allow(dead_code)]
 #[path = "../src/tushare_oauth.rs"]
 mod tushare_oauth;

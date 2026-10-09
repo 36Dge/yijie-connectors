@@ -1383,9 +1383,9 @@ mod tests {
         factory.join().await;
     }
     #[tokio::test]
-    async fn discovered_two_service_calls_bind_exact_ref_and_consume_once() {
-        let (a, a_calls, a_factory) = crate::generic::tests::local_backend("ordinary-a").await;
-        let (b, b_calls, b_factory) = crate::generic::tests::local_backend("ordinary-b").await;
+    async fn sorftime_market_call_binds_exact_ref_and_requires_a_fresh_decision() {
+        let (a, a_calls, a_factory) = crate::generic::tests::local_backend("lingxing").await;
+        let (b, b_calls, b_factory) = crate::generic::tests::local_backend("sorftime").await;
         let (mut broker, _, context) = fixture(ProviderMode::Product);
         let mut request = prepare(context.clone(), true);
         let mut refs = request.snapshot.selection.clone();
@@ -1435,7 +1435,7 @@ mod tests {
                 )
                 .unwrap();
             assert_eq!(call.identity.reference, second);
-            assert_eq!(call.identity.service_id, "ordinary-b");
+            assert_eq!(call.identity.service_id, "sorftime");
             assert_eq!(call.review.risk, "write");
             assert_eq!(
                 call.review.arguments_json.as_deref(),

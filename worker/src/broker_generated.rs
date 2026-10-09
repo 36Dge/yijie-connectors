@@ -2627,8 +2627,8 @@ impl Request {
         }
     }
 }
-pub const GENERIC_MAX_TOOLS_PER_SERVICE: usize = 256;
-pub const GENERIC_MAX_TOOLS_PER_SELECTION: usize = 256;
+pub const GENERIC_MAX_TOOLS_PER_SERVICE: usize = 512;
+pub const GENERIC_MAX_TOOLS_PER_SELECTION: usize = 512;
 pub const GENERIC_MAX_SCHEMA_BYTES: usize = 65536;
 pub const GENERIC_MAX_SCHEMAS_BYTES: usize = 2097152;
 pub const GENERIC_MAX_REVIEW_ARGUMENTS_BYTES: usize = 16384;

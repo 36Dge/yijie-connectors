@@ -1,5 +1,5 @@
 {
-  "catalogRevision": 5,
+  "catalogRevision": 7,
   "catalog": [
     {
       "serviceId": "cue",
@@ -99,6 +99,156 @@
       "categoryLabel": "电商零售",
       "description": "电商零售应用连接；授权、支持工具与实际服务可用性待验证。",
       "iconAssetId": "yuyidata",
+      "transport": "http",
+      "authMode": "oauth",
+      "availability": "unverified",
+      "blockerCodes": [
+        "provider_onboarding_required"
+      ]
+    },
+    {
+      "serviceId": "lingxing",
+      "serverName": "lingxing",
+      "displayName": "领星 ERP",
+      "categoryId": "cross_border_ecommerce",
+      "categoryLabel": "跨境电商",
+      "description": "Amazon 销量、库存、利润、Listing、关键词、广告及经营数据分析。需领星账号开通 MCP 权限。",
+      "iconAssetId": "lingxing",
+      "transport": "http",
+      "authMode": "api_key",
+      "availability": "unverified",
+      "blockerCodes": [
+        "provider_onboarding_required"
+      ]
+    },
+    {
+      "serviceId": "sif",
+      "serverName": "sif",
+      "displayName": "Sif",
+      "categoryId": "cross_border_ecommerce",
+      "categoryLabel": "跨境电商",
+      "description": "Amazon 流量结构、市场分析、竞品研究、关键词与广告复盘。使用 Sif MCP 密钥及账号点数。",
+      "iconAssetId": "sif",
+      "transport": "http",
+      "authMode": "api_key",
+      "availability": "unverified",
+      "blockerCodes": [
+        "provider_onboarding_required"
+      ]
+    },
+    {
+      "serviceId": "keepa",
+      "serverName": "keepa",
+      "displayName": "Keepa",
+      "categoryId": "cross_border_ecommerce",
+      "categoryLabel": "跨境电商",
+      "description": "Amazon 历史价格、Buy Box、Offer、排名及价格趋势分析。需要有效 Keepa API 订阅，调用消耗其 Token。",
+      "iconAssetId": "keepa",
+      "transport": "http",
+      "authMode": "oauth",
+      "availability": "unverified",
+      "blockerCodes": [
+        "provider_onboarding_required"
+      ]
+    },
+    {
+      "serviceId": "pangolinfo",
+      "serverName": "pangolinfo",
+      "displayName": "Pangolinfo",
+      "categoryId": "cross_border_ecommerce",
+      "categoryLabel": "跨境电商",
+      "description": "Amazon 商品、关键词、竞品、评论、卖家、类目及知识产权风险分析。使用 Pangolinfo API Key 和账号配额。",
+      "iconAssetId": "pangolinfo",
+      "transport": "http",
+      "authMode": "api_key",
+      "availability": "unverified",
+      "blockerCodes": [
+        "provider_onboarding_required"
+      ]
+    },
+    {
+      "serviceId": "datahawk",
+      "serverName": "datahawk",
+      "displayName": "DataHawk",
+      "categoryId": "cross_border_ecommerce",
+      "categoryLabel": "跨境电商",
+      "description": "分析已关联 Amazon Seller Central、Vendor Central 与广告账号的销售、SEO、广告、库存和财务数据。",
+      "iconAssetId": "datahawk",
+      "transport": "http",
+      "authMode": "oauth",
+      "availability": "unverified",
+      "blockerCodes": [
+        "provider_onboarding_required"
+      ]
+    },
+    {
+      "serviceId": "seller-labs",
+      "serverName": "seller-labs",
+      "displayName": "Seller Labs",
+      "categoryId": "cross_border_ecommerce",
+      "categoryLabel": "跨境电商",
+      "description": "Amazon Seller Central、广告、商品与经营指标分析。登录 Seller Labs 授权账号数据访问。",
+      "iconAssetId": "seller-labs",
+      "transport": "http",
+      "authMode": "oauth",
+      "availability": "unverified",
+      "blockerCodes": [
+        "provider_onboarding_required"
+      ]
+    },
+    {
+      "serviceId": "shopify",
+      "serverName": "shopify",
+      "displayName": "Shopify MCP",
+      "categoryId": "cross_border_ecommerce",
+      "categoryLabel": "跨境电商",
+      "description": "Shopify Global Catalog 公开商品搜索、跨商家比较与商品详情。无需店铺域名或 API Key；不包含店铺后台和交易操作。",
+      "iconAssetId": "shopify",
+      "transport": "http",
+      "authMode": "none",
+      "availability": "unverified",
+      "blockerCodes": [
+        "provider_onboarding_required"
+      ]
+    },
+    {
+      "serviceId": "sellersprite",
+      "serverName": "sellersprite",
+      "displayName": "卖家精灵",
+      "categoryId": "cross_border_ecommerce",
+      "categoryLabel": "跨境电商",
+      "description": "Amazon ASIN 分析、关键词研究、竞品洞察、市场趋势及选品。使用卖家精灵开放平台密钥。",
+      "iconAssetId": "sellersprite",
+      "transport": "http",
+      "authMode": "api_key",
+      "availability": "unverified",
+      "blockerCodes": [
+        "provider_onboarding_required"
+      ]
+    },
+    {
+      "serviceId": "sorftime",
+      "serverName": "sorftime",
+      "displayName": "Sorftime",
+      "categoryId": "cross_border_ecommerce",
+      "categoryLabel": "跨境电商",
+      "description": "Amazon、Walmart 等平台的类目、市场、选品、产品趋势与运营数据分析。使用 Sorftime MCP 服务密钥。",
+      "iconAssetId": "sorftime",
+      "transport": "http",
+      "authMode": "api_key",
+      "availability": "unverified",
+      "blockerCodes": [
+        "provider_onboarding_required"
+      ]
+    },
+    {
+      "serviceId": "FastMoss",
+      "serverName": "FastMoss",
+      "displayName": "FastMoss",
+      "categoryId": "cross_border_ecommerce",
+      "categoryLabel": "跨境电商",
+      "description": "跨境电商应用连接；授权、支持工具与实际服务可用性待验证。",
+      "iconAssetId": "FastMoss",
       "transport": "http",
       "authMode": "oauth",
       "availability": "unverified",
@@ -340,21 +490,6 @@
       "categoryLabel": "效率工具",
       "description": "效率工具应用连接；授权、支持工具与实际服务可用性待验证。",
       "iconAssetId": "huida-erp",
-      "transport": "http",
-      "authMode": "oauth",
-      "availability": "unverified",
-      "blockerCodes": [
-        "provider_onboarding_required"
-      ]
-    },
-    {
-      "serviceId": "FastMoss",
-      "serverName": "FastMoss",
-      "displayName": "FastMoss",
-      "categoryId": "industry_data",
-      "categoryLabel": "行业数据",
-      "description": "行业数据应用连接；授权、支持工具与实际服务可用性待验证。",
-      "iconAssetId": "FastMoss",
       "transport": "http",
       "authMode": "oauth",
       "availability": "unverified",

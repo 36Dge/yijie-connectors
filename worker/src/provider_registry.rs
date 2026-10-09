@@ -12,6 +12,14 @@ pub struct Service {
     pub credential_header: Option<String>,
     #[serde(default)]
     pub credential_query: Option<String>,
+    #[serde(default)]
+    pub credential_scheme: Option<String>,
+    #[serde(default)]
+    pub documentation_url: Option<String>,
+    #[serde(default)]
+    pub configuration_hint: Option<String>,
+    #[serde(default)]
+    pub oauth_scopes: Vec<String>,
 }
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -29,7 +37,7 @@ pub fn services() -> &'static [Service] {
                     .expect("packaged registry");
             assert_eq!(registry.schema_version, 1);
             assert_eq!(registry.profile, "generic-mcp-v1");
-            assert_eq!(registry.services.len(), 49);
+            assert_eq!(registry.services.len(), 58);
             let mut seen = std::collections::HashSet::new();
             for service in &registry.services {
                 assert!(seen.insert(&service.service_id));
@@ -44,11 +52,15 @@ pub fn get(service: &str) -> Option<&'static Service> {
 pub fn oauth(service: &str) -> Option<&'static Service> {
     get(service).filter(|s| s.auth_mode == "oauth" && s.transport == "http")
 }
+pub fn keyless(service: &str) -> bool {
+    // Only the reviewed public Global Catalog adapter has this capability.
+    service == "shopify" && get(service).is_some_and(|s| s.auth_mode == "none")
+}
 #[cfg(test)]
 mod tests {
     use super::*;
     #[test]
-    fn all_49_entries_match_catalog_without_network_or_credentials() {
+    fn all_58_entries_match_catalog_without_network_or_credentials() {
         let catalog: serde_json::Value =
             serde_json::from_str(include_str!("../../catalog/market-catalog.v1.json")).unwrap();
         for entry in catalog["catalog"].as_array().unwrap() {
@@ -70,7 +82,7 @@ mod tests {
                 .iter()
                 .filter(|s| oauth(&s.service_id).is_some())
                 .count(),
-            45
+            48
         );
         assert_eq!(
             get("FTShare").unwrap().credential_header.as_deref(),

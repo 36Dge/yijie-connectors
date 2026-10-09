@@ -55,6 +55,8 @@ pub enum CategoryId {
     KnowledgeDocs,
     #[serde(rename = "ecommerce_retail")]
     EcommerceRetail,
+    #[serde(rename = "cross_border_ecommerce")]
+    CrossBorderEcommerce,
     #[serde(rename = "data_analytics")]
     DataAnalytics,
     #[serde(rename = "productivity")]
@@ -85,6 +87,8 @@ pub enum AuthMode {
     StdioApiKey,
     #[serde(rename = "provider_gateway")]
     ProviderGateway,
+    #[serde(rename = "none")]
+    None,
     #[serde(rename = "unknown")]
     Unknown,
 }
@@ -650,7 +654,7 @@ impl Snapshot {
         }
         {
             let value_catalog = &self.catalog;
-            if value_catalog.len() > 51 {
+            if value_catalog.len() > 58 {
                 return Err("invalid connector array length");
             }
             for item in value_catalog.iter() {
@@ -659,7 +663,7 @@ impl Snapshot {
         }
         {
             let value_installations = &self.installations;
-            if value_installations.len() > 51 {
+            if value_installations.len() > 58 {
                 return Err("invalid connector array length");
             }
             for item in value_installations.iter() {
@@ -874,7 +878,7 @@ impl SelectionValidation {
     pub fn validate(&self) -> Result<(), &'static str> {
         {
             let value_selection = &self.selection;
-            if value_selection.len() > 51 {
+            if value_selection.len() > 58 {
                 return Err("invalid connector array length");
             }
             for item in value_selection.iter() {
@@ -1336,7 +1340,7 @@ impl SelectionValidatePayload {
     pub fn validate(&self) -> Result<(), &'static str> {
         {
             let value_selection = &self.selection;
-            if value_selection.len() > 51 {
+            if value_selection.len() > 58 {
                 return Err("invalid connector array length");
             }
             for (i, v) in value_selection.iter().enumerate() {

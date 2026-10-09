@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "contract_version": "0.3.0",
+  "contract_version": "0.4.0",
   "feature": "FEAT-157",
   "mode": "local_worktree_candidate",
   "release": false,
@@ -12,19 +12,19 @@
     },
     {
       "path": "compatibility/market-broker-control/control.json",
-      "sha256": "cc7eb4469db97b87f2e5c840f828a43e2ec48e3be442216bde922a8c27793dbc"
+      "sha256": "494c5510e92d811b23bd50251108d906b8aceaa278c52d3045c5f9603635b41f"
     },
     {
       "path": "openapi/market-connectors/market-connectors.yaml",
-      "sha256": "5e83116f339df103157270ec82818b2f03981d2ad8b04e4517c0162e3e1afb13"
+      "sha256": "d91f5a3ccbc1bf3ac1791b54fa6bbee3b7474372f19ca84fb1d4556b73f0eb0a"
     },
     {
       "path": "compatibility/market-selection/wire.schema.json",
-      "sha256": "09305bd815d63b4067daf88f74d0aa06bea97a222e70f66be9bc04c6dc4b2387"
+      "sha256": "5b08f6c0e1d3622cb4abbc1f3dcd5a077ad2a2ecbd03914db149d394d5a8b5ce"
     },
     {
       "path": "compatibility/market-selection/native-ipc.json",
-      "sha256": "4ba2b7076ce4c2ee40b738c24f1aea11ea36688317baeb9d8647e32df9adc0dd"
+      "sha256": "c7fce5244012fcd7d5be054f3792f073c1b18331eb0ca5883b5c8469cbe4090a"
     },
     {
       "path": "jsonschema/chat/model-selection-v1.schema.json",
@@ -36,7 +36,7 @@
     },
     {
       "path": "scripts/market-broker-source.mjs",
-      "sha256": "2ba18557035c84f1151ae7859984763cdc582bff039278caaac2edabfffe34e3"
+      "sha256": "1c15b2e92ba897e6a327612527f9ac112f896ca63771188d2a4fd4e723be5b33"
     },
     {
       "path": "scripts/market-broker-codegen.mjs",
@@ -52,7 +52,7 @@
     },
     {
       "path": "scripts/market-selection-source.mjs",
-      "sha256": "14457544ce6d0940ce491b8edcce35a159a169d0bdf0ea4fc69c191724dcd171"
+      "sha256": "7683f27f81fb897ecc1b8580678aaaa6bc6bcc53101fbc04e5812f8869d21ac3"
     },
     {
       "path": "scripts/generate-market-selection.mjs",
@@ -60,19 +60,19 @@
     },
     {
       "path": "sdks/rust/market-selection/types.gen.rs",
-      "sha256": "3fcad526aa914804c893ca986ddef69fd62bdcc50752d6b2c4c7cb66b4fa0162"
+      "sha256": "4e33ace5b4da1e52e9e0b92dd95857315e122b1ab4b375bf1f0d425f761721f4"
     },
     {
       "path": "sdks/go/market-selection/digest.gen.go",
-      "sha256": "a66b8d812e293d49bbc2a6568610b22a9971562d5f540e91985ff86a81ca478c"
+      "sha256": "bfa3525b0f725381510c15b3cc58e6f5b210afb4e562e3b10133dc73deca53b6"
     },
     {
       "path": "compatibility/market-selection/source.lock.json",
-      "sha256": "38a64ba21b1df34ad2ea9c845f06373973f6fa0c6b8220cf8ac39c8a64023e42"
+      "sha256": "1192c949d9574d23438e89d5616471b32c765cad81367c9ef80597075761718a"
     },
     {
       "path": "compatibility/market-connectors/source.lock.json",
-      "sha256": "b056eefaf18ed1c3d850af13335eefa8e5206aec764e8c09a678f39d987114e6"
+      "sha256": "3b37f37d32d4f3087685318bedc283875f0bd9d730473ba1420eeb8ef6a3d114"
     },
     {
       "path": "pnpm-lock.yaml",
@@ -82,23 +82,23 @@
   "generated": [
     {
       "path": "sdks/rust/market-selection/portable.gen.rs",
-      "sha256": "902f396bac10b7ea109629a6cd6cca49cff393335a902455e31b7ced238c09c5"
+      "sha256": "0a9cfce331d9a04c9bd4ec10263757b4e176cbe1685a3f25d97601dce268c708"
     },
     {
       "path": "sdks/go/market-selection/snapshot.gen.go",
-      "sha256": "0a1ed20e461fa3030c5d36bffeef812955df848b63f77adf311d2d1cbbb4881f"
+      "sha256": "7ee5c5329df244026316b2a91d3573f2dd324b21e6b4958e04ae6fa97bdf6b79"
     },
     {
       "path": "sdks/rust/market-broker-control/types.gen.rs",
-      "sha256": "20cac9f63eab966868e3e71a6cd7a9b10ecca497bce1955eb307adeb022409f6"
+      "sha256": "acf231343ae182947cdee9c19d9a1eb26059eff5c5f93a8215593ad91df1722e"
     },
     {
       "path": "sdks/go/market-broker-control/types.gen.go",
-      "sha256": "401513b8fecdbb276d4a3a538fb6b4f373decc58c09e2cd85dbfa0de0262fb09"
+      "sha256": "36994d273e804d447b35a52aa35700d0bdd8d6cf626c5a48d899161ecf62d663"
     },
     {
       "path": "sdks/jsonschema/market-broker-control.schema.json",
-      "sha256": "e937ad72d1ce497c914cce7c7b8c65c0febd61f794df96eb4ab70ec89623aceb"
+      "sha256": "e5ff3f29c34da79c65ab9c187fe5aa6e31827f84b2daeaae57ed7ff5b49b5f3d"
     }
   ],
   "consumer": "connectors",
@@ -107,22 +107,22 @@
     {
       "source": "sdks/rust/market-broker-control/types.gen.rs",
       "path": "worker/src/broker_generated.rs",
-      "sha256": "20cac9f63eab966868e3e71a6cd7a9b10ecca497bce1955eb307adeb022409f6"
+      "sha256": "acf231343ae182947cdee9c19d9a1eb26059eff5c5f93a8215593ad91df1722e"
     },
     {
       "source": "sdks/rust/market-selection/portable.gen.rs",
       "path": "worker/src/selection_generated.rs",
-      "sha256": "902f396bac10b7ea109629a6cd6cca49cff393335a902455e31b7ced238c09c5"
+      "sha256": "0a9cfce331d9a04c9bd4ec10263757b4e176cbe1685a3f25d97601dce268c708"
     },
     {
       "source": "sdks/rust/market-connectors/types.gen.rs",
       "path": "worker/src/generated.rs",
-      "sha256": "f35b3de294c088669ee5d2cea879a3ab479d044b11687fb6da336cf7a1b65903"
+      "sha256": "9e4777a2b868bbe8ea5becc3a1cfd3be78d5856f5cb498cd602580083a15377e"
     },
     {
       "source": "sdks/jsonschema/market-broker-control.schema.json",
       "path": "api/market-broker-control.schema.json",
-      "sha256": "e937ad72d1ce497c914cce7c7b8c65c0febd61f794df96eb4ab70ec89623aceb"
+      "sha256": "e5ff3f29c34da79c65ab9c187fe5aa6e31827f84b2daeaae57ed7ff5b49b5f3d"
     }
   ]
 }
