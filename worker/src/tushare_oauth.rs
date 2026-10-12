@@ -68,6 +68,8 @@ pub enum Stage {
     MetadataHttpAdmission,
     MetadataHttpSend,
     MetadataHttpResponse,
+    ShopifyMetadataHttpShape,
+    ShopifyInitializedAck,
     MetadataToolsList,
     MetadataArtifact,
     Cleanup,
@@ -169,6 +171,19 @@ impl Diagnostic {
         http_status: Option<u16>,
         failure: Option<Failure>,
     ) {
+        let record = serde_json::json!({"schemaVersion":1,"unixMs":SystemTime::now().duration_since(UNIX_EPOCH).ok().map(|v|v.as_millis() as u64),"stage":stage,"event":event,"httpStatus":http_status,"safeFailure":failure});
+        self.append(&record);
+    }
+    fn shopify_http_shape(
+        &self,
+        method: ShopifyMetadataMethod,
+        ack_candidate: bool,
+        response: &HttpRequestResponse,
+    ) {
+        let record = serde_json::json!({"schemaVersion":1,"unixMs":SystemTime::now().duration_since(UNIX_EPOCH).ok().map(|v|v.as_millis() as u64),"stage":Stage::ShopifyMetadataHttpShape,"event":Event::Response,"httpStatus":response.status,"safeFailure":null,"shape":shopify_response_shape(method,ack_candidate,response)});
+        self.append(&record);
+    }
+    fn append(&self, record: &serde_json::Value) {
         use std::io::Write;
         let Some(file) = &self.0 else {
             return;
@@ -181,8 +196,7 @@ impl Diagnostic {
         }
         // Every field is an enum or numeric observation. Never accept upstream
         // text, URL, headers, scope, alias, identifiers, callback codes or tokens.
-        let record = serde_json::json!({"schemaVersion":1,"unixMs":SystemTime::now().duration_since(UNIX_EPOCH).ok().map(|v|v.as_millis() as u64),"stage":stage,"event":event,"httpStatus":http_status,"safeFailure":failure});
-        if let Ok(mut bytes) = serde_json::to_vec(&record) {
+        if let Ok(mut bytes) = serde_json::to_vec(record) {
             bytes.push(b'\n');
             if bytes.len() > 512 {
                 return;
@@ -205,6 +219,41 @@ impl Diagnostic {
         );
         result
     }
+}
+
+#[derive(Clone, Copy, serde::Serialize)]
+#[serde(rename_all = "snake_case")]
+enum ShopifyMetadataMethod {
+    Initialize,
+    Initialized,
+    ToolsList,
+}
+
+fn shopify_response_shape(
+    method: ShopifyMetadataMethod,
+    ack_candidate: bool,
+    response: &HttpRequestResponse,
+) -> serde_json::Value {
+    let values = |name: &'static str| {
+        response
+            .headers
+            .iter()
+            .filter(move |header| header.name.eq_ignore_ascii_case(name))
+    };
+    let content_length = values("content-length")
+        .next()
+        .and_then(|header| header.value.parse::<u64>().ok());
+    let content_type = values("content-type")
+        .next()
+        .map(|header| header.value.split(';').next().unwrap_or("").trim());
+    serde_json::json!({
+        "method":method,"ackCandidate":ack_candidate,
+        "contentLengthCount":values("content-length").count(),"contentLength":content_length,
+        "contentTypeCount":values("content-type").count(),
+        "json":content_type.is_some_and(|value|value.eq_ignore_ascii_case("application/json")),
+        "eventStream":content_type.is_some_and(|value|value.eq_ignore_ascii_case("text/event-stream")),
+        "transferEncoding":values("transfer-encoding").next().is_some()
+    })
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Phase {
@@ -243,6 +292,13 @@ struct Target {
     google_client: Option<Arc<crate::google_calendar::ClientConfig>>,
 }
 impl Target {
+    fn is_keyless(&self) -> bool {
+        crate::provider_registry::get(crate::shopify::SERVICE).is_some_and(|spec| {
+            crate::provider_registry::keyless(&spec.service_id)
+                && spec.transport == "http"
+                && spec.resource.as_deref() == Some(self.resource.as_str())
+        })
+    }
     fn official() -> Self {
         Self {
             resource: TUSHARE_RESOURCE.into(),
@@ -320,6 +376,10 @@ impl Target {
             || parsed.fragment().is_some()
         {
             return false;
+        }
+        if self.is_keyless() {
+            // The reviewed public catalog has no OAuth discovery or token flow.
+            return url == self.resource && matches!(method, "GET" | "POST" | "DELETE");
         }
         if url == self.resource {
             return matches!(method, "GET" | "POST" | "DELETE");
@@ -553,6 +613,19 @@ impl Default for TushareHttpClient {
     }
 }
 impl TushareHttpClient {
+    fn is_shopify_initialized_notification(&self, request: &HttpRequestParams) -> bool {
+        self.target.is_keyless()
+            && request.url == self.target.resource
+            && request.method == "POST"
+            && request
+                .body
+                .as_ref()
+                .and_then(|body| serde_json::from_slice::<serde_json::Value>(&body.0).ok())
+                .is_some_and(|body| {
+                    body == serde_json::json!({"jsonrpc":"2.0","method":"notifications/initialized"})
+                })
+    }
+
     fn request_diagnostic(&self, request: &HttpRequestParams) -> (Diagnostic, Stage, Stage, Stage) {
         if request.url == self.target.resource
             && request.method == "POST"
@@ -602,6 +675,7 @@ impl TushareHttpClient {
             return Err(safe());
         }
         if self.credential.is_none()
+            && !self.target.is_keyless()
             && request.url == self.target.resource
             && request.method != "GET"
         {
@@ -616,6 +690,7 @@ impl TushareHttpClient {
             }
         }
         if self.credential.is_none()
+            && !self.target.is_keyless()
             && request.url == self.target.resource
             && request.method == "GET"
         {
@@ -788,6 +863,28 @@ impl HttpClient for TushareHttpClient {
             let request = self.admitted(request).inspect_err(|_| {
                 diagnostic.emit(admission, Event::PolicyRejected, None, None);
             })?;
+            let shopify_initialized_notification =
+                self.is_shopify_initialized_notification(&request);
+            let shopify_method = (self.target.is_keyless()
+                && request.url == self.target.resource
+                && request.method == "POST")
+                .then(|| {
+                    request
+                        .body
+                        .as_ref()
+                        .and_then(|body| serde_json::from_slice::<serde_json::Value>(&body.0).ok())
+                })
+                .flatten()
+                .and_then(
+                    |body| match body.get("method").and_then(serde_json::Value::as_str) {
+                        Some("initialize") => Some(ShopifyMetadataMethod::Initialize),
+                        Some("notifications/initialized") => {
+                            Some(ShopifyMetadataMethod::Initialized)
+                        }
+                        Some("tools/list") => Some(ShopifyMetadataMethod::ToolsList),
+                        _ => None,
+                    },
+                );
             diagnostic.emit(send, Event::Request, None, None);
             let endpoint = request.url.clone();
             let result = ReqwestHttpClient
@@ -798,14 +895,96 @@ impl HttpClient for TushareHttpClient {
                     ExecServerError::HttpRequest("Tushare transport unavailable".into())
                 })?;
             diagnostic.emit(response_stage, Event::Response, Some(result.0.status), None);
+            if let Some(method) = shopify_method {
+                diagnostic.shopify_http_shape(method, shopify_initialized_notification, &result.0);
+            }
             self.target
                 .observe_challenges(&endpoint, &result.0)
                 .map_err(|_| ExecServerError::HttpRequest("OAuth discovery unavailable".into()))?;
+            if shopify_initialized_notification {
+                let normalized = normalize_shopify_initialized_ack(result).await;
+                diagnostic.emit(
+                    Stage::ShopifyInitializedAck,
+                    match &normalized {
+                        Ok((response, _)) if matches!(response.status, 202 | 204) => {
+                            Event::Succeeded
+                        }
+                        Ok(_) => Event::Unverified,
+                        Err(_) => Event::Failed,
+                    },
+                    normalized.as_ref().ok().map(|value| value.0.status),
+                    None,
+                );
+                return normalized;
+            }
             // The fixed public stream type has no wrapper constructor. Body/
             // protocol failures remain visible as the safe client-result class.
             Ok(result)
         })
     }
+}
+
+// The reviewed Shopify endpoint acknowledges this one notification with HTTP
+// 200 application/json and literal `null`, with either Content-Length: 4
+// (2026-10-11) or chunked framing without a length (2026-10-13). Fixed RMCP
+// requires Accepted or a JSON-RPC message. Accept only the complete four-byte
+// acknowledgement, preserving original HTTP observations in diagnostics.
+// Other content types and known-length JSON remain untouched. A chunked JSON
+// acknowledgement must match exactly or fail closed: the fixed public stream
+// cannot replay consumed bytes. This does not handle business or SSE responses.
+async fn normalize_shopify_initialized_ack(
+    (mut response, mut stream): (HttpRequestResponse, HttpResponseBodyStream),
+) -> Result<(HttpRequestResponse, HttpResponseBodyStream), ExecServerError> {
+    let lengths: Vec<_> = response
+        .headers
+        .iter()
+        .filter(|header| header.name.eq_ignore_ascii_case("content-length"))
+        .collect();
+    let types: Vec<_> = response
+        .headers
+        .iter()
+        .filter(|header| header.name.eq_ignore_ascii_case("content-type"))
+        .collect();
+    let transfers: Vec<_> = response
+        .headers
+        .iter()
+        .filter(|header| header.name.eq_ignore_ascii_case("transfer-encoding"))
+        .collect();
+    let known_framing = (lengths.len() == 1 && lengths[0].value == "4" && transfers.is_empty())
+        || (lengths.is_empty()
+            && transfers.len() == 1
+            && transfers[0].value.trim().eq_ignore_ascii_case("chunked"));
+    let known_null_shape = response.status == 200
+        && known_framing
+        && types.len() == 1
+        && types[0]
+            .value
+            .split(';')
+            .next()
+            .is_some_and(|value| value.trim().eq_ignore_ascii_case("application/json"));
+    if !known_null_shape {
+        return Ok((response, stream));
+    }
+    let unavailable =
+        || ExecServerError::Protocol("Shopify initialization acknowledgement unavailable".into());
+    let mut body = Vec::with_capacity(4);
+    while let Some(chunk) = stream.recv().await? {
+        if body.len().saturating_add(chunk.len()) > 4 {
+            return Err(unavailable());
+        }
+        body.extend_from_slice(&chunk);
+    }
+    if body != b"null" {
+        return Err(unavailable());
+    }
+    response.status = 204;
+    response.body = Vec::new().into();
+    response.headers.retain(|header| {
+        !header.name.eq_ignore_ascii_case("content-length")
+            && !header.name.eq_ignore_ascii_case("content-type")
+            && !header.name.eq_ignore_ascii_case("transfer-encoding")
+    });
+    Ok((response, stream))
 }
 
 pub async fn connect_for_metadata(
@@ -1448,8 +1627,162 @@ async fn run_flow(
 }
 
 #[cfg(test)]
+#[path = "shopify_ack_tests.rs"]
+mod shopify_ack_tests;
+
+#[cfg(test)]
 mod tests {
     use super::*;
+    fn feat158_normal_metadata_request(url: &str, method: &str) -> HttpRequestParams {
+        HttpRequestParams {
+            method: "POST".into(),
+            url: url.into(),
+            headers: vec![],
+            body: Some(
+                serde_json::to_vec(&serde_json::json!({"jsonrpc":"2.0","id":1,"method":method}))
+                    .unwrap()
+                    .into(),
+            ),
+            timeout_ms: Some(60_000),
+            redirect_policy: HttpRedirectPolicy::Stop,
+            request_id: Uuid::new_v4().to_string(),
+            stream_response: false,
+        }
+    }
+    #[test]
+    fn feat158_keyless_shopify_normal_metadata_is_admitted_without_credentials() {
+        let target = Target::for_service(crate::shopify::SERVICE).unwrap();
+        assert!(target.is_keyless());
+        let client = TushareHttpClient {
+            target,
+            credential: None,
+            permit: None,
+            metadata_diagnostic: Diagnostic::default(),
+        };
+        for method in [
+            "initialize",
+            "notifications/initialized",
+            "tools/list",
+            "ping",
+        ] {
+            let request = client
+                .admitted(feat158_normal_metadata_request(
+                    &client.target.resource,
+                    method,
+                ))
+                .unwrap();
+            assert_eq!(request.url, client.target.resource);
+            assert_eq!(request.timeout_ms, Some(15_000));
+            assert!(
+                !request
+                    .headers
+                    .iter()
+                    .any(|header| header.name.eq_ignore_ascii_case("authorization"))
+            );
+            assert!(
+                request
+                    .headers
+                    .iter()
+                    .any(|header| header.name.eq_ignore_ascii_case("user-agent")
+                        && header.value == WORKER_USER_AGENT)
+            );
+        }
+        // A normal established MCP stream and its normal shutdown need no token.
+        for method in ["GET", "DELETE"] {
+            let mut request = feat158_normal_metadata_request(&client.target.resource, "ping");
+            request.method = method.into();
+            request.body = None;
+            request.headers.push(HttpHeader {
+                name: "mcp-session-id".into(),
+                value: "normal-public-catalog-session".into(),
+            });
+            assert!(client.admitted(request).is_ok());
+        }
+    }
+    #[test]
+    fn feat158_authenticated_metadata_keeps_its_declared_header_mode() {
+        for service in crate::provider_registry::services() {
+            assert_eq!(
+                Target::for_service(&service.service_id)
+                    .unwrap()
+                    .is_keyless(),
+                service.service_id == crate::shopify::SERVICE
+            );
+        }
+        for (service, header, value, uses_credential) in [
+            (
+                "tushareMcp",
+                "Authorization",
+                "Bearer ordinary-local-oauth",
+                false,
+            ),
+            (
+                "sorftime",
+                "Authorization",
+                "Bearer ordinary-local-key",
+                true,
+            ),
+            ("FTShare", "FTSHARE_API_KEY", "ordinary-local-key", true),
+        ] {
+            let target = Target::for_service(service).unwrap();
+            let credential = uses_credential.then(|| {
+                serde_json::from_value(
+                    serde_json::json!({"serviceId":service,"name":header,"value":value}),
+                )
+                .unwrap()
+            });
+            let client = TushareHttpClient {
+                target,
+                credential,
+                permit: None,
+                metadata_diagnostic: Diagnostic::default(),
+            };
+            let mut request =
+                feat158_normal_metadata_request(&client.target.resource, "tools/list");
+            request.headers.push(HttpHeader {
+                name: header.into(),
+                value: value.into(),
+            });
+            let admitted = client.admitted(request).unwrap();
+            assert!(
+                admitted
+                    .headers
+                    .iter()
+                    .any(|item| item.name == header && item.value == value)
+            );
+        }
+    }
+    #[test]
+    fn feat158_shopify_pending_and_approved_call_keep_one_shot_permit() {
+        let gate = Arc::new(crate::daily::HttpPermit::default());
+        let client = TushareHttpClient {
+            target: Target::for_service(crate::shopify::SERVICE).unwrap(),
+            credential: None,
+            permit: Some(gate.clone()),
+            metadata_diagnostic: Diagnostic::default(),
+        };
+        let arguments = serde_json::json!({"catalog":{"query":"ordinary sample bag"},"meta":{"ucp-agent":{"profile":crate::shopify::PROFILE}}});
+        let request = || {
+            let mut value = feat158_normal_metadata_request(&client.target.resource, "tools/call");
+            value.body = Some(serde_json::to_vec(&serde_json::json!({"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"search_catalog","arguments":arguments}})).unwrap().into());
+            value
+        };
+        // Ordinary pending approval is not execution authority. No request is sent.
+        assert!(client.admitted(request()).is_err());
+        gate.arm(
+            crate::daily::Permit {
+                tool: "search_catalog".into(),
+                arguments: arguments.clone(),
+                request: CancellationToken::new(),
+                lease: CancellationToken::new(),
+                backend: CancellationToken::new(),
+                deadline: Instant::now() + Duration::from_secs(1),
+            },
+            Diagnostic::default(),
+        );
+        assert!(client.admitted(request()).is_ok());
+        assert!(client.admitted(request()).is_err());
+    }
     use axum::{Json, extract::Form, routing::post};
     use std::sync::atomic::{AtomicUsize, Ordering};
     #[test]
