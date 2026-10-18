@@ -1,0 +1,1 @@
+{"resource":"https://mcp-tool-gateway.linkfox.com/mcp","authorization_servers":["https://tool-gateway.linkfox.com"],"bearer_methods_supported":["header"],"scopes_supported":["mcp:read","mcp:invoke"],"resource_name":"LinkFox MCP Router Gateway"}

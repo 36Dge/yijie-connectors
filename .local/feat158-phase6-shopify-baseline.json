@@ -1,0 +1,22 @@
+{
+  "recordedAt": "2026-10-11T13:35:23.501Z",
+  "branch": "develop",
+  "head": "8a8b078f657da708a0db8c1c43831eefd34247af",
+  "status": "",
+  "sourceSha256": {
+    "AGENTS.md": "02747678068b198d989d12647d808c97284b1b9cca27cca4b40a2cb8fc25e701",
+    "README.md": "48c5930317532d5ff38ebc53f21f86b198bf40e911433812b13d7f8ae978d42f",
+    "SECURITY.md": "d6ea075cd25e7e314091f304340efb1d25be9f3faf52221cb62a71e33fc1c853",
+    "worker/src/tushare_oauth.rs": "f877b50f8b781579b0f98be3c05a7edf5c8b8ade38c26dde23b570c6b7f4907c",
+    "worker/src/provider_registry.rs": "ff2e79b2bd0cf56216e3b7255292588ceb0a529235416931a1b9abe40430af72",
+    "worker/src/shopify.rs": "9c6125c749dc783c7709b55c5e966e79c18568567b4ff5a7d6d8fb9eeb48727d",
+    "catalog/provider-registry.v1.json": "ef6cbb058afaa96b23da09abc0881273d8c43ec26fab5e2d2da593714e922f0b",
+    "catalog/market-catalog.v1.json": "aee73f10ccf044ecc492853839697736e43717c2a7d9125ab75dbadfb2005a28",
+    "worker/source.lock.json": "e1e11408a149f9e796f4f1a492f59953313217ede5733739845a022eb069ac59",
+    "worker/Cargo.lock": "9bbd7367d1a0af358499362db6aedad197d5bb667e8f1e896bdcbcf3b40f206c",
+    "scripts/build-market-worker.sh": "e2c199d43fa5dcbdec52ecab8a3a22dd0b836982267fcf94490f734aa6e572b9",
+    "bin/market-worker/current.json": "aa2b9f342b3f5bd23bdb0f00eeba81cd47338931ea2057637b0440e42ba90b9c"
+  },
+  "contractImpact": "semantic correction to already-declared keyless authMode=none; existing public schema and provider registry remain unchanged; fixed exact Shopify target only; local candidate, no release",
+  "scope": "No outside requests/models/UI; standard local build only; no executable replacement; preserve prior hash output directory"
+}

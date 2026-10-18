@@ -1,0 +1,14 @@
+{
+  "resource": "https://mcp.gateway.chuhaijiang.com/mcp/oauth",
+  "authorization_servers": [
+    "https://openapi.gateway.chuhaijiang.com/"
+  ],
+  "scopes_supported": [
+    "mcp.full"
+  ],
+  "bearer_methods_supported": [
+    "header"
+  ],
+  "resource_name": "出海匠 MCP",
+  "resource_documentation": "https://developer.chuhaijiang.com/dashboard/mcp"
+}

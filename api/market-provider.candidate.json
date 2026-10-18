@@ -16,7 +16,7 @@
     },
     {
       "path": "openapi/market-connectors/market-connectors.yaml",
-      "sha256": "d91f5a3ccbc1bf3ac1791b54fa6bbee3b7474372f19ca84fb1d4556b73f0eb0a"
+      "sha256": "83e1e7084726ac7ff370db3fe4cdc157c144089e449e5807f4c321aed99c1caf"
     },
     {
       "path": "compatibility/market-broker-control/wire.schema.json",

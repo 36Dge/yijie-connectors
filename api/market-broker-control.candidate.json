@@ -16,7 +16,7 @@
     },
     {
       "path": "openapi/market-connectors/market-connectors.yaml",
-      "sha256": "d91f5a3ccbc1bf3ac1791b54fa6bbee3b7474372f19ca84fb1d4556b73f0eb0a"
+      "sha256": "83e1e7084726ac7ff370db3fe4cdc157c144089e449e5807f4c321aed99c1caf"
     },
     {
       "path": "compatibility/market-selection/wire.schema.json",
@@ -68,11 +68,11 @@
     },
     {
       "path": "compatibility/market-selection/source.lock.json",
-      "sha256": "1192c949d9574d23438e89d5616471b32c765cad81367c9ef80597075761718a"
+      "sha256": "6475380e046ae5d29c50f02188acadd7a0e5fc08135ad8f24d405a9d6114ec56"
     },
     {
       "path": "compatibility/market-connectors/source.lock.json",
-      "sha256": "3b37f37d32d4f3087685318bedc283875f0bd9d730473ba1420eeb8ef6a3d114"
+      "sha256": "364bd6292c8362a535b0239219101b623b8113ae0179afcc8057dfc1a6c4a4b7"
     },
     {
       "path": "pnpm-lock.yaml",
@@ -117,7 +117,7 @@
     {
       "source": "sdks/rust/market-connectors/types.gen.rs",
       "path": "worker/src/generated.rs",
-      "sha256": "9e4777a2b868bbe8ea5becc3a1cfd3be78d5856f5cb498cd602580083a15377e"
+      "sha256": "057cffb9200d15c28fd02757f87afdec985e65170283144dd7cd889844ae9f08"
     },
     {
       "source": "sdks/jsonschema/market-broker-control.schema.json",

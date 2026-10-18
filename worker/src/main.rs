@@ -90,7 +90,7 @@ fn main() -> io::Result<()> {
     let catalog: ProductCatalog =
         serde_json::from_str(include_str!("../../catalog/market-catalog.v1.json"))
             .map_err(|_| io::Error::other("managed catalog is invalid"))?;
-    if catalog.catalog_revision != 7 || catalog.catalog.len() != 58 {
+    if catalog.catalog_revision != 9 || catalog.catalog.len() != 60 {
         return Err(io::Error::other("managed catalog version is unsupported"));
     }
     let mut input = io::stdin().lock();

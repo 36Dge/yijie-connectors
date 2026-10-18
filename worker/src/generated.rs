@@ -654,7 +654,7 @@ impl Snapshot {
         }
         {
             let value_catalog = &self.catalog;
-            if value_catalog.len() > 58 {
+            if value_catalog.len() > 60 {
                 return Err("invalid connector array length");
             }
             for item in value_catalog.iter() {
@@ -663,7 +663,7 @@ impl Snapshot {
         }
         {
             let value_installations = &self.installations;
-            if value_installations.len() > 58 {
+            if value_installations.len() > 60 {
                 return Err("invalid connector array length");
             }
             for item in value_installations.iter() {

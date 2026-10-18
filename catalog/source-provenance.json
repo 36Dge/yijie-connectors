@@ -3,7 +3,7 @@
   "authority": "yijie-connectors/catalog/market-catalog.v1.json",
   "referenceSource": "yijie/docs/features/FEAT-157-desktop-market-connectors/sources/catalog-51.json",
   "referenceSha256": "498fb059f59bec42526086822c2e2e3100e16ce7ef744c4dcc3f98ba0932c85e",
-  "catalogRevision": 7,
+  "catalogRevision": 9,
   "runtimeActivation": "All provider candidates require separate accepted endpoint, authentication, supported-tool and scope qualification; no source reference is executable.",
   "scopeOverride": {
     "date": "2026-10-08",
@@ -169,5 +169,33 @@
       "categoryId": "cross_border_ecommerce",
       "changesExecutionOrCredentials": false
     }
-  ]
+  ],
+  "thirdGroupTiktok": {
+    "date": "2026-10-16",
+    "authority": "Current user requested integration and deep code audit; live validation explicitly deferred because no account",
+    "source": "Official Chuhaijiang public protected-resource and authorization-server metadata; original WorkBuddy archive retained as reference only",
+    "resource": "https://mcp.gateway.chuhaijiang.com/mcp/oauth",
+    "documentation": "https://developer.chuhaijiang.com/getting-started",
+    "authMode": "oauth",
+    "oauthScopes": [
+      "mcp.full"
+    ],
+    "realAuthorizationAndTools": "NOT RUN",
+    "iconSource": "User-authorized local expert export / chuhaijiang market reference / ai.workbuddy/assets/icon.svg",
+    "iconSha256": "80d1e7d7e1aa2bb28f980ae764603e96a79d360015e313ce5a55e773ea7a23ee",
+    "redistribution": "unverified; local development only"
+  },
+  "fourthGroupMannequin": {
+    "date": "2026-10-17",
+    "authority": "Current user authorized integration and code audit; real account validation deferred",
+    "resource": "https://mcp-tool-gateway.linkfox.com/mcp/any-tool",
+    "discovery": "Official public 401 challenge and resource/authorization metadata; no registration or business calls",
+    "oauthScopes": [
+      "mcp:read",
+      "mcp:invoke"
+    ],
+    "iconSha256": "8aee36f1b88fb6087235fa3df422c078158b71824bcdedb9743e4bf7f9d0fba0",
+    "redistribution": "unverified; local development only",
+    "liveValidation": "NOT RUN"
+  }
 }

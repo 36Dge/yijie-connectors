@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "contract_version": "0.3.0",
+  "contract_version": "0.5.0",
   "feature": "FEAT-157",
   "mode": "local_worktree_candidate",
   "release": false,
@@ -9,11 +9,11 @@
   "sources": [
     {
       "path": "openapi/market-connectors/market-connectors.yaml",
-      "sha256": "d91f5a3ccbc1bf3ac1791b54fa6bbee3b7474372f19ca84fb1d4556b73f0eb0a"
+      "sha256": "83e1e7084726ac7ff370db3fe4cdc157c144089e449e5807f4c321aed99c1caf"
     },
     {
       "path": "scripts/generate-market-connectors.mjs",
-      "sha256": "0061d429c4c8b6dc47e2289a12935bc20de29b8b323b29e4f410485adf5288e2"
+      "sha256": "ee27c8481c062c1599a59b377f0976149391ac916207dab0a2bc930882b47fd6"
     },
     {
       "path": "scripts/sync-market-connectors.mjs",
@@ -27,11 +27,11 @@
   "generated": [
     {
       "path": "sdks/go/market-connectors/types.gen.go",
-      "sha256": "7ffa49a765da3d9ffc80d90bf82fed6b0270adfabf95e74403a687ecaa34dcd6"
+      "sha256": "8802c8d4f599667fc3684117475b92a9b5a37f094c26fbd709edc2587b831ffe"
     },
     {
       "path": "sdks/rust/market-connectors/types.gen.rs",
-      "sha256": "9e4777a2b868bbe8ea5becc3a1cfd3be78d5856f5cb498cd602580083a15377e"
+      "sha256": "057cffb9200d15c28fd02757f87afdec985e65170283144dd7cd889844ae9f08"
     },
     {
       "path": "sdks/typescript/src/domain/market-connectors.generated.ts",
@@ -39,7 +39,7 @@
     },
     {
       "path": "sdks/typescript/src/api/generated/market-connectors-validator.gen.js",
-      "sha256": "85fae719ae3e55e4c62f8ebf9e67e99ed88127e4a08d9a498790b882a0212ad9"
+      "sha256": "5456097be6cb12f123c2f4d147543ad0e9d39d7ef0bfdbf302da0799b332fa14"
     },
     {
       "path": "sdks/typescript/src/api/generated/market-connectors-validator.gen.d.ts",
@@ -47,7 +47,7 @@
     },
     {
       "path": "sdks/jsonschema/market-connectors.schema.json",
-      "sha256": "52d00a9ebcab2ba0e3c702476e02e491226640b33e44a1c985b7fe43cd2fb979"
+      "sha256": "f9e8ddd9c9db57898d4572b0087eec05bd94fe5cfbc40dbff4e2116f1ac0279b"
     }
   ],
   "generators": {

@@ -1,5 +1,5 @@
 {
-  "catalogRevision": 7,
+  "catalogRevision": 9,
   "catalog": [
     {
       "serviceId": "cue",
@@ -865,6 +865,36 @@
       "categoryLabel": "市场营销",
       "description": "市场营销应用连接；授权、支持工具与实际服务可用性待验证。",
       "iconAssetId": "xiaoliebian-geo",
+      "transport": "http",
+      "authMode": "oauth",
+      "availability": "unverified",
+      "blockerCodes": [
+        "provider_onboarding_required"
+      ]
+    },
+    {
+      "serviceId": "chuhaijiang",
+      "serverName": "chuhaijiang",
+      "displayName": "出海匠",
+      "categoryId": "cross_border_ecommerce",
+      "categoryLabel": "跨境电商",
+      "description": "连接出海匠账号诊断自有 TikTok Shop。卖家需单独授权，查询可能计费；当前授权元数据不一致，待服务方修正后验证。",
+      "iconAssetId": "chuhaijiang",
+      "transport": "http",
+      "authMode": "oauth",
+      "availability": "unverified",
+      "blockerCodes": [
+        "provider_onboarding_required"
+      ]
+    },
+    {
+      "serviceId": "linkfox",
+      "serverName": "linkfox",
+      "displayName": "LinkFox",
+      "categoryId": "cross_border_ecommerce",
+      "categoryLabel": "跨境电商",
+      "description": "连接 LinkFox 处理已授权的图片直链，创建生成任务并按原任务查询。可能计费；本地文件上传与真实业务尚未验证。",
+      "iconAssetId": "linkfox",
       "transport": "http",
       "authMode": "oauth",
       "availability": "unverified",

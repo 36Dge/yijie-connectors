@@ -506,3 +506,19 @@ pub(crate) mod tests {
         );
     }
 }
+
+#[cfg(test)]
+#[path = "linkfox_flow_tests.rs"]
+mod linkfox_flow_tests;
+
+#[cfg(test)]
+#[path = "linkfox_video_tests.rs"]
+mod linkfox_video_tests;
+
+#[cfg(test)]
+#[path = "linkfox_sourcing_tests.rs"]
+mod linkfox_sourcing_tests;
+
+#[cfg(test)]
+#[path = "linkfox_sale_tests.rs"]
+mod linkfox_sale_tests;

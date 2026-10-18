@@ -1,0 +1,86 @@
+{
+  "recordedAt": "2026-10-11T13:42:49.956Z",
+  "contractImpact": "semantic correction to declared keyless authMode=none; no schema/registry/Runtime changes",
+  "baseline": ".local/feat158-phase6-shopify-baseline.json",
+  "sourceSha256": {
+    "worker/src/tushare_oauth.rs": "f81251d4578a5f02f06551fca703b8a3c7f2bf1d7590fdcb9c903e850a43aff6",
+    "docs/feat158-shopify-keyless-admission.md": "b8ac645095061c0427c4a6ca82fb20faa6c57e9dd40fbcdaddbe3f67a71835b9"
+  },
+  "checks": [
+    {
+      "command": "CARGO_TARGET_DIR=../yijie-codex/codex-rs/target cargo test --offline --locked --manifest-path worker/Cargo.toml --bin yijie-mcp-worker feat158_ -- --test-threads=1",
+      "result": "PASS",
+      "tests": 3,
+      "filtered": 63
+    },
+    {
+      "command": "CARGO_TARGET_DIR=../yijie-codex/codex-rs/target cargo test --offline --locked --manifest-path worker/Cargo.toml --bin yijie-mcp-worker tushare_oauth::tests::metadata_client_requires_owned_authorization_and_never_calls_tools -- --exact --test-threads=1",
+      "result": "PASS",
+      "tests": 1,
+      "filtered": 65
+    },
+    {
+      "command": "CARGO_TARGET_DIR=../yijie-codex/codex-rs/target cargo test --offline --locked --manifest-path worker/Cargo.toml --bin yijie-mcp-worker shopify::tests::catalog_requires_full_upstream_schema_and_visible_fixed_profile -- --exact --test-threads=1",
+      "result": "PASS",
+      "tests": 1,
+      "filtered": 65
+    },
+    {
+      "command": "CARGO_TARGET_DIR=../yijie-codex/codex-rs/target cargo test --offline --locked --manifest-path worker/Cargo.toml --bin yijie-mcp-worker daily::tests::approved_http_permit_is_consumed_at_most_once -- --exact --test-threads=1",
+      "result": "PASS",
+      "tests": 1,
+      "filtered": 65
+    },
+    {
+      "command": "rustfmt --edition 2024 --config skip_children=true --check worker/src/tushare_oauth.rs",
+      "result": "PASS"
+    },
+    {
+      "command": "CARGO_TARGET_DIR=../yijie-codex/codex-rs/target cargo clippy --offline --locked --manifest-path worker/Cargo.toml --bin yijie-mcp-worker --tests --no-deps -- -D warnings",
+      "result": "PASS"
+    },
+    {
+      "command": "bash scripts/build-market-worker.sh",
+      "result": "PASS",
+      "detail": "Fixed Codex library source/dependencies and three canonical family checks passed; new content-addressed worker built; no worker launched."
+    },
+    {
+      "command": "git diff --check",
+      "result": "PASS"
+    }
+  ],
+  "totalFocusedTests": 6,
+  "worker": {
+    "schemaVersion": 2,
+    "candidateOnly": true,
+    "binary": "/Users/jack/Downloads/Personal_Info/CrossBSD/yijie-connectors/bin/market-worker/78bfbe1874d4d6d47fd4754d1cd7c67180e029cd90170d11c5f5e2970ebdcd66/yijie-mcp-worker",
+    "sha256": "78bfbe1874d4d6d47fd4754d1cd7c67180e029cd90170d11c5f5e2970ebdcd66",
+    "sizeBytes": 84308144,
+    "codexSource": "7fd463bcef07f37b0211acd9f62b9f93ea0a4b12",
+    "externalCallsEnabled": true,
+    "qualificationOnly": false,
+    "providerProfile": "generic-mcp-v1"
+  },
+  "workerBytesVerified": true,
+  "manifestSha256": "8f17f6ec022cbdd1c3a801504791204b0699616abc3d406d4ffc38755487674e",
+  "attempts": [
+    {
+      "command": "cargo fmt --manifest-path worker/Cargo.toml --check",
+      "result": "FAILED",
+      "detail": "Existing qualification presentation module lookup and generated formatting drift; no file written. Switched to repository scoped rustfmt check."
+    },
+    {
+      "command": "first new test compilation",
+      "result": "FAILED",
+      "detail": "New unit closure borrowed arguments before moving to synthetic one-shot permit; changed test to clone arguments; no product validation relaxed. Final three tests and all checks passed."
+    }
+  ],
+  "limits": [
+    "All requests in focused tests are in-memory; no server, network, OAuth, real credentials, model, UI or real tool call.",
+    "No process-kill, executable masquerade, permission fault, malicious fixture or attack injection.",
+    "Canonical output only: no Runtime executable modified, no old content-addressed worker directory removed.",
+    "Real official Shopify discovery and qualified nonempty expert selection remain separate main-task acceptance.",
+    "No full historical worker test-suite claim."
+  ],
+  "evidenceNote": "Observed tool outputs summarized retrospectively; no full log preservation claim."
+}

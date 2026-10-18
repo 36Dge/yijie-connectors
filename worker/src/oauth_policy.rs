@@ -349,3 +349,11 @@ mod tests {
         ));
     }
 }
+
+#[cfg(test)]
+#[path = "chuhaijiang_metadata_tests.rs"]
+mod chuhaijiang_metadata_tests;
+
+#[cfg(test)]
+#[path = "linkfox_metadata_tests.rs"]
+mod linkfox_metadata_tests;

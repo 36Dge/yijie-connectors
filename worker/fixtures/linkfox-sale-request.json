@@ -1,0 +1,15 @@
+{
+  "toolName": "aigc/multiImageVideoGenAsync",
+  "arguments": {
+    "videoType": "SEED_FAST",
+    "videoTime": 15,
+    "aspectRatio": "9:16",
+    "resolution": "720p",
+    "voice": true,
+    "imageList": [
+      "https://media.example.com/blue-cup.png"
+    ],
+    "prompt": "Product: 蓝色350mL杯. Preserve the exact reference product appearance.\nSpoken language: English. Market: United Kingdom. Audience: Adult commuters.\nActor direction: A neutral adult presenter, no celebrity resemblance.\nUse only the exact spoken words below; no additional factual, price, performance or certification claims. No music. Keep voice clear; no new logos or product features.\n[0-5s] Close-up of the exact reference product; voice-over continues. Speak: A blue cup.\n[5-10s] The exact reference product rests on a plain table; voice-over continues. Speak: It holds 350 millilitres.\n[10-15s] Presenter holds the exact reference product, speaking naturally to camera. Speak: A blue cup.",
+    "promptOptimizer": false
+  }
+}

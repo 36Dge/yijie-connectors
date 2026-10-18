@@ -1,0 +1,82 @@
+{
+  "recordedAt": "2026-10-11T14:45:16.733296+00:00",
+  "contractImpact": "semantic: exact provider notification compatibility; no schemas, endpoints, identity, permissions or Runtime source change",
+  "rootCause": "Official Shopify initializes correctly, then its initialized notification returns HTTP200 application/json with Content-Length4, no Transfer-Encoding, and complete literal null. Fixed RMCP cannot deserialize null into ServerJsonRpcMessage.",
+  "observedBodySha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+  "observationAuthority": "../yijie/docs/features/FEAT-158-desktop-experts/evidence/phase7-targeted-ledger.json",
+  "change": "After real request admission, normalize only fixed-Shopify exact notification + HTTP200 JSON + single Content-Length4 + absent Transfer-Encoding + complete four bytes null and EOF into an internal empty204. Log actual200 beforehand; other response streams untouched.",
+  "sourceSha256": {
+    "worker/src/tushare_oauth.rs": "cca22bd5f1f57c2392115857e02ce9f3fca7c46b0ec2dd51ecf552522b4e2ff1",
+    "worker/src/shopify_ack_tests.rs": "7d8fcc5796621887fb5cb38c19ba924a260ea511444347664a812dd901d6c1b6",
+    "docs/feat158-shopify-keyless-admission.md": "ac7a2151298c505ac004b009ed36b3d5dae5dae6fa9f5d5187ab7af6d81298fd"
+  },
+  "checks": [
+    {
+      "command": "CARGO_TARGET_DIR=../yijie-codex/codex-rs/target cargo test --offline --locked --manifest-path worker/Cargo.toml --bin yijie-mcp-worker tushare_oauth::shopify_ack_tests:: -- --test-threads=1",
+      "result": "PASS",
+      "tests": 2,
+      "ordinaryProtocolCases": [
+        "observed null without bridge: SDK initialization fails",
+        "same observed null with bridge: initialization and tools/list succeed",
+        "existing SDK empty204 accepted form unchanged",
+        "existing SDK validJSON200 accepted form unchanged"
+      ]
+    },
+    {
+      "command": "CARGO_TARGET_DIR=../yijie-codex/codex-rs/target cargo test --offline --locked --manifest-path worker/Cargo.toml --bin yijie-mcp-worker feat158_ -- --test-threads=1",
+      "result": "PASS",
+      "tests": 3
+    },
+    {
+      "command": "CARGO_TARGET_DIR=../yijie-codex/codex-rs/target cargo test --offline --locked --manifest-path worker/Cargo.toml --bin yijie-mcp-worker tushare_oauth::tests::ordinary_http_metadata_sends_worker_identity_and_records_only_safe_status -- --exact --test-threads=1",
+      "result": "PASS",
+      "tests": 1
+    },
+    {
+      "command": "CARGO_TARGET_DIR=../yijie-codex/codex-rs/target cargo test --offline --locked --manifest-path worker/Cargo.toml --bin yijie-mcp-worker tushare_oauth::tests::metadata_client_requires_owned_authorization_and_never_calls_tools -- --exact --test-threads=1",
+      "result": "PASS",
+      "tests": 1
+    },
+    {
+      "command": "CARGO_TARGET_DIR=../yijie-codex/codex-rs/target cargo clippy --offline --locked --manifest-path worker/Cargo.toml --bin yijie-mcp-worker --tests --no-deps -- -D warnings",
+      "result": "PASS"
+    },
+    {
+      "command": "rustfmt --edition 2024 --config skip_children=true --check worker/src/tushare_oauth.rs worker/src/shopify_ack_tests.rs",
+      "result": "PASS"
+    },
+    {
+      "command": "git diff --check",
+      "result": "PASS"
+    },
+    {
+      "command": "bash scripts/build-market-worker.sh",
+      "result": "PASS",
+      "detail": "Fixed Codex source and three canonical Contracts families verified; new content-addressed project worker built, not launched."
+    }
+  ],
+  "totalFocusedTests": 7,
+  "worker": {
+    "schemaVersion": 2,
+    "candidateOnly": true,
+    "binary": "/Users/jack/Downloads/Personal_Info/CrossBSD/yijie-connectors/bin/market-worker/f77ba40baf0c3ae7090bd61f076ade4c62298f138351563c7835556924f88bb3/yijie-mcp-worker",
+    "sha256": "f77ba40baf0c3ae7090bd61f076ade4c62298f138351563c7835556924f88bb3",
+    "sizeBytes": 84332304,
+    "codexSource": "7fd463bcef07f37b0211acd9f62b9f93ea0a4b12",
+    "externalCallsEnabled": true,
+    "qualificationOnly": false,
+    "providerProfile": "generic-mcp-v1"
+  },
+  "manifestSha256": "fee571b36f8db598d50189371455d32568c1393853adea2d61ad55986556cd74",
+  "oldWorkerPreserved": "bin/market-worker/78bfbe1874d4d6d47fd4754d1cd7c67180e029cd90170d11c5f5e2970ebdcd66/yijie-mcp-worker",
+  "oldWorkerSha256": "78bfbe1874d4d6d47fd4754d1cd7c67180e029cd90170d11c5f5e2970ebdcd66",
+  "limits": [
+    "No real metadata/network/model/UI request or product launch by this implementation agent.",
+    "Real shape observations were performed and recorded separately by the main task; no raw provider data or session headers copied.",
+    "Ordinary localhost protocol server only; graceful client shutdown and server stop, no process kills, permission faults, executable masquerading or attack/fault fixture.",
+    "204 and validJSON200 are existing SDK accepted forms; the MCP normative accepted-notification response is empty202.",
+    "No full historic test suite, no real product Shopify metadata/tool qualification claim; no tools/call in protocol tests.",
+    "Previous compiled worker artifact preserved; Runtime source and binary not modified; downstream pins owned by root."
+  ],
+  "evidenceNote": "Observed outputs summarized retrospectively; source and binary digests computed directly."
+}

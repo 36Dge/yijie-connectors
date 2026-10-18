@@ -1384,8 +1384,30 @@ mod tests {
     }
     #[tokio::test]
     async fn sorftime_market_call_binds_exact_ref_and_requires_a_fresh_decision() {
+        generic_market_call_requires_fresh_decision("sorftime").await;
+    }
+    #[tokio::test]
+    async fn linkfox_market_call_binds_exact_ref_and_requires_a_fresh_decision() {
+        generic_market_call_requires_fresh_decision("linkfox").await;
+    }
+    #[tokio::test]
+    async fn financial_research_reuses_current_schema_and_fresh_approval() {
+        for service in [
+            "eastmoney",
+            "wind",
+            "morningstar",
+            "gildata_finance_data_qwen",
+        ] {
+            generic_market_call_requires_fresh_decision(service).await;
+        }
+    }
+    #[tokio::test]
+    async fn moss_research_reuses_current_schema_and_fresh_approval() {
+        generic_market_call_requires_fresh_decision("fanruan-growth-advisor").await;
+    }
+    async fn generic_market_call_requires_fresh_decision(service: &str) {
         let (a, a_calls, a_factory) = crate::generic::tests::local_backend("lingxing").await;
-        let (b, b_calls, b_factory) = crate::generic::tests::local_backend("sorftime").await;
+        let (b, b_calls, b_factory) = crate::generic::tests::local_backend(service).await;
         let (mut broker, _, context) = fixture(ProviderMode::Product);
         let mut request = prepare(context.clone(), true);
         let mut refs = request.snapshot.selection.clone();
@@ -1435,7 +1457,7 @@ mod tests {
                 )
                 .unwrap();
             assert_eq!(call.identity.reference, second);
-            assert_eq!(call.identity.service_id, "sorftime");
+            assert_eq!(call.identity.service_id, service);
             assert_eq!(call.review.risk, "write");
             assert_eq!(
                 call.review.arguments_json.as_deref(),

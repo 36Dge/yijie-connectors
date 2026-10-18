@@ -494,6 +494,31 @@
       "documentationUrl": "https://www.sorftime.com/en-US/mcp/Codex",
       "configurationHint": "填写 Sorftime MCP 密钥；易界自动添加 Bearer 前缀。旧版授权不会沿用，请在这里重新配置连接器。",
       "credentialScheme": "bearer"
+    },
+    {
+      "serviceId": "chuhaijiang",
+      "displayName": "出海匠",
+      "authMode": "oauth",
+      "transport": "http",
+      "resource": "https://mcp.gateway.chuhaijiang.com/mcp/oauth",
+      "credentialHeader": null,
+      "documentationUrl": "https://developer.chuhaijiang.com/getting-started",
+      "oauthScopes": [
+        "mcp.full"
+      ]
+    },
+    {
+      "serviceId": "linkfox",
+      "displayName": "LinkFox",
+      "authMode": "oauth",
+      "transport": "http",
+      "resource": "https://mcp-tool-gateway.linkfox.com/mcp/any-tool",
+      "credentialHeader": null,
+      "documentationUrl": "https://wiki.linkfox.com/integrations",
+      "oauthScopes": [
+        "mcp:read",
+        "mcp:invoke"
+      ]
     }
   ]
 }

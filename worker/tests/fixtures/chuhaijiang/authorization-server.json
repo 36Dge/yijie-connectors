@@ -1,0 +1,30 @@
+{
+  "authorization_endpoint": "https://openapi.gateway.chuhaijiang.com/oauth/authorize",
+  "code_challenge_methods_supported": [
+    "S256"
+  ],
+  "grant_types_supported": [
+    "authorization_code",
+    "refresh_token"
+  ],
+  "issuer": "https://openapi.gateway.chuhaijiang.com",
+  "jwks_uri": "https://openapi.gateway.chuhaijiang.com/oauth/jwks.json",
+  "registration_endpoint": "https://openapi.gateway.chuhaijiang.com/oauth/register",
+  "response_modes_supported": [
+    "query"
+  ],
+  "response_types_supported": [
+    "code"
+  ],
+  "revocation_endpoint": "https://openapi.gateway.chuhaijiang.com/oauth/revoke",
+  "revocation_endpoint_auth_methods_supported": [
+    "none"
+  ],
+  "scopes_supported": [
+    "mcp.full"
+  ],
+  "token_endpoint": "https://openapi.gateway.chuhaijiang.com/oauth/token",
+  "token_endpoint_auth_methods_supported": [
+    "none"
+  ]
+}

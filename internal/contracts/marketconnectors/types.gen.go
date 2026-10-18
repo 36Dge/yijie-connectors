@@ -898,7 +898,7 @@ func (v Snapshot) Validate() error {
 	if v.Catalog == nil {
 		return errors.New("null connector array")
 	}
-	if len(v.Catalog) > 58 {
+	if len(v.Catalog) > 60 {
 		return errors.New("invalid connector array length")
 	}
 	for _, item := range v.Catalog {
@@ -909,7 +909,7 @@ func (v Snapshot) Validate() error {
 	if v.Installations == nil {
 		return errors.New("null connector array")
 	}
-	if len(v.Installations) > 58 {
+	if len(v.Installations) > 60 {
 		return errors.New("invalid connector array length")
 	}
 	for _, item := range v.Installations {

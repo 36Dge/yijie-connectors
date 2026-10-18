@@ -1722,6 +1722,18 @@ mod tests {
                 "Bearer ordinary-local-key",
                 true,
             ),
+            (
+                "chuhaijiang",
+                "Authorization",
+                "Bearer ordinary-local-oauth",
+                false,
+            ),
+            (
+                "linkfox",
+                "Authorization",
+                "Bearer ordinary-local-oauth",
+                false,
+            ),
             ("FTShare", "FTSHARE_API_KEY", "ordinary-local-key", true),
         ] {
             let target = Target::for_service(service).unwrap();
