@@ -1080,6 +1080,125 @@ impl std::fmt::Debug for TushareDailyArguments {
         f.write_str("TushareDailyArguments([redacted])")
     }
 }
+#[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", try_from = "SuspendRequestWire")]
+pub struct SuspendRequest {
+    pub schema_version: i64,
+    pub request_id: CanonicalId,
+    pub method: String,
+    pub payload: ProviderPayload,
+}
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct SuspendRequestWire {
+    pub schema_version: i64,
+    pub request_id: CanonicalId,
+    pub method: String,
+    pub payload: ProviderPayload,
+}
+impl TryFrom<SuspendRequestWire> for SuspendRequest {
+    type Error = &'static str;
+    fn try_from(w: SuspendRequestWire) -> Result<Self, Self::Error> {
+        let v = Self {
+            schema_version: w.schema_version,
+            request_id: w.request_id,
+            method: w.method,
+            payload: w.payload,
+        };
+        v.validate()?;
+        Ok(v)
+    }
+}
+impl SuspendRequest {
+    pub fn validate(&self) -> Result<(), &'static str> {
+        {
+            let value_schema_version = &self.schema_version;
+            if *value_schema_version != 1 {
+                return Err("invalid broker constant");
+            }
+        }
+        {
+            let value_request_id = &self.request_id;
+            if !canonical_id(value_request_id) {
+                return Err("invalid provider UUID");
+            }
+            if value_request_id == "00000000-0000-0000-0000-000000000000" {
+                return Err("invalid broker identity");
+            }
+        }
+        {
+            let value_method = &self.method;
+            if value_method != "provider_suspend" {
+                return Err("invalid broker constant");
+            }
+        }
+        {
+            let value_payload = &self.payload;
+            value_payload.validate()?;
+        }
+        Ok(())
+    }
+}
+impl std::fmt::Debug for SuspendRequest {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("SuspendRequest([redacted])")
+    }
+}
+#[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", try_from = "SuspendResponseWire")]
+pub struct SuspendResponse {
+    pub schema_version: i64,
+    pub request_id: CanonicalId,
+    pub data: ProviderStatus,
+}
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct SuspendResponseWire {
+    pub schema_version: i64,
+    pub request_id: CanonicalId,
+    pub data: ProviderStatus,
+}
+impl TryFrom<SuspendResponseWire> for SuspendResponse {
+    type Error = &'static str;
+    fn try_from(w: SuspendResponseWire) -> Result<Self, Self::Error> {
+        let v = Self {
+            schema_version: w.schema_version,
+            request_id: w.request_id,
+            data: w.data,
+        };
+        v.validate()?;
+        Ok(v)
+    }
+}
+impl SuspendResponse {
+    pub fn validate(&self) -> Result<(), &'static str> {
+        {
+            let value_schema_version = &self.schema_version;
+            if *value_schema_version != 1 {
+                return Err("invalid broker constant");
+            }
+        }
+        {
+            let value_request_id = &self.request_id;
+            if !canonical_id(value_request_id) {
+                return Err("invalid provider UUID");
+            }
+            if value_request_id == "00000000-0000-0000-0000-000000000000" {
+                return Err("invalid broker identity");
+            }
+        }
+        {
+            let value_data = &self.data;
+            value_data.validate()?;
+        }
+        Ok(())
+    }
+}
+impl std::fmt::Debug for SuspendResponse {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("SuspendResponse([redacted])")
+    }
+}
 fn canonical_id(s: &str) -> bool {
     let b = s.as_bytes();
     b.len() == 36

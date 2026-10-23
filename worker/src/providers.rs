@@ -23,6 +23,7 @@ use tokio_util::sync::CancellationToken;
 enum Kind {
     Auth,
     Forget,
+    Suspend,
     Probe,
 }
 struct Operation {
@@ -371,7 +372,7 @@ impl Providers {
         if self.operations.len() >= wire::MAX_OPERATIONS {
             return Err(wire::ErrorCode::CapacityExceeded);
         }
-        if kind != Kind::Forget
+        if !matches!(kind, Kind::Forget | Kind::Suspend)
             && self.operations.values().any(|operation| {
                 stable_key(&operation.original) == stable_key(&payload)
                     && !operation.finished.load(Ordering::Acquire)
@@ -390,7 +391,7 @@ impl Providers {
             })
             .map(|operation| (operation.finished.clone(), operation.completed.clone()))
             .collect();
-        if kind == Kind::Forget {
+        if matches!(kind, Kind::Forget | Kind::Suspend) {
             self.broker
                 .state
                 .lock()
@@ -447,7 +448,7 @@ impl Providers {
                     }
                     run_auth(&credential_alias, end, state_ref, cancel_ref, auth_ref).await
                 }
-                Kind::Forget => {
+                Kind::Forget | Kind::Suspend => {
                     // Wait for cancelled refresh/callback owners to finish before
                     // deletion, so an old client cannot repopulate the vault.
                     let cleanup = async {
@@ -483,6 +484,12 @@ impl Providers {
                     if Instant::now() >= end {
                         state.operation_state = wire::OperationState::Failed;
                         state.error_code = Some(wire::ErrorCode::ScopeExpired);
+                        return;
+                    }
+                    // Ordinary disable never touches the vault. Cleanup and
+                    // admission fencing are identical to removal up to here.
+                    if kind == Kind::Suspend {
+                        state.operation_state = wire::OperationState::Succeeded;
                         return;
                     }
                     match tushare_oauth::forget_for_service(
@@ -538,7 +545,7 @@ impl Providers {
             .ok_or(wire::ErrorCode::NotFound)?;
         if cancel {
             let operation = &self.operations[&payload.operation_id];
-            if operation.kind == Kind::Forget {
+            if matches!(operation.kind, Kind::Forget | Kind::Suspend) {
                 return Ok(result);
             }
             let mut result = Self::cancel_operation(operation);
@@ -593,6 +600,7 @@ impl Providers {
         Some(match method {
             "provider_auth_begin" => action!(wire::AuthBeginRequest, AuthBeginResponse, Kind::Auth),
             "provider_forget" => action!(wire::ForgetRequest, ForgetResponse, Kind::Forget),
+            "provider_suspend" => action!(wire::SuspendRequest, SuspendResponse, Kind::Suspend),
             "provider_probe" => action!(wire::ProbeRequest, ProbeResponse, Kind::Probe),
             "provider_auth_poll" => poll!(wire::AuthPollRequest, AuthPollResponse, false),
             "provider_auth_cancel" => poll!(wire::AuthCancelRequest, AuthCancelResponse, true),
@@ -1253,6 +1261,58 @@ mod tests {
             },
         );
     }
+    #[tokio::test]
+    async fn suspend_normally_cleans_owned_operations_without_vault_or_network() {
+        let mut actor = actor(true);
+        let original = payload();
+        actor.fence_binding(&original).unwrap();
+        seed(
+            &mut actor,
+            &original,
+            Kind::Probe,
+            wire::OperationState::Succeeded,
+        );
+        actor.operations[&original.operation_id]
+            .finished
+            .store(true, Ordering::Release);
+        let mut request = original.clone();
+        request.operation_id = uuid::Uuid::new_v4().to_string();
+        request.binding.reference.revision += 1;
+        // No library home, credential configuration or remote server is needed:
+        // suspension only fences/joins the normal owned lifecycle.
+        let started = actor.begin(request.clone(), Kind::Suspend).unwrap();
+        assert_eq!(started.operation_state, wire::OperationState::Starting);
+        assert!(
+            actor.operations[&original.operation_id]
+                .cancelled
+                .is_cancelled()
+        );
+        actor
+            .operations
+            .get_mut(&request.operation_id)
+            .unwrap()
+            .task
+            .take()
+            .unwrap()
+            .await
+            .unwrap();
+        let result = actor.poll(request.clone(), false).unwrap();
+        assert_eq!(result.operation_state, wire::OperationState::Succeeded);
+        assert_eq!(
+            result.connection_status,
+            wire::ConnectionStatus::Disconnected
+        );
+        assert_eq!(
+            result.authorization_status,
+            wire::AuthorizationStatus::Unknown
+        );
+        assert!(!result.execution_available);
+        assert_eq!(alias(&original), alias(&request));
+        assert_eq!(actor.poll(request.clone(), true).unwrap(), result);
+        assert_eq!(actor.begin(request, Kind::Suspend).unwrap(), result);
+        actor.close().await.unwrap();
+    }
+
     #[test]
     fn provider_status_queries_do_not_require_or_create_runtime_identity() {
         let mut actor = actor(true);

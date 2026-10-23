@@ -510,6 +510,53 @@
       },
       "description": "Yijie-owned normalized input for the tushare-daily-v1 Gateway tool tushare_daily. Only these two strings are forwarded to exact upstream daily after validation and one-call approval; no fields, range, limit or other provider arguments are accepted. This is not the full upstream input schema."
     },
+    "SuspendRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "requestId",
+        "method",
+        "payload"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "type": "integer",
+          "const": 1
+        },
+        "requestId": {
+          "$ref": "#/$defs/CanonicalId"
+        },
+        "method": {
+          "type": "string",
+          "const": "provider_suspend"
+        },
+        "payload": {
+          "$ref": "#/$defs/ProviderPayload"
+        }
+      }
+    },
+    "SuspendResponse": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "schemaVersion",
+        "requestId",
+        "data"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "type": "integer",
+          "const": 1
+        },
+        "requestId": {
+          "$ref": "#/$defs/CanonicalId"
+        },
+        "data": {
+          "$ref": "#/$defs/ProviderStatus"
+        }
+      }
+    },
     "Revision": {
       "type": "integer",
       "minimum": 1,
