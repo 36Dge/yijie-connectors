@@ -7,5 +7,8 @@
   "mcpLibrary": "codex-rmcp-client",
   "candidateOnly": true,
   "release": false,
-  "policy": "Use the fixed library path dependency without modifying or copying Runtime sources; no external calls or credential IO are exposed by auth_status."
+  "policy": "Use the fixed library path dependency without modifying or copying Runtime sources; no external calls or credential IO are exposed by auth_status.",
+  "compatibleRuntimeWrapperCommits": [
+    "074417e5e2f5f55704ea5e1777e7a22d514076b4"
+  ]
 }
