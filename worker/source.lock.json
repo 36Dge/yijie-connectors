@@ -10,6 +10,7 @@
   "policy": "Use the fixed library path dependency without modifying or copying Runtime sources; no external calls or credential IO are exposed by auth_status.",
   "compatibleRuntimeWrapperCommits": [
     "074417e5e2f5f55704ea5e1777e7a22d514076b4",
-    "a28130abb13d0f99a00107cd513a653bae878b77"
+    "a28130abb13d0f99a00107cd513a653bae878b77",
+    "11fd4504c28afd0f65c6f5f62a6b5328dd437f5a"
   ]
 }
