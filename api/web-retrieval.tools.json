@@ -1,0 +1,715 @@
+[
+  {
+    "name": "kimi_web_search",
+    "description": "按查询词获取网页标题、URL和摘要的结构化列表。需要结构化搜索结果时使用；一般联网回答可使用原生搜索。只读但按次计费，每次需要批准，不自动重试。",
+    "inputSchema": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "query"
+      ],
+      "properties": {
+        "query": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048,
+          "pattern": "\\S"
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 20,
+          "default": 5
+        }
+      }
+    },
+    "outputSchema": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "oneOf": [
+        {
+          "$ref": "#/$defs/SearchSuccess"
+        },
+        {
+          "$ref": "#/$defs/ErrorOutput"
+        }
+      ],
+      "$defs": {
+        "SearchSuccess": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "results",
+            "truncated"
+          ],
+          "properties": {
+            "results": {
+              "type": "array",
+              "maxItems": 20,
+              "items": {
+                "$ref": "#/$defs/SearchResult"
+              }
+            },
+            "truncated": {
+              "type": "boolean"
+            }
+          }
+        },
+        "SearchResult": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "title",
+            "url",
+            "snippet"
+          ],
+          "properties": {
+            "title": {
+              "type": "string",
+              "maxLength": 65536
+            },
+            "url": {
+              "$ref": "#/$defs/PublicUrl"
+            },
+            "snippet": {
+              "type": "string",
+              "maxLength": 65536
+            }
+          }
+        },
+        "PublicUrl": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096,
+          "format": "uri",
+          "pattern": "^https?://",
+          "description": "Public HTTP(S) URL. Connector additionally parses authority, rejects userinfo/control characters and local/private literal destinations; no local request to this target is made."
+        },
+        "ErrorOutput": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "error"
+          ],
+          "properties": {
+            "error": {
+              "$ref": "#/$defs/ToolError"
+            }
+          }
+        },
+        "ToolError": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "code",
+            "message"
+          ],
+          "properties": {
+            "code": {
+              "$ref": "#/$defs/ErrorCode"
+            },
+            "message": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512
+            }
+          },
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "code": {
+                    "const": "invalid_arguments"
+                  }
+                },
+                "required": [
+                  "code"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "message": {
+                    "const": "检索参数无效，请检查查询词、数量或网页地址。"
+                  }
+                },
+                "required": [
+                  "message"
+                ]
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "code": {
+                    "const": "authentication_failed"
+                  }
+                },
+                "required": [
+                  "code"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "message": {
+                    "const": "Kimi API Key 无效或已失效，请重新配置。"
+                  }
+                },
+                "required": [
+                  "message"
+                ]
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "code": {
+                    "const": "permission_denied"
+                  }
+                },
+                "required": [
+                  "code"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "message": {
+                    "const": "服务拒绝了此请求，请检查账户权限或目标网页是否允许读取。"
+                  }
+                },
+                "required": [
+                  "message"
+                ]
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "code": {
+                    "const": "rate_limited"
+                  }
+                },
+                "required": [
+                  "code"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "message": {
+                    "const": "Kimi 请求频率或并发受限，请确认后重新发起调用。"
+                  }
+                },
+                "required": [
+                  "message"
+                ]
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "code": {
+                    "const": "timeout"
+                  }
+                },
+                "required": [
+                  "code"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "message": {
+                    "const": "本次网页检索超时，未自动重试；已发送的请求可能计费。"
+                  }
+                },
+                "required": [
+                  "message"
+                ]
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "code": {
+                    "const": "unavailable"
+                  }
+                },
+                "required": [
+                  "code"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "message": {
+                    "const": "网页检索服务暂不可用，未自动重试。"
+                  }
+                },
+                "required": [
+                  "message"
+                ]
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "code": {
+                    "const": "no_content"
+                  }
+                },
+                "required": [
+                  "code"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "message": {
+                    "const": "目标网页未返回可读取的正文。"
+                  }
+                },
+                "required": [
+                  "message"
+                ]
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "code": {
+                    "const": "response_too_large"
+                  }
+                },
+                "required": [
+                  "code"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "message": {
+                    "const": "网页检索结果超过可处理的大小限制。"
+                  }
+                },
+                "required": [
+                  "message"
+                ]
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "code": {
+                    "const": "invalid_response"
+                  }
+                },
+                "required": [
+                  "code"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "message": {
+                    "const": "网页检索服务返回了无法验证的结果。"
+                  }
+                },
+                "required": [
+                  "message"
+                ]
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "code": {
+                    "const": "cancelled"
+                  }
+                },
+                "required": [
+                  "code"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "message": {
+                    "const": "本次网页检索已取消；已发送的请求可能计费。"
+                  }
+                },
+                "required": [
+                  "message"
+                ]
+              }
+            }
+          ]
+        },
+        "ErrorCode": {
+          "type": "string",
+          "enum": [
+            "invalid_arguments",
+            "authentication_failed",
+            "permission_denied",
+            "rate_limited",
+            "timeout",
+            "unavailable",
+            "no_content",
+            "response_too_large",
+            "invalid_response",
+            "cancelled"
+          ]
+        }
+      }
+    },
+    "annotations": {
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": true
+    }
+  },
+  {
+    "name": "kimi_web_fetch",
+    "description": "读取指定公开HTTP(S)网页的标题、URL和Markdown正文。用于需要指定URL具体正文的任务；不提供原始HTML、登录态访问或JavaScript渲染控制。只读但按次计费，每次需要批准，不自动重试。",
+    "inputSchema": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "url"
+      ],
+      "properties": {
+        "url": {
+          "$ref": "#/$defs/PublicUrl"
+        }
+      },
+      "$defs": {
+        "PublicUrl": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096,
+          "format": "uri",
+          "pattern": "^https?://",
+          "description": "Public HTTP(S) URL. Connector additionally parses authority, rejects userinfo/control characters and local/private literal destinations; no local request to this target is made."
+        }
+      }
+    },
+    "outputSchema": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "oneOf": [
+        {
+          "$ref": "#/$defs/FetchSuccess"
+        },
+        {
+          "$ref": "#/$defs/ErrorOutput"
+        }
+      ],
+      "$defs": {
+        "FetchSuccess": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "url",
+            "title",
+            "markdown",
+            "truncated"
+          ],
+          "properties": {
+            "url": {
+              "$ref": "#/$defs/PublicUrl"
+            },
+            "title": {
+              "type": "string",
+              "maxLength": 65536
+            },
+            "markdown": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 65536,
+              "pattern": "\\S"
+            },
+            "truncated": {
+              "type": "boolean"
+            }
+          }
+        },
+        "PublicUrl": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096,
+          "format": "uri",
+          "pattern": "^https?://",
+          "description": "Public HTTP(S) URL. Connector additionally parses authority, rejects userinfo/control characters and local/private literal destinations; no local request to this target is made."
+        },
+        "ErrorOutput": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "error"
+          ],
+          "properties": {
+            "error": {
+              "$ref": "#/$defs/ToolError"
+            }
+          }
+        },
+        "ToolError": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "code",
+            "message"
+          ],
+          "properties": {
+            "code": {
+              "$ref": "#/$defs/ErrorCode"
+            },
+            "message": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512
+            }
+          },
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "code": {
+                    "const": "invalid_arguments"
+                  }
+                },
+                "required": [
+                  "code"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "message": {
+                    "const": "检索参数无效，请检查查询词、数量或网页地址。"
+                  }
+                },
+                "required": [
+                  "message"
+                ]
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "code": {
+                    "const": "authentication_failed"
+                  }
+                },
+                "required": [
+                  "code"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "message": {
+                    "const": "Kimi API Key 无效或已失效，请重新配置。"
+                  }
+                },
+                "required": [
+                  "message"
+                ]
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "code": {
+                    "const": "permission_denied"
+                  }
+                },
+                "required": [
+                  "code"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "message": {
+                    "const": "服务拒绝了此请求，请检查账户权限或目标网页是否允许读取。"
+                  }
+                },
+                "required": [
+                  "message"
+                ]
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "code": {
+                    "const": "rate_limited"
+                  }
+                },
+                "required": [
+                  "code"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "message": {
+                    "const": "Kimi 请求频率或并发受限，请确认后重新发起调用。"
+                  }
+                },
+                "required": [
+                  "message"
+                ]
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "code": {
+                    "const": "timeout"
+                  }
+                },
+                "required": [
+                  "code"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "message": {
+                    "const": "本次网页检索超时，未自动重试；已发送的请求可能计费。"
+                  }
+                },
+                "required": [
+                  "message"
+                ]
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "code": {
+                    "const": "unavailable"
+                  }
+                },
+                "required": [
+                  "code"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "message": {
+                    "const": "网页检索服务暂不可用，未自动重试。"
+                  }
+                },
+                "required": [
+                  "message"
+                ]
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "code": {
+                    "const": "no_content"
+                  }
+                },
+                "required": [
+                  "code"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "message": {
+                    "const": "目标网页未返回可读取的正文。"
+                  }
+                },
+                "required": [
+                  "message"
+                ]
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "code": {
+                    "const": "response_too_large"
+                  }
+                },
+                "required": [
+                  "code"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "message": {
+                    "const": "网页检索结果超过可处理的大小限制。"
+                  }
+                },
+                "required": [
+                  "message"
+                ]
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "code": {
+                    "const": "invalid_response"
+                  }
+                },
+                "required": [
+                  "code"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "message": {
+                    "const": "网页检索服务返回了无法验证的结果。"
+                  }
+                },
+                "required": [
+                  "message"
+                ]
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "code": {
+                    "const": "cancelled"
+                  }
+                },
+                "required": [
+                  "code"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "message": {
+                    "const": "本次网页检索已取消；已发送的请求可能计费。"
+                  }
+                },
+                "required": [
+                  "message"
+                ]
+              }
+            }
+          ]
+        },
+        "ErrorCode": {
+          "type": "string",
+          "enum": [
+            "invalid_arguments",
+            "authentication_failed",
+            "permission_denied",
+            "rate_limited",
+            "timeout",
+            "unavailable",
+            "no_content",
+            "response_too_large",
+            "invalid_response",
+            "cancelled"
+          ]
+        }
+      }
+    },
+    "annotations": {
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": true
+    }
+  }
+]

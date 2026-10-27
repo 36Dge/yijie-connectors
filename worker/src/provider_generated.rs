@@ -221,6 +221,8 @@ pub enum ErrorCode {
     CleanupPending,
     #[serde(rename = "temporarily_unavailable")]
     TemporarilyUnavailable,
+    #[serde(rename = "not_configured")]
+    NotConfigured,
 }
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", try_from = "ProviderStatusWire")]

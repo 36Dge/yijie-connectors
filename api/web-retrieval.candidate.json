@@ -1,0 +1,70 @@
+{
+  "schema_version": 1,
+  "contract_version": "0.2.0",
+  "feature": "FEAT-162",
+  "mode": "local_worktree_candidate",
+  "release": false,
+  "base_commit": "bedf4159b0fa22e24efe6c295f8b0d4845df56b7",
+  "sources": [
+    {
+      "path": "compatibility/web-retrieval/wire.schema.json",
+      "sha256": "7579b106655791e3610f574da52adb9694fca6dd26aa823a04a3b8f6c25f3668"
+    },
+    {
+      "path": "compatibility/web-retrieval/tools.json",
+      "sha256": "8cb126edb4da03e7efee094630dc5ac928a62b09fb71e69120a19c9754248d7f"
+    },
+    {
+      "path": "scripts/web-retrieval-source.mjs",
+      "sha256": "6c5e40e87ceffa061a61948a9fee2cb422612dd6a53831f5984aa561627e751a"
+    },
+    {
+      "path": "scripts/generate-web-retrieval.mjs",
+      "sha256": "7de78a2c8a34b435aada4f41597105646873b0db4f729d33bf125c2514d19e7c"
+    },
+    {
+      "path": "scripts/sync-web-retrieval.mjs",
+      "sha256": "9068b38291960e1f2ad39529874fe772b0a80c6c78fc40a42e47719e697bef47"
+    },
+    {
+      "path": "scripts/market-broker-codegen.mjs",
+      "sha256": "d4218c6515c669f4a80a4f48f857bdd20d0509345fdb184df1da355c97856221"
+    },
+    {
+      "path": "pnpm-lock.yaml",
+      "sha256": "57eece158a0405a85ea9b8fd2c382af130e4248897b67af587878737bbf86313"
+    }
+  ],
+  "generated": [
+    {
+      "path": "sdks/rust/web-retrieval/types.gen.rs",
+      "sha256": "d499b12ea58ba5d4b73039f0e668a08aecb7f050900212d5431f40e4a784a38d"
+    },
+    {
+      "path": "sdks/jsonschema/web-retrieval.schema.json",
+      "sha256": "7579b106655791e3610f574da52adb9694fca6dd26aa823a04a3b8f6c25f3668"
+    },
+    {
+      "path": "sdks/jsonschema/web-retrieval.tools.json",
+      "sha256": "46c33cd7a089efb7aa8024abf5e75417440ad74571a8723c4ffdb0ecc0a0de72"
+    }
+  ],
+  "consumer": "connectors",
+  "consumer_generated": [
+    {
+      "source": "sdks/rust/web-retrieval/types.gen.rs",
+      "path": "worker/src/web_retrieval_generated.rs",
+      "sha256": "d499b12ea58ba5d4b73039f0e668a08aecb7f050900212d5431f40e4a784a38d"
+    },
+    {
+      "source": "sdks/jsonschema/web-retrieval.schema.json",
+      "path": "api/web-retrieval.schema.json",
+      "sha256": "7579b106655791e3610f574da52adb9694fca6dd26aa823a04a3b8f6c25f3668"
+    },
+    {
+      "source": "sdks/jsonschema/web-retrieval.tools.json",
+      "path": "api/web-retrieval.tools.json",
+      "sha256": "46c33cd7a089efb7aa8024abf5e75417440ad74571a8723c4ffdb0ecc0a0de72"
+    }
+  ]
+}

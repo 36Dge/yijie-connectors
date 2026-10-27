@@ -256,6 +256,23 @@ impl ServerHandler for Gateway {
                 };
                 backend.execute(&tool, arguments, permit, diagnostic).await
             }
+            broker::Execution::Kimi {
+                backend,
+                tool,
+                arguments,
+                lease,
+                deadline,
+            } => {
+                let permit = crate::daily::Permit {
+                    tool: String::new(),
+                    arguments: serde_json::Value::Null,
+                    request: context.ct.clone(),
+                    lease,
+                    deadline,
+                    backend: CancellationToken::new(),
+                };
+                Ok(backend.execute(&tool, arguments, permit, diagnostic).await)
+            }
         };
         match result {
             Ok(value) => Ok(value),

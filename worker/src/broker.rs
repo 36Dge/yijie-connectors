@@ -88,42 +88,49 @@ struct BoundProvider {
 pub enum ProviderBackend {
     Daily(Arc<crate::daily::Backend>),
     Generic(Arc<crate::generic::Backend>),
+    Kimi(Arc<crate::kimi_web::Backend>),
 }
 impl ProviderBackend {
     pub fn available(&self) -> bool {
         match self {
             Self::Daily(b) => b.available(),
             Self::Generic(b) => b.available(),
+            Self::Kimi(b) => b.available(),
         }
     }
     pub fn revoke(&self) {
         match self {
             Self::Daily(b) => b.revoke(),
             Self::Generic(b) => b.revoke(),
+            Self::Kimi(b) => b.revoke(),
         }
     }
     pub async fn close(&self) {
         match self {
             Self::Daily(b) => b.close().await,
             Self::Generic(b) => b.close().await,
+            Self::Kimi(b) => b.close().await,
         }
     }
     fn service(&self) -> &str {
         match self {
             Self::Daily(_) => "tushareMcp",
             Self::Generic(b) => &b.service,
+            Self::Kimi(_) => crate::web_retrieval_generated::SERVICE_ID,
         }
     }
     fn tools(&self) -> Vec<rmcp::model::Tool> {
         match self {
             Self::Daily(_) => vec![crate::daily::descriptor()],
             Self::Generic(b) => b.definitions.iter().map(|d| d.tool.clone()).collect(),
+            Self::Kimi(_) => crate::kimi_web::descriptors(),
         }
     }
     fn contains(&self, tool: &str) -> bool {
         match self {
             Self::Daily(_) => tool == crate::provider_generated::TUSHARE_DAILY_TOOL_NAME,
             Self::Generic(b) => b.definition(tool).is_some(),
+            Self::Kimi(b) => b.contains(tool),
         }
     }
 }
@@ -137,6 +144,13 @@ pub enum Execution {
     },
     Generic {
         backend: Arc<crate::generic::Backend>,
+        tool: String,
+        arguments: Map<String, Value>,
+        lease: tokio_util::sync::CancellationToken,
+        deadline: Instant,
+    },
+    Kimi {
+        backend: Arc<crate::kimi_web::Backend>,
         tool: String,
         arguments: Map<String, Value>,
         lease: tokio_util::sync::CancellationToken,
@@ -882,6 +896,9 @@ impl Broker {
                 ProviderBackend::Generic(backend) => backend
                     .review(tool, args)
                     .map_err(|_| wire::ErrorCode::InvalidRequest)?,
+                ProviderBackend::Kimi(backend) => backend
+                    .review(tool, args)
+                    .map_err(|_| wire::ErrorCode::InvalidRequest)?,
             };
             (
                 provider.binding.service_id.clone(),
@@ -1020,6 +1037,14 @@ impl Broker {
                 lease: lease_cancel,
                 deadline,
             })
+        } else if let Some(ProviderBackend::Kimi(backend)) = provider {
+            Ok(Execution::Kimi {
+                backend,
+                tool,
+                arguments,
+                lease: lease_cancel,
+                deadline,
+            })
         } else {
             Ok(Execution::Synthetic(
                 serde_json::json!({"value":"public-synthetic-value","query":arguments["query"]}),
@@ -1035,7 +1060,7 @@ impl Broker {
     ) -> Result<Value, wire::ErrorCode> {
         match self.consume_execution(call_ref, accepted, cancellation)? {
             Execution::Synthetic(value) => Ok(value),
-            Execution::Daily { .. } | Execution::Generic { .. } => {
+            Execution::Daily { .. } | Execution::Generic { .. } | Execution::Kimi { .. } => {
                 Err(wire::ErrorCode::NotQualified)
             }
         }
@@ -1381,6 +1406,123 @@ mod tests {
         assert!(!broker.daily_status(&renewed));
         backend.close().await;
         factory.join().await;
+    }
+    #[tokio::test]
+    async fn kimi_read_tools_require_both_decisions_and_revoke_normally() {
+        let (backend, calls) = crate::kimi_web::tests::local_backend();
+        let (mut broker, _, context) = fixture(ProviderMode::Product);
+        let request = prepare(context.clone(), true);
+        let reference = request.snapshot.selection[0].clone();
+        assert!(broker.register_provider(
+            crate::provider_generated::ProviderPayload {
+                operation_id: Uuid::new_v4().to_string(),
+                host_instance_id: context.process.host_instance_id.clone(),
+                scope: context.scope.clone(),
+                binding: crate::provider_generated::ProviderBinding {
+                    reference: reference.clone(),
+                    service_id: crate::web_retrieval_generated::SERVICE_ID.into(),
+                    credential_ref: Uuid::new_v4().to_string(),
+                },
+            },
+            ProviderBackend::Kimi(backend.clone())
+        ));
+        let lease = broker.prepare(request).unwrap();
+        let lease = bind(&mut broker, &lease);
+        let tools = broker
+            .visible_tools(&lease.binding.capability_ref)
+            .unwrap()
+            .unwrap();
+        assert_eq!(tools.len(), 2);
+        assert!(
+            tools
+                .iter()
+                .any(|t| t.name == crate::web_retrieval_generated::SEARCH_TOOL_NAME)
+        );
+        let args = serde_json::json!({"query":"公开文档"})
+            .as_object()
+            .unwrap()
+            .clone();
+        let cancellation = tokio_util::sync::CancellationToken::new();
+        let undecided = broker
+            .register_call(
+                &lease.binding.capability_ref,
+                "native-thread-1",
+                "native-turn-1",
+                crate::web_retrieval_generated::SEARCH_TOOL_NAME,
+                Some(args.clone()),
+            )
+            .unwrap();
+        assert!(
+            broker
+                .consume_execution(&undecided.identity.call_ref, true, &cancellation)
+                .is_err()
+        );
+        assert_eq!(calls.load(Ordering::SeqCst), 0);
+        for decision in [wire::Decision::Reject, wire::Decision::ApproveOnce] {
+            let call = broker
+                .register_call(
+                    &lease.binding.capability_ref,
+                    "native-thread-1",
+                    "native-turn-1",
+                    crate::web_retrieval_generated::SEARCH_TOOL_NAME,
+                    Some(args.clone()),
+                )
+                .unwrap();
+            assert_eq!(call.review.risk, "read");
+            assert!(call.review.summary.contains("按次计费"));
+            broker
+                .decide_call(wire::DecideCallPayload {
+                    operation_id: Uuid::new_v4().to_string(),
+                    identity: call.identity.clone(),
+                    expected_revision: 1,
+                    approval_ref: Uuid::new_v4().to_string(),
+                    decision_id: Uuid::new_v4().to_string(),
+                    decision,
+                })
+                .unwrap();
+            let execution = broker.consume_execution(&call.identity.call_ref, true, &cancellation);
+            if let Ok(Execution::Kimi {
+                backend,
+                tool,
+                arguments,
+                lease,
+                deadline,
+            }) = execution
+            {
+                let result = backend
+                    .execute(
+                        &tool,
+                        arguments,
+                        crate::daily::Permit {
+                            tool: String::new(),
+                            arguments: Value::Null,
+                            request: cancellation.clone(),
+                            lease,
+                            deadline,
+                            backend: tokio_util::sync::CancellationToken::new(),
+                        },
+                        crate::tushare_oauth::Diagnostic::default(),
+                    )
+                    .await;
+                assert_eq!(result.is_error, Some(false));
+                assert_eq!(calls.load(Ordering::SeqCst), 1);
+            } else {
+                assert_eq!(calls.load(Ordering::SeqCst), 0);
+            }
+            assert!(
+                broker
+                    .consume_execution(&call.identity.call_ref, true, &cancellation)
+                    .is_err()
+            );
+        }
+        broker.invalidate_installation(
+            &context.scope.owner_user_id,
+            &context.scope.tenant_id,
+            &reference.installation_id,
+        );
+        assert!(!backend.available());
+        backend.close().await;
+        assert_eq!(calls.load(Ordering::SeqCst), 1);
     }
     #[tokio::test]
     async fn sorftime_market_call_binds_exact_ref_and_requires_a_fresh_decision() {

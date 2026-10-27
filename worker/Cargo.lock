@@ -9812,6 +9812,7 @@ dependencies = [
  "futures",
  "jsonschema",
  "oauth2",
+ "reqwest 0.12.28",
  "rmcp",
  "serde",
  "serde_json",

@@ -5,6 +5,7 @@ python3 "$connector_root/scripts/check-worker-source.py"
 node "$connector_root/../yijie-contracts/scripts/sync-market-connectors.mjs" --consumer=connectors --check
 node "$connector_root/../yijie-contracts/scripts/sync-market-broker.mjs" --consumer=connectors --check
 node "$connector_root/../yijie-contracts/scripts/sync-market-provider.mjs" --consumer=connectors --check
+node "$connector_root/../yijie-contracts/scripts/sync-web-retrieval.mjs" --consumer=connectors --check
 export CARGO_TARGET_DIR="${YIJIE_WORKER_TARGET_DIR:-$connector_root/../yijie-codex/codex-rs/target}"
 cargo build --offline --locked --manifest-path "$connector_root/worker/Cargo.toml" --bin yijie-mcp-worker
 python3 - "$connector_root" "$CARGO_TARGET_DIR/debug/yijie-mcp-worker" <<'PY'

@@ -1,5 +1,5 @@
 {
-  "catalogRevision": 9,
+  "catalogRevision": 11,
   "catalog": [
     {
       "serviceId": "cue",
@@ -899,6 +899,22 @@
       "authMode": "oauth",
       "availability": "unverified",
       "blockerCodes": [
+        "provider_onboarding_required"
+      ]
+    },
+    {
+      "serviceId": "kimi-web",
+      "serverName": "kimi-web",
+      "displayName": "Kimi 网页检索",
+      "categoryId": "knowledge_docs",
+      "categoryLabel": "知识文档",
+      "description": "自动复用客户端的 Kimi 模型凭据，搜索网页标题、链接和摘要，读取指定公开网页的 Markdown 正文。每次调用需批准，可能计费。",
+      "iconAssetId": "kimi-web",
+      "transport": "http",
+      "authMode": "api_key",
+      "availability": "needs_setup",
+      "blockerCodes": [
+        "not_configured",
         "provider_onboarding_required"
       ]
     }

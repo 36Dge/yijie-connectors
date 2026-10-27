@@ -168,7 +168,8 @@
         "authorization_timeout",
         "not_qualified",
         "cleanup_pending",
-        "temporarily_unavailable"
+        "temporarily_unavailable",
+        "not_configured"
       ]
     },
     "ProviderStatus": {

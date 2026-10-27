@@ -18,6 +18,11 @@ mod generated;
 mod generic;
 #[path = "../src/google_calendar.rs"]
 mod google_calendar;
+#[path = "../src/kimi_web.rs"]
+mod kimi_web;
+#[allow(dead_code)]
+#[path = "../src/model_credentials.rs"]
+mod model_credentials;
 #[allow(dead_code)]
 #[path = "../src/native_library.rs"]
 mod native_library;
@@ -40,6 +45,9 @@ mod shopify;
 #[allow(dead_code)]
 #[path = "../src/tushare_oauth.rs"]
 mod tushare_oauth;
+#[allow(dead_code)]
+#[path = "../src/web_retrieval_generated.rs"]
+mod web_retrieval_generated;
 fn main() -> std::io::Result<()> {
     if std::env::args().skip(1).collect::<Vec<_>>() != ["--broker-control-stdio"] {
         return Err(std::io::Error::other(

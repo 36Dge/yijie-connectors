@@ -519,6 +519,17 @@
         "mcp:read",
         "mcp:invoke"
       ]
+    },
+    {
+      "serviceId": "kimi-web",
+      "displayName": "Kimi 网页检索",
+      "authMode": "api_key",
+      "transport": "http",
+      "resource": "https://api.moonshot.cn/v1/tools/search",
+      "credentialHeader": "Authorization",
+      "credentialScheme": "bearer",
+      "documentationUrl": "https://platform.kimi.com/docs/api/tools-search",
+      "configurationHint": "自动复用客户端已配置的 Kimi 模型凭据，无需单独安装、配置或启用。准备过程不联网；真实调用需逐次批准，可能计费。"
     }
   ]
 }

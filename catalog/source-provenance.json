@@ -3,7 +3,7 @@
   "authority": "yijie-connectors/catalog/market-catalog.v1.json",
   "referenceSource": "yijie/docs/features/FEAT-157-desktop-market-connectors/sources/catalog-51.json",
   "referenceSha256": "498fb059f59bec42526086822c2e2e3100e16ce7ef744c4dcc3f98ba0932c85e",
-  "catalogRevision": 9,
+  "catalogRevision": 11,
   "runtimeActivation": "All provider candidates require separate accepted endpoint, authentication, supported-tool and scope qualification; no source reference is executable.",
   "scopeOverride": {
     "date": "2026-10-08",
@@ -197,5 +197,24 @@
     "iconSha256": "8aee36f1b88fb6087235fa3df422c078158b71824bcdedb9743e4bf7f9d0fba0",
     "redistribution": "unverified; local development only",
     "liveValidation": "NOT RUN"
+  },
+  "kimiWebRetrieval": {
+    "feature": "FEAT-162",
+    "date": "2026-10-24",
+    "authority": "User authorized one Kimi Search/Fetch connector and catalog capacity +2; complete plan precedes implementation",
+    "serviceId": "kimi-web",
+    "adapter": "owned_rest",
+    "sources": [
+      "https://platform.kimi.com/docs/api/tools-search",
+      "https://platform.kimi.com/docs/api/tools-fetch",
+      "https://platform.kimi.com/docs/api/list-models"
+    ],
+    "authentication": "independently configured Bearer API Key in Connectors Keyring; no model credential reuse",
+    "basicProbe": "Local adapter preparation only; no /models or business HTTP; supplier authentication/entitlement checked only on an approved actual call.",
+    "catalogCapacity": 62,
+    "activeServiceCount": 61,
+    "realAuthorizationAndTools": "NOT RUN",
+    "release": false,
+    "modelCredentialReuse": "Owner selected automatic reuse of existing client model credentials; Native built-in default with explicit disable/uninstall preserved."
   }
 }
