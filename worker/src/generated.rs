@@ -32,6 +32,7 @@ pub const CONNECTOR_CAPABILITIES: [&str; 4] = [
     "connector.credentials.manage",
     "connector.use",
 ];
+pub const BUILTIN_MODEL_SERVICE_ID: &str = "kimi-web";
 pub type CanonicalId = String;
 pub type ServiceId = String;
 pub type Revision = i64;
@@ -654,7 +655,7 @@ impl Snapshot {
         }
         {
             let value_catalog = &self.catalog;
-            if value_catalog.len() > 60 {
+            if value_catalog.len() > 62 {
                 return Err("invalid connector array length");
             }
             for item in value_catalog.iter() {
@@ -663,7 +664,7 @@ impl Snapshot {
         }
         {
             let value_installations = &self.installations;
-            if value_installations.len() > 60 {
+            if value_installations.len() > 62 {
                 return Err("invalid connector array length");
             }
             for item in value_installations.iter() {

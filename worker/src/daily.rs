@@ -48,6 +48,16 @@ impl HttpPermit {
         if message.get("method").and_then(Value::as_str) != Some("tools/call") {
             return false;
         }
+        let (Some(name), Some(arguments)) = (
+            message.pointer("/params/name").and_then(Value::as_str),
+            message.pointer("/params/arguments"),
+        ) else {
+            return false;
+        };
+        self.take_call(name, arguments)
+    }
+    // REST adapters consume the same exact one-shot gate at their HTTP boundary.
+    pub(crate) fn take_call(&self, name: &str, arguments: &Value) -> bool {
         let mut slot = self.0.lock().expect("daily permit");
         let Some(permit) = slot.permit.as_ref() else {
             slot.diagnostic
@@ -58,8 +68,8 @@ impl HttpPermit {
             || permit.lease.is_cancelled()
             || permit.backend.is_cancelled()
             || Instant::now() >= permit.deadline
-            || message.pointer("/params/name").and_then(Value::as_str) != Some(permit.tool.as_str())
-            || message.pointer("/params/arguments") != Some(&permit.arguments)
+            || name != permit.tool
+            || arguments != &permit.arguments
         {
             slot.diagnostic
                 .emit(Stage::DailyHttpPermit, Event::PolicyRejected, None, None);

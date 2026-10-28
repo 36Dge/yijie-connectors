@@ -7,3 +7,5 @@ dist/
 coverage/
 *.log
 worker/target/
+# Canonical local build outputs are never source or release artifacts.
+.local/feat162-k31-worker-*/

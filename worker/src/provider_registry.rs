@@ -37,7 +37,7 @@ pub fn services() -> &'static [Service] {
                     .expect("packaged registry");
             assert_eq!(registry.schema_version, 1);
             assert_eq!(registry.profile, "generic-mcp-v1");
-            assert_eq!(registry.services.len(), 60);
+            assert_eq!(registry.services.len(), 61);
             let mut seen = std::collections::HashSet::new();
             for service in &registry.services {
                 assert!(seen.insert(&service.service_id));
@@ -60,7 +60,7 @@ pub fn keyless(service: &str) -> bool {
 mod tests {
     use super::*;
     #[test]
-    fn all_60_entries_match_catalog_without_network_or_credentials() {
+    fn all_61_entries_match_catalog_without_network_or_credentials() {
         let catalog: serde_json::Value =
             serde_json::from_str(include_str!("../../catalog/market-catalog.v1.json")).unwrap();
         for entry in catalog["catalog"].as_array().unwrap() {

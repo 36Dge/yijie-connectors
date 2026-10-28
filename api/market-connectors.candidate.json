@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "contract_version": "0.5.0",
+  "contract_version": "0.7.0",
   "feature": "FEAT-157",
   "mode": "local_worktree_candidate",
   "release": false,
@@ -9,11 +9,11 @@
   "sources": [
     {
       "path": "openapi/market-connectors/market-connectors.yaml",
-      "sha256": "83e1e7084726ac7ff370db3fe4cdc157c144089e449e5807f4c321aed99c1caf"
+      "sha256": "f7e375ec4bfa2f51a71f98b6ba0c4cf325049f1718d4997e84bd2879923ebe20"
     },
     {
       "path": "scripts/generate-market-connectors.mjs",
-      "sha256": "ee27c8481c062c1599a59b377f0976149391ac916207dab0a2bc930882b47fd6"
+      "sha256": "432dd1b63e0b9c2ccf5c3f98c10d23b16c09015355ffe1073eed3698e9fde31e"
     },
     {
       "path": "scripts/sync-market-connectors.mjs",
@@ -27,19 +27,19 @@
   "generated": [
     {
       "path": "sdks/go/market-connectors/types.gen.go",
-      "sha256": "8802c8d4f599667fc3684117475b92a9b5a37f094c26fbd709edc2587b831ffe"
+      "sha256": "c2f43ed31b186cd4ad4effd9b4cc6dde9907031ee2fa2cc660b8854f454ff9bf"
     },
     {
       "path": "sdks/rust/market-connectors/types.gen.rs",
-      "sha256": "057cffb9200d15c28fd02757f87afdec985e65170283144dd7cd889844ae9f08"
+      "sha256": "3f7bb5213dc4f442a8444a9f0141ecb6bd33134fa75000416e7263997cce188d"
     },
     {
       "path": "sdks/typescript/src/domain/market-connectors.generated.ts",
-      "sha256": "38bb85c1abe846a6137a46e5ff5074ef48d8e81a4fa4536f36a50c00d959adf0"
+      "sha256": "b3ec48e94e1810c6a6a89bfb4175c34600d335fe24477565efb559e0d767e254"
     },
     {
       "path": "sdks/typescript/src/api/generated/market-connectors-validator.gen.js",
-      "sha256": "5456097be6cb12f123c2f4d147543ad0e9d39d7ef0bfdbf302da0799b332fa14"
+      "sha256": "97386e51d096b021fd3d2637d6bf906f33ace635c5ecac1c1f7ad7eaf29b7670"
     },
     {
       "path": "sdks/typescript/src/api/generated/market-connectors-validator.gen.d.ts",
@@ -47,7 +47,7 @@
     },
     {
       "path": "sdks/jsonschema/market-connectors.schema.json",
-      "sha256": "f9e8ddd9c9db57898d4572b0087eec05bd94fe5cfbc40dbff4e2116f1ac0279b"
+      "sha256": "2468f2499576750b42a88a5d0e061206d52ddd4526c0189826e1411297a42ecd"
     }
   ],
   "generators": {

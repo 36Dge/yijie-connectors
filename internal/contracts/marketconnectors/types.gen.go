@@ -11,6 +11,9 @@ import (
 )
 
 var ConnectorCapabilities = []Permission{PermissionConnectorRead, PermissionConnectorManage, PermissionConnectorCredentialsManage, PermissionConnectorUse}
+
+const BuiltinModelServiceID = "kimi-web"
+
 var pattern0 = regexp.MustCompile("^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")
 var pattern1 = regexp.MustCompile("^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$")
 
@@ -898,7 +901,7 @@ func (v Snapshot) Validate() error {
 	if v.Catalog == nil {
 		return errors.New("null connector array")
 	}
-	if len(v.Catalog) > 60 {
+	if len(v.Catalog) > 62 {
 		return errors.New("invalid connector array length")
 	}
 	for _, item := range v.Catalog {
@@ -909,7 +912,7 @@ func (v Snapshot) Validate() error {
 	if v.Installations == nil {
 		return errors.New("null connector array")
 	}
-	if len(v.Installations) > 60 {
+	if len(v.Installations) > 62 {
 		return errors.New("invalid connector array length")
 	}
 	for _, item := range v.Installations {

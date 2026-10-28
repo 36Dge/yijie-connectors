@@ -11,6 +11,8 @@ mod gateway;
 mod generated;
 mod generic;
 mod google_calendar;
+mod kimi_web;
+mod model_credentials;
 mod native_library;
 mod oauth_policy;
 #[allow(dead_code)]
@@ -23,6 +25,8 @@ mod selection_generated;
 mod shopify;
 #[allow(dead_code)]
 mod tushare_oauth;
+#[allow(dead_code)]
+mod web_retrieval_generated;
 
 use generated::{
     CatalogEntry, WorkerAuthStatus, WorkerAuthStatusRequest, WorkerAuthStatusResponse, WorkerError,
@@ -82,6 +86,7 @@ fn handle(line: &[u8], catalog: &ProductCatalog) -> serde_json::Value {
 fn main() -> io::Result<()> {
     let args: Vec<String> = std::env::args().skip(1).collect();
     if args == ["--broker-control-stdio"] {
+        model_credentials::capture_startup_source();
         return gateway::run(broker::ProviderMode::Product);
     }
     if !args.is_empty() {
@@ -90,7 +95,7 @@ fn main() -> io::Result<()> {
     let catalog: ProductCatalog =
         serde_json::from_str(include_str!("../../catalog/market-catalog.v1.json"))
             .map_err(|_| io::Error::other("managed catalog is invalid"))?;
-    if catalog.catalog_revision != 9 || catalog.catalog.len() != 60 {
+    if catalog.catalog_revision != 11 || catalog.catalog.len() != 61 {
         return Err(io::Error::other("managed catalog version is unsupported"));
     }
     let mut input = io::stdin().lock();

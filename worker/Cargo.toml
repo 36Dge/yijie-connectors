@@ -39,6 +39,9 @@ uuid = { version = "1", features = ["v4"] }
 oauth2 = { version = "=5.0.0", default-features = false }
 url = "=2.5.8"
 jsonschema = { version = "=0.58.6", default-features = false }
+# Already in the fixed Codex dependency closure. Direct access is required to
+# disable reqwest's default protocol retries for each approved paid request.
+reqwest = { version = "=0.12.28", default-features = false, features = ["rustls-tls", "stream"] }
 
 [dev-dependencies]
 futures = "0.3"

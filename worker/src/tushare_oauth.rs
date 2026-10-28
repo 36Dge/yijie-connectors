@@ -51,6 +51,11 @@ pub enum Failure {
 #[derive(Clone, Copy, serde::Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Stage {
+    ModelCredentialBinding,
+    ModelPreparation,
+    WebHttpSend,
+    WebHttpResponse,
+    WebNormalize,
     KeyringPreflight,
     CallbackBind,
     ManagerNew,
@@ -1006,6 +1011,10 @@ pub async fn connect_for_service_with_diagnostic(
     permit: Option<Arc<crate::daily::HttpPermit>>,
     metadata_diagnostic: Diagnostic,
 ) -> Result<codex_rmcp_client::RmcpClient, Failure> {
+    if service == crate::web_retrieval_generated::SERVICE_ID {
+        // Kimi is an owned REST adapter; never send an MCP handshake to /models.
+        return Err(Failure::InvalidMetadata);
+    }
     let mut target = Target::for_service(service)?;
     if service == crate::google_calendar::SERVICE {
         target.google_client = Some(Arc::new(
@@ -1121,6 +1130,9 @@ pub async fn keyring_readiness(alias: &str) -> Result<bool, Failure> {
     keyring_readiness_for(alias, "tushareMcp").await
 }
 pub async fn keyring_readiness_for(alias: &str, service: &str) -> Result<bool, Failure> {
+    if service == crate::web_retrieval_generated::SERVICE_ID {
+        return Ok(crate::model_credentials::kimi().is_some());
+    }
     if crate::provider_registry::keyless(service) {
         return Ok(true); // No account credential; Enable must still discover tools.
     }
@@ -1156,6 +1168,9 @@ pub fn forget_keyring(alias: &str) -> Result<(), Failure> {
     forget_keyring_resource(alias, TUSHARE_RESOURCE)
 }
 pub fn forget_for_service(alias: &str, service: &str) -> Result<(), Failure> {
+    if service == crate::web_retrieval_generated::SERVICE_ID {
+        return Ok(()); // no separate Kimi vault value; model snapshot is retained
+    }
     if crate::provider_registry::keyless(service) {
         return Ok(()); // Broker revocation/normal transport shutdown still run.
     }

@@ -29,7 +29,7 @@ func Read() (wire.Revision, []wire.CatalogEntry, error) {
 	if err := decoder.Decode(&value); err != nil {
 		return 0, nil, errors.New("managed connector catalog is invalid")
 	}
-	if err := value.CatalogRevision.Validate(); err != nil || len(value.Catalog) != 60 {
+	if err := value.CatalogRevision.Validate(); err != nil || len(value.Catalog) != 61 {
 		return 0, nil, errors.New("managed connector catalog revision or size is invalid")
 	}
 	var trailing any

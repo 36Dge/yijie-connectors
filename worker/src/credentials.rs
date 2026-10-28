@@ -22,6 +22,7 @@ use tokio::sync::oneshot;
 use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
 
+#[path = "credentials/presentation.rs"]
 mod presentation;
 
 const STORE: &str = "Yijie Market Credentials";
@@ -33,6 +34,19 @@ pub struct HeaderCredential {
     pub value: String,
 }
 impl HeaderCredential {
+    pub(crate) fn from_kimi_model(key: &str) -> Result<Self, Failure> {
+        if key.is_empty()
+            || key.len() > crate::broker_generated::KIMI_MODEL_CREDENTIAL_MAX_KEY_BYTES
+            || key.chars().any(|c| c.is_whitespace() || c.is_control())
+        {
+            return Err(Failure::NotAuthorized);
+        }
+        Ok(Self {
+            service_id: "kimi-web".into(),
+            name: "Authorization".into(),
+            value: format!("Bearer {key}"),
+        })
+    }
     pub fn query_name(&self) -> Option<&str> {
         provider_registry::get(&self.service_id).and_then(|spec| spec.credential_query.as_deref())
     }
@@ -410,6 +424,9 @@ pub async fn configure(
     view: &Arc<Mutex<Observation>>,
     cancel: &CancellationToken,
 ) -> Result<(), Failure> {
+    if service == "kimi-web" {
+        return Err(Failure::NotAuthorized); // only the existing model source is supported
+    }
     if !supports(service) && service != crate::google_calendar::SERVICE {
         return Err(Failure::InvalidMetadata);
     }
@@ -609,6 +626,22 @@ mod tests {
                 .to_vec(),
         )
         .unwrap()
+    }
+    #[tokio::test]
+    async fn kimi_manual_configuration_is_unavailable_without_opening_a_form() {
+        let (state, _rx, _headers) = form_state(Duration::from_secs(60));
+        assert!(matches!(
+            configure(
+                "ordinary-alias",
+                "kimi-web",
+                state.deadline,
+                &state.view,
+                &state.cancellation
+            )
+            .await,
+            Err(Failure::NotAuthorized)
+        ));
+        assert!(state.view.lock().unwrap().authorization_url.is_none());
     }
     #[tokio::test]
     async fn sorftime_empty_input_can_be_corrected_and_receipt_does_not_claim_connection() {

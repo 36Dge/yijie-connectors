@@ -640,6 +640,41 @@ fn error(request_id: Option<String>, code: wire::ErrorCode) -> Value {
     })
     .expect("generated provider error")
 }
+// This terminal receipt proves only that the existing local model source is bound.
+fn bind_kimi_model(
+    status: &Arc<Mutex<wire::ProviderStatus>>,
+    cancelled: &CancellationToken,
+    end: Instant,
+    available: bool,
+) {
+    let mut state = status.lock().expect("provider operation");
+    if cancelled.is_cancelled() || state.operation_state == wire::OperationState::Cancelled {
+        return;
+    }
+    let code = if Instant::now() >= end {
+        Some(wire::ErrorCode::ScopeExpired)
+    } else if !available {
+        Some(wire::ErrorCode::NotConfigured)
+    } else {
+        None
+    };
+    state.operation_state = if code.is_none() {
+        wire::OperationState::Succeeded
+    } else {
+        wire::OperationState::Failed
+    };
+    state.authorization_status = if code.is_none() {
+        wire::AuthorizationStatus::Authorized
+    } else {
+        wire::AuthorizationStatus::Unauthorized
+    };
+    state.connection_status = wire::ConnectionStatus::Disconnected;
+    state.qualification = wire::Qualification::NotQualified;
+    state.execution_available = false;
+    state.authorization_url = None;
+    state.error_code = code;
+}
+
 async fn run_auth(
     alias: &str,
     end: Instant,
@@ -663,6 +698,31 @@ async fn run_auth(
     let diagnostic = tushare_oauth::Diagnostic::for_operation(
         &status.lock().expect("provider operation").operation_id,
     );
+    if service == crate::web_retrieval_generated::SERVICE_ID {
+        diagnostic.emit(
+            tushare_oauth::Stage::ModelCredentialBinding,
+            tushare_oauth::Event::Started,
+            None,
+            None,
+        );
+        let available = crate::model_credentials::kimi().is_some();
+        bind_kimi_model(&status, &cancelled, end, available);
+        let operation_state = status.lock().expect("provider operation").operation_state;
+        if cancelled.is_cancelled() || operation_state == wire::OperationState::Cancelled {
+            return;
+        }
+        diagnostic.emit(
+            tushare_oauth::Stage::ModelCredentialBinding,
+            if operation_state == wire::OperationState::Succeeded {
+                tushare_oauth::Event::Succeeded
+            } else {
+                tushare_oauth::Event::Failed
+            },
+            None,
+            None,
+        );
+        return; // local binding only: no vault, form, metadata probe, or HTTP
+    }
     diagnostic.emit(
         tushare_oauth::Stage::KeyringPreflight,
         tushare_oauth::Event::Started,
@@ -777,18 +837,22 @@ async fn run_probe_with_diagnostic(
         failed(&status, wire::ErrorCode::ScopeExpired);
         return;
     }
-    diagnostic.emit(
-        tushare_oauth::Stage::MetadataInitialize,
-        tushare_oauth::Event::Started,
-        None,
-        None,
-    );
     let service = status
         .lock()
         .expect("provider operation")
         .binding
         .service_id
         .clone();
+    if service == crate::web_retrieval_generated::SERVICE_ID {
+        run_kimi_probe(end, status, cancelled, diagnostic, activation).await;
+        return;
+    }
+    diagnostic.emit(
+        tushare_oauth::Stage::MetadataInitialize,
+        tushare_oauth::Event::Started,
+        None,
+        None,
+    );
     let permit = Arc::new(crate::daily::HttpPermit::default());
     let connect = tokio::select! {biased;_=cancelled.cancelled()=>return,_=tokio::time::sleep_until(end.into())=>{failed(&status,wire::ErrorCode::ScopeExpired);return;},result=tushare_oauth::connect_for_service_with_diagnostic(alias,&service,activation.as_ref().map(|_|permit.clone()),diagnostic.clone())=>result};
     diagnostic.emit(
@@ -958,6 +1022,74 @@ async fn run_probe_with_diagnostic(
     }
 }
 
+// Kimi preparation registers local invocation support without provider HTTP.
+// Authentication, entitlement and balance are known only on an actual call.
+async fn run_kimi_probe(
+    end: Instant,
+    status: Arc<Mutex<wire::ProviderStatus>>,
+    cancelled: CancellationToken,
+    diagnostic: tushare_oauth::Diagnostic,
+    activation: Option<Activation>,
+) {
+    diagnostic.emit(
+        tushare_oauth::Stage::ModelPreparation,
+        tushare_oauth::Event::Started,
+        None,
+        None,
+    );
+    let backend = match crate::kimi_web::Backend::load() {
+        Ok(backend) => backend,
+        Err(_) => {
+            failed(&status, wire::ErrorCode::NotConfigured);
+            return;
+        }
+    };
+    if let Err(error) = backend.prepare() {
+        backend.close().await;
+        failed(&status, failure_code(error));
+        return;
+    }
+    if cancelled.is_cancelled() || Instant::now() >= end {
+        backend.close().await;
+        if !cancelled.is_cancelled() {
+            failed(&status, wire::ErrorCode::ScopeExpired);
+        }
+        return;
+    }
+    let mut state = status.lock().expect("provider operation");
+    if state.operation_state == wire::OperationState::Cancelled || cancelled.is_cancelled() {
+        backend.revoke();
+        return;
+    }
+    diagnostic.emit(
+        tushare_oauth::Stage::ModelPreparation,
+        tushare_oauth::Event::Succeeded,
+        None,
+        None,
+    );
+    state.operation_state = wire::OperationState::Succeeded;
+    state.authorization_status = wire::AuthorizationStatus::Authorized;
+    state.connection_status = wire::ConnectionStatus::Connected;
+    state.qualification = wire::Qualification::NotQualified;
+    state.execution_available = false;
+    if let Some(activation) = activation {
+        let backend = crate::broker::ProviderBackend::Kimi(backend);
+        *activation.backend.lock().expect("backend slot") = Some(backend.clone());
+        if activation
+            .broker
+            .state
+            .lock()
+            .expect("broker lock")
+            .register_provider(activation.payload, backend.clone())
+        {
+            state.qualification = wire::Qualification::Qualified;
+            state.execution_available = true;
+        } else {
+            backend.revoke();
+        }
+    }
+}
+
 async fn list_tools(
     client: &codex_rmcp_client::RmcpClient,
 ) -> Result<rmcp::model::ListToolsResult, wire::ErrorCode> {
@@ -1087,6 +1219,66 @@ fn save_probe_evidence(operation_id: &str, tools: &[rmcp::model::Tool]) -> Resul
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn kimi_binding_is_local_only_and_never_implies_connection_or_qualification() {
+        for available in [true, false] {
+            let mut request = payload();
+            request.binding.service_id = "kimi-web".into();
+            let status = Arc::new(Mutex::new(initial(&request, Kind::Auth)));
+            bind_kimi_model(
+                &status,
+                &CancellationToken::new(),
+                Instant::now() + Duration::from_secs(30),
+                available,
+            );
+            let state = status.lock().unwrap();
+            assert_eq!(
+                state.operation_state,
+                if available {
+                    wire::OperationState::Succeeded
+                } else {
+                    wire::OperationState::Failed
+                }
+            );
+            assert_eq!(
+                state.error_code,
+                if available {
+                    None
+                } else {
+                    Some(wire::ErrorCode::NotConfigured)
+                }
+            );
+            assert_eq!(
+                state.connection_status,
+                wire::ConnectionStatus::Disconnected
+            );
+            assert_eq!(state.qualification, wire::Qualification::NotQualified);
+            assert!(!state.execution_available);
+            assert!(state.authorization_url.is_none());
+            state.validate().unwrap();
+        }
+    }
+    #[test]
+    fn kimi_binding_preserves_cancellation_and_expiry() {
+        let status = Arc::new(Mutex::new(initial(&payload(), Kind::Auth)));
+        let cancel = CancellationToken::new();
+        cancel.cancel();
+        bind_kimi_model(
+            &status,
+            &cancel,
+            Instant::now() + Duration::from_secs(30),
+            true,
+        );
+        assert_eq!(
+            status.lock().unwrap().operation_state,
+            wire::OperationState::Starting
+        );
+        bind_kimi_model(&status, &CancellationToken::new(), Instant::now(), true);
+        assert_eq!(
+            status.lock().unwrap().error_code,
+            Some(wire::ErrorCode::ScopeExpired)
+        );
+    }
     #[test]
     fn authorization_commit_waits_for_metadata_and_connection_failure_preserves_it() {
         let status = Arc::new(Mutex::new(initial(&payload(), Kind::Auth)));

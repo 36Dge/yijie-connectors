@@ -357,14 +357,14 @@
           "items": {
             "$ref": "#/$defs/CatalogEntry"
           },
-          "maxItems": 60
+          "maxItems": 62
         },
         "installations": {
           "type": "array",
           "items": {
             "$ref": "#/$defs/Installation"
           },
-          "maxItems": 60
+          "maxItems": 62
         },
         "capabilities": {
           "type": "array",
