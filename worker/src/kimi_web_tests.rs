@@ -372,3 +372,112 @@ async fn ordinary_http_client_streams_once_and_server_closes_gracefully() {
     );
     assert_eq!(calls.load(Ordering::SeqCst), 1);
 }
+
+#[test]
+fn kimi_content_keeps_partial_sources_and_distinguishes_absence_from_clipping() {
+    let source = json!({"search_results":[
+        {"title":"No body","url":"https://example.org/empty","snippet":"summary"},
+        {"title":"Body","url":"https://example.org/body","snippet":"summary","text":"正文".repeat(40000)},
+        {"title":"Missing source","url":"","text":"unusable"}
+    ]});
+    let result = content::normalize(&source, 5, false).unwrap();
+    consistent(&result);
+    assert_eq!(value(&result)["dropped_results"], 1);
+    assert_eq!(
+        value(&result)["results"][0]["content_status"],
+        "unavailable"
+    );
+    assert_eq!(value(&result)["results"][1]["content_status"], "truncated");
+    assert_eq!(
+        value(&result)["results"][1]["url"],
+        "https://example.org/body"
+    );
+    assert!(content::normalize(&json!({"search_results":[{"url":""}]}), 5, true).is_err());
+    let empty = content::normalize(&json!({"search_results":[]}), 5, true).unwrap();
+    assert_eq!(
+        value(&empty),
+        &json!({"results":[],"truncated":false,"dropped_results":0})
+    );
+}
+
+#[test]
+fn kimi_pro_constraints_and_mixed_page_types_remain_local() {
+    let input=Arguments::parse(wire::PRO_TOOL_NAME,&args(json!({"query":"docs","sites":["example.org"],"time_window":{"start":"2024-02-29","end":"2026-10"}}))).unwrap();
+    assert_eq!(input.path(), "/v1/tools/search_pro");
+    assert_eq!(input.body()["timeout_seconds"], 30);
+    assert_eq!(input.body()["sites"], json!(["example.org"]));
+    assert!(
+        Arguments::parse(
+            wire::PRO_TOOL_NAME,
+            &args(json!({"query":"docs","time_window":{"start":"2025-02-29"}}))
+        )
+        .is_err()
+    );
+    let result = content::normalize(
+        &json!({"search_results":[
+            {"url":"https://example.org/","chunks":[{"text":"ordinary content","score":0.5}]},
+            {"url":"https://example.org/null","chunks":null}
+        ]}),
+        5,
+        true,
+    )
+    .unwrap();
+    consistent(&result);
+    assert_eq!(value(&result)["results"][0]["content_status"], "available");
+    assert_eq!(value(&result)["dropped_results"], 1);
+    assert_eq!(value(&result)["truncated"], true);
+}
+
+#[tokio::test]
+async fn kimi_full_budget_rejects_before_http_but_legacy_keeps_remaining_time() {
+    let (backend, http) = setup(json!({"search_results":[]}));
+    let rejected = backend
+        .execute(
+            wire::PRO_TOOL_NAME,
+            args(json!({"query":"docs"})),
+            permit(),
+            Diagnostic::default(),
+        )
+        .await;
+    assert_eq!(value(&rejected)["error"]["code"], "timeout");
+    assert_eq!(http.calls.load(Ordering::SeqCst), 0);
+    let legacy = backend
+        .execute(
+            wire::SEARCH_TOOL_NAME,
+            args(json!({"query":"docs"})),
+            permit(),
+            Diagnostic::default(),
+        )
+        .await;
+    assert_eq!(legacy.is_error, Some(false));
+    assert_eq!(http.calls.load(Ordering::SeqCst), 1);
+    backend.close().await;
+}
+
+#[tokio::test]
+async fn kimi_pro_and_body_send_one_canonical_request_with_a_long_budget() {
+    for (tool, arguments, response) in [
+        (
+            wire::PRO_TOOL_NAME,
+            json!({"query":"docs"}),
+            json!({"search_results":[{"url":"https://example.org/","chunks":[{"text":"body","score":1.2}]}]}),
+        ),
+        (
+            wire::SEARCH_TOOL_NAME,
+            json!({"query":"docs","include_content":true}),
+            json!({"search_results":[{"url":"https://example.org/","text":"body"}]}),
+        ),
+    ] {
+        let (backend, http) = setup(response);
+        let mut admitted = permit();
+        admitted.deadline = Instant::now() + Duration::from_secs(40);
+        let result = backend
+            .execute(tool, args(arguments), admitted, Diagnostic::default())
+            .await;
+        assert_ne!(result.is_error, Some(true));
+        consistent(&result);
+        assert_eq!(value(&result)["results"][0]["content_status"], "available");
+        assert_eq!(http.calls.load(Ordering::SeqCst), 1);
+        backend.close().await;
+    }
+}

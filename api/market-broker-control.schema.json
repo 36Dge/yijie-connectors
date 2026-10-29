@@ -434,9 +434,23 @@
         },
         "decision": {
           "$ref": "#/$defs/Decision"
+        },
+        "decisionExpiresAtUnixMs": {
+          "$ref": "#/$defs/UnixMilliseconds"
+        },
+        "executionExpiresAtUnixMs": {
+          "$ref": "#/$defs/UnixMilliseconds"
         }
       },
-      "description": "Broker approval/admission fact only. consumed means one-time approval admission was spent, never proof that a provider request was sent or completed. A trusted rejected/cancelled/expired/revoked state before consumption/backend dispatch proves no provider request for this actual call was sent. Backend errors after admission remain unknown without separate trusted execution evidence; never synthesize zero rows or restore approval for retry. Same arguments on another actual call require a fresh callRef and fresh approval."
+      "description": "Broker approval/admission fact only. consumed means one-time approval admission was spent, never proof that a provider request was sent or completed. A trusted rejected/cancelled/expired/revoked state before consumption/backend dispatch proves no provider request for this actual call was sent. Backend errors after admission remain unknown without separate trusted execution evidence; never synthesize zero rows or restore approval for retry. Same arguments on another actual call require a fresh callRef and fresh approval. New 0.3 body/Pro only: paired absolute decision/execution deadlines. Pending expires at decision deadline; Approved remains live until execution deadline. remainingTtlMs remains execution TTL for compatibility; Host uses explicit decision deadline for new UI.",
+      "dependentRequired": {
+        "decisionExpiresAtUnixMs": [
+          "executionExpiresAtUnixMs"
+        ],
+        "executionExpiresAtUnixMs": [
+          "decisionExpiresAtUnixMs"
+        ]
+      }
     },
     "InitializePayload": {
       "type": "object",
@@ -548,9 +562,26 @@
         },
         "ttlMs": {
           "$ref": "#/$defs/RequestedTtlMs"
+        },
+        "webRetrievalVersion": {
+          "type": "string",
+          "const": "0.3.0",
+          "description": "Owner opt-in, only before this turn is submitted to the fixed Runtime. Binds canonical 60s MCP tool timeout. Omitted: legacy descriptors and semantics."
+        },
+        "mcpToolTimeoutMs": {
+          "type": "integer",
+          "const": 60000
         }
       },
-      "description": "The snapshot is the already accepted immutable Native snapshot. Host verifies current scope, explicit enabled installation authority and complete submitted service bindings first. Broker resolves every exact installation/revision/generation to its unique live provider mapping under the same owner/tenant, Host instance and Native epoch, including the immutable credentialRef and qualified profile. Missing, expired or mismatched mappings fail not_qualified; prepare never probes, registers or restores a backend from receipts/history. CredentialRef changes require generation advancement and old admission revocation. Replaying a live mutation does not extend it; expired/revoked capability never revives. A new mutation UUID cannot re-prepare the same original turn."
+      "description": "The snapshot is the already accepted immutable Native snapshot. Host verifies current scope, explicit enabled installation authority and complete submitted service bindings first. Broker resolves every exact installation/revision/generation to its unique live provider mapping under the same owner/tenant, Host instance and Native epoch, including the immutable credentialRef and qualified profile. Missing, expired or mismatched mappings fail not_qualified; prepare never probes, registers or restores a backend from receipts/history. CredentialRef changes require generation advancement and old admission revocation. Replaying a live mutation does not extend it; expired/revoked capability never revives. A new mutation UUID cannot re-prepare the same original turn.",
+      "dependentRequired": {
+        "webRetrievalVersion": [
+          "mcpToolTimeoutMs"
+        ],
+        "mcpToolTimeoutMs": [
+          "webRetrievalVersion"
+        ]
+      }
     },
     "PrepareRequest": {
       "type": "object",

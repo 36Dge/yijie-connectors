@@ -1,5 +1,16 @@
 # Kimi 网页检索：FEAT-162 本地候选
 
+## 2026-10-29 Basic/Pro 实施候选（最新）
+
+当前范围以元仓22/24号为准。一个服务新增第三工具 kimi_web_search_pro；Basic 默认仍 10s 上游/至多15s本机，显式 include_content=true 和 Pro 为上游30s、本机完整35s，Fetch不变。新模式仅在新 Host 成对声明 0.3.0/60000 的 lease 下可见/准入；旧 lease 只见冻结两工具。
+
+新模式 D 受原 call、lease/scope、prepare+60s 保守 MCP 下界限制，A=D−35s−2s。A只关闭待批准状态，已批准者仍受 D；发送前剩余不足35s时零HTTP。前置模型/排队时间会缩短批准窗口，可能安全拒绝，真实时延尚未验收。
+
+`kimi_web_content.rs` 逐项过滤无效页并保留供应商顺序；原始空列表成功、全无效 invalid_response，合法必要来源无法交付 response_too_large。每页 available/unavailable/truncated 与 dropped_results 原始减最终计数保持；只裁 UTF-8 文本、不裁 URL，完整双份 MCP 封包≤65536 bytes。原 Basic/Fetch 归一化独立保留。Pro只透传用户给的 sites/time_window，不增筛选或重试。
+
+本轮24项 Kimi focused tests、格式/Clippy及 canonical worker 构建证据在元仓24号；真实供应商/模型请求为0。正规 worker 输出到新隔离 generation，不覆盖运行中的/固定 Runtime 制品，不启动该 worker。下面2026-10-24记录及真实旧两工具结果属于历史，不能代表新 Pro/正文通过。
+
+
 2026-10-24。实施范围以元仓 `docs/features/FEAT-162-kimi-web-retrieval/00-feature-brief.md` 及后续 `05-model-key-reuse-plan.md` 为准。目录 revision 11 实际 61 项，管理 reader 容量 62；新服务 `kimi-web` 包含两个稳定 MCP 工具。尚未发布，不代表真实账号或付费工具验收完成。
 
 ## 执行与凭据

@@ -71,6 +71,8 @@ impl ProviderMode {
 }
 struct LeaseRecord {
     view: wire::Lease,
+    // Owner prepare precedes Runtime submission; this is a conservative lower bound.
+    web_mcp_deadline: Option<u64>,
     deadline: u64,
     cancelled: tokio_util::sync::CancellationToken,
     providers: Vec<BoundProvider>,
@@ -159,6 +161,7 @@ pub enum Execution {
 }
 struct CallRecord {
     view: wire::PendingCall,
+    decision_deadline: u64,
     deadline: u64,
     // This exact parsed snapshot is used after admission; no re-parse/defaults.
     arguments: Option<Map<String, Value>>,
@@ -257,6 +260,8 @@ impl Broker {
                 let next = if matches!(lease.view.state, wire::LeaseState::Revoked) {
                     Some(wire::CallState::Revoked)
                 } else if now >= record.deadline
+                    || (record.view.state == wire::CallState::Pending
+                        && now >= record.decision_deadline)
                     || matches!(lease.view.state, wire::LeaseState::Expired)
                 {
                     Some(wire::CallState::Expired)
@@ -427,7 +432,9 @@ impl Broker {
         if let Some(reference) = self.turn_reservations.get(&key) {
             let old = &self.leases[reference];
             self.live_lease(&old.view.binding)?;
-            if old.view.snapshot != payload.snapshot || old.view.binding.context != payload.context
+            if old.view.snapshot != payload.snapshot
+                || old.view.binding.context != payload.context
+                || old.web_mcp_deadline.is_some() != payload.web_retrieval_version.is_some()
             {
                 return Err(wire::ErrorCode::RequestConflict);
             }
@@ -481,6 +488,9 @@ impl Broker {
             reference.clone(),
             LeaseRecord {
                 view: view.clone(),
+                web_mcp_deadline: payload
+                    .mcp_tool_timeout_ms
+                    .map(|timeout| now + timeout as u64),
                 deadline: now + ttl,
                 cancelled: tokio_util::sync::CancellationToken::new(),
                 providers: providers.unwrap_or_default(),
@@ -846,7 +856,15 @@ impl Broker {
             lease
                 .providers
                 .iter()
-                .flat_map(|p| p.backend.tools())
+                .flat_map(|p| {
+                    if matches!(p.backend, ProviderBackend::Kimi(_))
+                        && lease.web_mcp_deadline.is_none()
+                    {
+                        crate::kimi_web::legacy_descriptors()
+                    } else {
+                        p.backend.tools()
+                    }
+                })
                 .collect(),
         ))
     }
@@ -874,6 +892,20 @@ impl Broker {
             return Err(wire::ErrorCode::TurnMismatch);
         }
         let args = arguments.as_ref().ok_or(wire::ErrorCode::InvalidRequest)?;
+        let is_web = lease
+            .providers
+            .iter()
+            .any(|p| matches!(p.backend, ProviderBackend::Kimi(_)) && p.backend.contains(tool));
+        if is_web
+            && lease.web_mcp_deadline.is_none()
+            && (tool == crate::web_retrieval_generated::PRO_TOOL_NAME
+                || args.contains_key("include_content"))
+        {
+            return Err(wire::ErrorCode::NotQualified);
+        }
+        let full_budget = is_web
+            && crate::kimi_web::requires_full_budget(tool, args)
+                .map_err(|_| wire::ErrorCode::InvalidRequest)?;
         let (service, selected, review) = if let Some(provider) =
             lease.providers.iter().find(|p| p.backend.contains(tool))
         {
@@ -896,9 +928,12 @@ impl Broker {
                 ProviderBackend::Generic(backend) => backend
                     .review(tool, args)
                     .map_err(|_| wire::ErrorCode::InvalidRequest)?,
-                ProviderBackend::Kimi(backend) => backend
-                    .review(tool, args)
-                    .map_err(|_| wire::ErrorCode::InvalidRequest)?,
+                ProviderBackend::Kimi(backend) => (if lease.web_mcp_deadline.is_none() {
+                    backend.review_legacy(tool, args)
+                } else {
+                    backend.review(tool, args)
+                })
+                .map_err(|_| wire::ErrorCode::InvalidRequest)?,
             };
             (
                 provider.binding.service_id.clone(),
@@ -937,7 +972,31 @@ impl Broker {
         digest.update(b"yijie.market-arguments/worker-json-v1\n");
         digest.update(encoded);
         let call_ref = Uuid::new_v4().to_string();
-        let deadline = lease.deadline.min(now + wire::MAX_APPROVAL_TTL_MS as u64);
+        let mut deadline = lease.deadline.min(now + wire::MAX_APPROVAL_TTL_MS as u64);
+        let mut decision_deadline = deadline;
+        let (decision_expires_at_unix_ms, execution_expires_at_unix_ms) = if full_budget {
+            deadline = deadline.min(
+                lease
+                    .web_mcp_deadline
+                    .ok_or(wire::ErrorCode::NotQualified)?,
+            );
+            decision_deadline = deadline.saturating_sub(
+                (crate::web_retrieval_generated::CONTENT_HTTP_TIMEOUT_MS
+                    + crate::web_retrieval_generated::APPROVAL_DELIVERY_MARGIN_MS)
+                    as u64,
+            );
+            if now >= decision_deadline {
+                // No call/approval was created and no backend was dispatched.
+                return Err(wire::ErrorCode::CallExpired);
+            }
+            let (wall, _) = self.now()?;
+            (
+                Some((wall + decision_deadline - now) as i64),
+                Some((wall + deadline - now) as i64),
+            )
+        } else {
+            (None, None)
+        };
         let call = wire::PendingCall {
             identity: wire::CallIdentity {
                 binding: lease.view.binding.clone(),
@@ -953,6 +1012,8 @@ impl Broker {
             revision: 1,
             state: wire::CallState::Pending,
             remaining_ttl_ms: (deadline - now) as i64,
+            decision_expires_at_unix_ms,
+            execution_expires_at_unix_ms,
             review,
             decision_id: None,
             decision: None,
@@ -961,6 +1022,7 @@ impl Broker {
             call_ref,
             CallRecord {
                 view: call.clone(),
+                decision_deadline,
                 deadline,
                 arguments,
             },
@@ -1171,6 +1233,8 @@ mod tests {
             vec![]
         };
         wire::PreparePayload {
+            web_retrieval_version: None,
+            mcp_tool_timeout_ms: None,
             operation_id: Uuid::new_v4().to_string(),
             context,
             snapshot: crate::selection_generated::freeze_selection(
@@ -1775,7 +1839,6 @@ mod tests {
             )
             .unwrap()
     }
-    #[cfg(feature = "broker-qualification")]
     fn approve(broker: &mut Broker, call: &wire::PendingCall) -> wire::DecideCallPayload {
         let payload = wire::DecideCallPayload {
             operation_id: Uuid::new_v4().to_string(),
@@ -1990,5 +2053,247 @@ mod tests {
             Err(wire::ErrorCode::NotQualified)
         ));
         assert!(broker.calls.is_empty());
+    }
+    fn kimi_new_lease(opt_in: bool, scope_ms: u64) -> (Broker, Arc<TestClock>, wire::Lease) {
+        kimi_new_lease_with_ttl(opt_in, scope_ms, 120000)
+    }
+    fn kimi_new_lease_with_ttl(
+        opt_in: bool,
+        scope_ms: u64,
+        ttl_ms: i64,
+    ) -> (Broker, Arc<TestClock>, wire::Lease) {
+        let (backend, _) = crate::kimi_web::tests::local_backend();
+        let (mut b, clock, mut context) = fixture(ProviderMode::Product);
+        context.scope.authorization_expires_at_unix_ms = (1_800_000_000_000 + scope_ms) as i64;
+        let mut req = prepare(context.clone(), true);
+        req.ttl_ms = ttl_ms;
+        if opt_in {
+            req.web_retrieval_version = Some(wire::WEB_RETRIEVAL_VERSION.into());
+            req.mcp_tool_timeout_ms = Some(wire::WEB_MCP_TOOL_TIMEOUT_MS);
+        }
+        assert!(b.register_provider(
+            crate::provider_generated::ProviderPayload {
+                operation_id: Uuid::new_v4().to_string(),
+                host_instance_id: context.process.host_instance_id.clone(),
+                scope: context.scope,
+                binding: crate::provider_generated::ProviderBinding {
+                    reference: req.snapshot.selection[0].clone(),
+                    service_id: "kimi-web".into(),
+                    credential_ref: Uuid::new_v4().to_string()
+                }
+            },
+            ProviderBackend::Kimi(backend)
+        ));
+        let lease = b.prepare(req).unwrap();
+        let lease = bind(&mut b, &lease);
+        (b, clock, lease)
+    }
+    fn kimi_call(b: &mut Broker, l: &wire::Lease) -> Result<wire::PendingCall, wire::ErrorCode> {
+        b.register_call(
+            &l.binding.capability_ref,
+            "native-thread-1",
+            "native-turn-1",
+            crate::web_retrieval_generated::PRO_TOOL_NAME,
+            Some(
+                serde_json::json!({"query":"public docs"})
+                    .as_object()
+                    .unwrap()
+                    .clone(),
+            ),
+        )
+    }
+    fn kimi_clock(clock: &TestClock, ms: u64) {
+        clock.tick.store(ms, Ordering::SeqCst);
+        clock.wall.store(1_800_000_000_000 + ms, Ordering::SeqCst);
+    }
+    #[test]
+    fn kimi_dual_deadlines_expire_pending_but_keep_approved_execution() {
+        let (mut b, clock, l) = kimi_new_lease(true, 120000);
+        assert_eq!(
+            b.visible_tools(&l.binding.capability_ref)
+                .unwrap()
+                .unwrap()
+                .len(),
+            3
+        );
+        let call = kimi_call(&mut b, &l).unwrap();
+        assert_eq!(call.decision_expires_at_unix_ms, Some(1_800_000_023_000));
+        assert_eq!(call.execution_expires_at_unix_ms, Some(1_800_000_060_000));
+        kimi_clock(&clock, 22999);
+        b.decide_call(wire::DecideCallPayload {
+            operation_id: Uuid::new_v4().to_string(),
+            identity: call.identity.clone(),
+            expected_revision: call.revision,
+            approval_ref: Uuid::new_v4().to_string(),
+            decision_id: Uuid::new_v4().to_string(),
+            decision: wire::Decision::ApproveOnce,
+        })
+        .unwrap();
+        kimi_clock(&clock, 24000);
+        assert_eq!(
+            b.pending_call_view(&call.identity.call_ref),
+            Some(wire::CallState::Approved)
+        );
+        assert!(matches!(
+            b.consume_execution(
+                &call.identity.call_ref,
+                true,
+                &tokio_util::sync::CancellationToken::new()
+            )
+            .unwrap(),
+            Execution::Kimi { .. }
+        ));
+        assert!(kimi_call(&mut b, &l).is_err());
+        let (mut pending, clock, l) = kimi_new_lease(true, 120000);
+        let call = kimi_call(&mut pending, &l).unwrap();
+        kimi_clock(&clock, 23000);
+        assert_eq!(
+            pending.pending_call_view(&call.identity.call_ref),
+            Some(wire::CallState::Expired)
+        );
+    }
+    #[test]
+    fn kimi_new_modes_require_owner_opt_in_and_short_scope_reduces_decision_time() {
+        let (mut legacy, _, l) = kimi_new_lease(false, 120000);
+        assert_eq!(
+            legacy
+                .visible_tools(&l.binding.capability_ref)
+                .unwrap()
+                .unwrap()
+                .len(),
+            2
+        );
+        assert!(kimi_call(&mut legacy, &l).is_err());
+        assert!(
+            legacy
+                .register_call(
+                    &l.binding.capability_ref,
+                    "native-thread-1",
+                    "native-turn-1",
+                    crate::web_retrieval_generated::SEARCH_TOOL_NAME,
+                    Some(
+                        serde_json::json!({"query":"docs","include_content":true})
+                            .as_object()
+                            .unwrap()
+                            .clone()
+                    )
+                )
+                .is_err()
+        );
+        let (mut short, clock, l) = kimi_new_lease(true, 40000);
+        let call = kimi_call(&mut short, &l).unwrap();
+        assert_eq!(call.decision_expires_at_unix_ms, Some(1_800_000_003_000));
+        kimi_clock(&clock, 3000);
+        assert_eq!(
+            short.pending_call_view(&call.identity.call_ref),
+            Some(wire::CallState::Expired)
+        );
+    }
+
+    #[test]
+    fn kimi_execution_deadline_is_exclusive_and_does_not_renew_after_approval() {
+        for (time, expected) in [
+            (59999, wire::CallState::Approved),
+            (60000, wire::CallState::Expired),
+            (60001, wire::CallState::Expired),
+        ] {
+            let (mut broker, clock, lease) = kimi_new_lease(true, 120000);
+            let call = kimi_call(&mut broker, &lease).unwrap();
+            kimi_clock(&clock, 1000);
+            approve(&mut broker, &call);
+            kimi_clock(&clock, time);
+            assert_eq!(
+                broker.pending_call_view(&call.identity.call_ref),
+                Some(expected)
+            );
+            let admission = broker.consume_execution(
+                &call.identity.call_ref,
+                true,
+                &tokio_util::sync::CancellationToken::new(),
+            );
+            assert_eq!(admission.is_ok(), time < 60000);
+            // No backend is invoked: late delivery still has the separate 35s
+            // pre-HTTP guard covered by the ordinary backend tests.
+        }
+    }
+
+    #[test]
+    fn kimi_delayed_proposal_and_short_lease_keep_original_prepare_floor() {
+        let (mut broker, clock, lease) = kimi_new_lease(true, 120000);
+        kimi_clock(&clock, 10000);
+        let call = kimi_call(&mut broker, &lease).unwrap();
+        assert_eq!(call.decision_expires_at_unix_ms, Some(1_800_000_023_000));
+        assert_eq!(call.execution_expires_at_unix_ms, Some(1_800_000_060_000));
+        let (mut short, _, lease) = kimi_new_lease_with_ttl(true, 120000, 40000);
+        let call = kimi_call(&mut short, &lease).unwrap();
+        assert_eq!(call.decision_expires_at_unix_ms, Some(1_800_000_003_000));
+        assert_eq!(call.execution_expires_at_unix_ms, Some(1_800_000_040_000));
+    }
+
+    #[test]
+    fn kimi_legacy_late_approval_still_admits_ten_seconds_for_both_owner_versions() {
+        for opt_in in [false, true] {
+            let (mut broker, clock, lease) = kimi_new_lease(opt_in, 120000);
+            let call = broker
+                .register_call(
+                    &lease.binding.capability_ref,
+                    "native-thread-1",
+                    "native-turn-1",
+                    crate::web_retrieval_generated::SEARCH_TOOL_NAME,
+                    Some(
+                        serde_json::json!({"query":"public docs"})
+                            .as_object()
+                            .unwrap()
+                            .clone(),
+                    ),
+                )
+                .unwrap();
+            assert!(call.decision_expires_at_unix_ms.is_none());
+            assert!(call.execution_expires_at_unix_ms.is_none());
+            kimi_clock(&clock, 50000);
+            approve(&mut broker, &call);
+            let Execution::Kimi { deadline, .. } = broker
+                .consume_execution(
+                    &call.identity.call_ref,
+                    true,
+                    &tokio_util::sync::CancellationToken::new(),
+                )
+                .unwrap()
+            else {
+                panic!("Kimi execution required");
+            };
+            let remaining = deadline.saturating_duration_since(Instant::now());
+            assert!(remaining <= Duration::from_secs(10) && remaining > Duration::from_secs(9));
+        }
+    }
+
+    #[tokio::test]
+    async fn kimi_expired_budget_returns_without_creating_approval() {
+        let (broker, clock, lease) = kimi_new_lease(true, 120000);
+        kimi_clock(&clock, 23000);
+        let handle = BrokerHandle {
+            state: Arc::new(Mutex::new(broker)),
+            changed: Arc::new(Notify::new()),
+        };
+        let request =
+            rmcp::model::CallToolRequestParams::new(crate::web_retrieval_generated::PRO_TOOL_NAME)
+                .with_arguments(
+                    serde_json::json!({"query":"public docs"})
+                        .as_object()
+                        .unwrap()
+                        .clone(),
+                );
+        let call = crate::gateway::wait_for_bound_call(
+            &handle,
+            &tokio_util::sync::CancellationToken::new(),
+            &lease.binding.capability_ref,
+            "native-thread-1",
+            "native-turn-1",
+            &request,
+        )
+        .await
+        .unwrap();
+        assert!(call.is_none());
+        assert!(handle.state.lock().unwrap().calls.is_empty());
     }
 }

@@ -156,6 +156,9 @@ impl ServerHandler for Gateway {
             &request,
         )
         .await?;
+        let Some(call) = call else {
+            return Ok(content_budget_expired());
+        };
         let diagnostic = Diagnostic::for_operation(&call.identity.call_ref);
         diagnostic.emit(Stage::CallApproval, Event::Started, None, None);
         let metadata = wire::ElicitationMetadata {
@@ -285,6 +288,12 @@ impl ServerHandler for Gateway {
 
 // A request may arrive before turn/start's response. Cancellation must end
 // that wait, and only an owner bind_turn may permit registration.
+fn content_budget_expired() -> CallToolResult {
+    CallToolResult::error(vec![Content::text(
+        crate::web_retrieval_generated::CONTENT_BUDGET_EXPIRED_MESSAGE,
+    )])
+}
+
 pub(crate) async fn wait_for_bound_call(
     broker: &BrokerHandle,
     cancellation: &CancellationToken,
@@ -292,7 +301,7 @@ pub(crate) async fn wait_for_bound_call(
     thread: &str,
     turn: &str,
     request: &CallToolRequestParams,
-) -> Result<wire::PendingCall, ErrorData> {
+) -> Result<Option<wire::PendingCall>, ErrorData> {
     let wait = async {
         loop {
             let changed = broker.changed.notified();
@@ -317,7 +326,10 @@ pub(crate) async fn wait_for_bound_call(
                 result
             };
             match result {
-                Ok(call) => return Ok(call),
+                Ok(call) => return Ok(Some(call)),
+                // Only the new content-mode registration can return this code;
+                // it has established expiration before creating any approval.
+                Err(wire::ErrorCode::CallExpired) => return Ok(None),
                 Err(wire::ErrorCode::NotBound) => tokio::select! {
                     biased;
                     _ = cancellation.cancelled() => return Err(mcp_error()),
@@ -432,6 +444,15 @@ fn control_loop(
 #[cfg(test)]
 mod outcome_tests {
     use super::*;
+    #[test]
+    fn kimi_expired_budget_is_an_explicit_tool_error() {
+        let result = content_budget_expired();
+        assert_eq!(result.is_error, Some(true));
+        assert_eq!(
+            result.content[0].as_text().unwrap().text,
+            crate::web_retrieval_generated::CONTENT_BUDGET_EXPIRED_MESSAGE
+        );
+    }
     #[test]
     fn admission_outcomes_do_not_confuse_rejection_with_unknown_execution() {
         assert_eq!(

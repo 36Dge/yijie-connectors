@@ -811,6 +811,18 @@ pub struct PendingCall {
         deserialize_with = "optional_non_null"
     )]
     pub decision: Option<Decision>,
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "optional_non_null"
+    )]
+    pub decision_expires_at_unix_ms: Option<UnixMilliseconds>,
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "optional_non_null"
+    )]
+    pub execution_expires_at_unix_ms: Option<UnixMilliseconds>,
 }
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -832,6 +844,18 @@ struct PendingCallWire {
         deserialize_with = "optional_non_null"
     )]
     pub decision: Option<Decision>,
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "optional_non_null"
+    )]
+    pub decision_expires_at_unix_ms: Option<UnixMilliseconds>,
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "optional_non_null"
+    )]
+    pub execution_expires_at_unix_ms: Option<UnixMilliseconds>,
 }
 impl TryFrom<PendingCallWire> for PendingCall {
     type Error = &'static str;
@@ -844,6 +868,8 @@ impl TryFrom<PendingCallWire> for PendingCall {
             review: w.review,
             decision_id: w.decision_id,
             decision: w.decision,
+            decision_expires_at_unix_ms: w.decision_expires_at_unix_ms,
+            execution_expires_at_unix_ms: w.execution_expires_at_unix_ms,
         };
         v.validate()?;
         Ok(v)
@@ -889,6 +915,42 @@ impl PendingCall {
                 Ok(())
             })
             .transpose()?;
+        self.decision_expires_at_unix_ms
+            .as_ref()
+            .map(
+                |value_decision_expires_at_unix_ms| -> Result<(), &'static str> {
+                    if *value_decision_expires_at_unix_ms < 1 {
+                        return Err("invalid broker number");
+                    }
+                    if *value_decision_expires_at_unix_ms > 9007199254740991 {
+                        return Err("invalid broker number");
+                    }
+                    Ok(())
+                },
+            )
+            .transpose()?;
+        self.execution_expires_at_unix_ms
+            .as_ref()
+            .map(
+                |value_execution_expires_at_unix_ms| -> Result<(), &'static str> {
+                    if *value_execution_expires_at_unix_ms < 1 {
+                        return Err("invalid broker number");
+                    }
+                    if *value_execution_expires_at_unix_ms > 9007199254740991 {
+                        return Err("invalid broker number");
+                    }
+                    Ok(())
+                },
+            )
+            .transpose()?;
+        if self.decision_expires_at_unix_ms.is_some() != self.execution_expires_at_unix_ms.is_some()
+            || self
+                .decision_expires_at_unix_ms
+                .zip(self.execution_expires_at_unix_ms)
+                .is_some_and(|(a, d)| a >= d)
+        {
+            return Err("invalid call deadlines");
+        }
         Ok(())
     }
 }
@@ -1133,6 +1195,18 @@ pub struct PreparePayload {
     pub context: ContextBinding,
     pub snapshot: SelectionSnapshot,
     pub ttl_ms: RequestedTtlMs,
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "optional_non_null"
+    )]
+    pub web_retrieval_version: Option<String>,
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "optional_non_null"
+    )]
+    pub mcp_tool_timeout_ms: Option<i64>,
 }
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -1141,6 +1215,18 @@ struct PreparePayloadWire {
     pub context: ContextBinding,
     pub snapshot: SelectionSnapshot,
     pub ttl_ms: RequestedTtlMs,
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "optional_non_null"
+    )]
+    pub web_retrieval_version: Option<String>,
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "optional_non_null"
+    )]
+    pub mcp_tool_timeout_ms: Option<i64>,
 }
 impl TryFrom<PreparePayloadWire> for PreparePayload {
     type Error = &'static str;
@@ -1150,6 +1236,8 @@ impl TryFrom<PreparePayloadWire> for PreparePayload {
             context: w.context,
             snapshot: w.snapshot,
             ttl_ms: w.ttl_ms,
+            web_retrieval_version: w.web_retrieval_version,
+            mcp_tool_timeout_ms: w.mcp_tool_timeout_ms,
         };
         v.validate()?;
         Ok(v)
@@ -1182,6 +1270,27 @@ impl PreparePayload {
             if *value_ttl_ms > 300000 {
                 return Err("invalid broker number");
             }
+        }
+        self.web_retrieval_version
+            .as_ref()
+            .map(|value_web_retrieval_version| -> Result<(), &'static str> {
+                if value_web_retrieval_version != "0.3.0" {
+                    return Err("invalid broker constant");
+                }
+                Ok(())
+            })
+            .transpose()?;
+        self.mcp_tool_timeout_ms
+            .as_ref()
+            .map(|value_mcp_tool_timeout_ms| -> Result<(), &'static str> {
+                if *value_mcp_tool_timeout_ms != 60000 {
+                    return Err("invalid broker constant");
+                }
+                Ok(())
+            })
+            .transpose()?;
+        if self.web_retrieval_version.is_some() != self.mcp_tool_timeout_ms.is_some() {
+            return Err("incomplete web execution profile");
         }
         Ok(())
     }
@@ -2659,3 +2768,5 @@ pub const KIMI_MODEL_CREDENTIAL_DESCRIPTOR: usize = 3;
 pub const KIMI_MODEL_CREDENTIAL_PREAMBLE: &str = "yijie-kimi-model-key-v1\n";
 pub const KIMI_MODEL_CREDENTIAL_MAX_KEY_BYTES: usize = 16384;
 pub const KIMI_MODEL_CREDENTIAL_TERMINATOR: &str = "\n";
+pub const WEB_RETRIEVAL_VERSION: &str = "0.3.0";
+pub const WEB_MCP_TOOL_TIMEOUT_MS: i64 = 60000;

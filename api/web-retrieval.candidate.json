@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "contract_version": "0.2.0",
+  "contract_version": "0.3.0",
   "feature": "FEAT-162",
   "mode": "local_worktree_candidate",
   "release": false,
@@ -8,19 +8,19 @@
   "sources": [
     {
       "path": "compatibility/web-retrieval/wire.schema.json",
-      "sha256": "7579b106655791e3610f574da52adb9694fca6dd26aa823a04a3b8f6c25f3668"
+      "sha256": "fc049ab088a4b638b3affd1d40f51cfa2b908dbe554f8d8711e883c7400797ff"
     },
     {
       "path": "compatibility/web-retrieval/tools.json",
-      "sha256": "f2c503a88bbd7677f81c40a78b62d21e8c2da4edbed248c3d72879c0f9705715"
+      "sha256": "19f0a64113cb0fd5c1c1de4c1bcb4ede3c4ed206bf1581fd8418a9ae2a3d8d23"
     },
     {
       "path": "scripts/web-retrieval-source.mjs",
-      "sha256": "6c5e40e87ceffa061a61948a9fee2cb422612dd6a53831f5984aa561627e751a"
+      "sha256": "4f08aeb381fbd0f89284982b571a07ff9a4853f85e5054c3796a0d9bb908af37"
     },
     {
       "path": "scripts/generate-web-retrieval.mjs",
-      "sha256": "7de78a2c8a34b435aada4f41597105646873b0db4f729d33bf125c2514d19e7c"
+      "sha256": "42ea50ad8a0cedd5ebc80b2c931b4320f4adf3b9fa6ab30f46089f94b8876dc1"
     },
     {
       "path": "scripts/sync-web-retrieval.mjs",
@@ -33,20 +33,40 @@
     {
       "path": "pnpm-lock.yaml",
       "sha256": "57eece158a0405a85ea9b8fd2c382af130e4248897b67af587878737bbf86313"
+    },
+    {
+      "path": "compatibility/web-retrieval/legacy/0.2.0/wire.schema.json",
+      "sha256": "7579b106655791e3610f574da52adb9694fca6dd26aa823a04a3b8f6c25f3668"
+    },
+    {
+      "path": "compatibility/web-retrieval/legacy/0.2.0/tools.json",
+      "sha256": "f2c503a88bbd7677f81c40a78b62d21e8c2da4edbed248c3d72879c0f9705715"
     }
   ],
   "generated": [
     {
       "path": "sdks/rust/web-retrieval/types.gen.rs",
-      "sha256": "d499b12ea58ba5d4b73039f0e668a08aecb7f050900212d5431f40e4a784a38d"
+      "sha256": "02456aa4c3e779423e7facb6283de5e58fb4dede3c81e110cd4b3c1ee7b39b31"
     },
     {
       "path": "sdks/jsonschema/web-retrieval.schema.json",
-      "sha256": "7579b106655791e3610f574da52adb9694fca6dd26aa823a04a3b8f6c25f3668"
+      "sha256": "fc049ab088a4b638b3affd1d40f51cfa2b908dbe554f8d8711e883c7400797ff"
     },
     {
       "path": "sdks/jsonschema/web-retrieval.tools.json",
-      "sha256": "46c33cd7a089efb7aa8024abf5e75417440ad74571a8723c4ffdb0ecc0a0de72"
+      "sha256": "30c12d3f651debecbc46c19327229f5e220238f96a4e98460f565c7f55de0966"
+    },
+    {
+      "path": "sdks/typescript/src/domain/web-retrieval.generated.ts",
+      "sha256": "e79c1f865096554093680303731f5fdc22a19b57f882459dd4796855b6acf3b9"
+    },
+    {
+      "path": "sdks/typescript/src/api/generated/web-retrieval-validator.gen.js",
+      "sha256": "93156b137725634a6b37df80db2235638a84052f28b650d7de6cc0f9621499e2"
+    },
+    {
+      "path": "sdks/typescript/src/api/generated/web-retrieval-validator.gen.d.ts",
+      "sha256": "96c2b835122437834603f26a84372fec20d6e282feffd4f66e057e47bade51dc"
     }
   ],
   "consumer": "connectors",
@@ -54,17 +74,17 @@
     {
       "source": "sdks/rust/web-retrieval/types.gen.rs",
       "path": "worker/src/web_retrieval_generated.rs",
-      "sha256": "d499b12ea58ba5d4b73039f0e668a08aecb7f050900212d5431f40e4a784a38d"
+      "sha256": "02456aa4c3e779423e7facb6283de5e58fb4dede3c81e110cd4b3c1ee7b39b31"
     },
     {
       "source": "sdks/jsonschema/web-retrieval.schema.json",
       "path": "api/web-retrieval.schema.json",
-      "sha256": "7579b106655791e3610f574da52adb9694fca6dd26aa823a04a3b8f6c25f3668"
+      "sha256": "fc049ab088a4b638b3affd1d40f51cfa2b908dbe554f8d8711e883c7400797ff"
     },
     {
       "source": "sdks/jsonschema/web-retrieval.tools.json",
       "path": "api/web-retrieval.tools.json",
-      "sha256": "46c33cd7a089efb7aa8024abf5e75417440ad74571a8723c4ffdb0ecc0a0de72"
+      "sha256": "30c12d3f651debecbc46c19327229f5e220238f96a4e98460f565c7f55de0966"
     }
   ]
 }

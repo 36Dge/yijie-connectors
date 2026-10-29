@@ -28,6 +28,10 @@
           "minimum": 1,
           "maximum": 20,
           "default": 5
+        },
+        "include_content": {
+          "type": "boolean",
+          "default": false
         }
       }
     },
@@ -387,6 +391,9 @@
           "$ref": "#/$defs/SearchSuccess"
         },
         {
+          "$ref": "#/$defs/ContentSuccess"
+        },
+        {
           "$ref": "#/$defs/ErrorOutput"
         }
       ]
@@ -396,6 +403,419 @@
       "oneOf": [
         {
           "$ref": "#/$defs/FetchSuccess"
+        },
+        {
+          "$ref": "#/$defs/ErrorOutput"
+        }
+      ]
+    },
+    "ContentStatus": {
+      "type": "string",
+      "enum": [
+        "available",
+        "unavailable",
+        "truncated"
+      ]
+    },
+    "ChunkScore": {
+      "type": "number",
+      "description": "Finite query-relative score. No cross-query trust threshold."
+    },
+    "SearchChunk": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "text",
+        "score"
+      ],
+      "properties": {
+        "text": {
+          "type": "string",
+          "maxLength": 65536
+        },
+        "score": {
+          "$ref": "#/$defs/ChunkScore"
+        }
+      }
+    },
+    "DateBound": {
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^(?!0000)[0-9]{4}$"
+        },
+        {
+          "type": "string",
+          "pattern": "^(?!0000)[0-9]{4}-(0[1-9]|1[0-2])$"
+        },
+        {
+          "type": "string",
+          "format": "date",
+          "pattern": "^(?!0000)[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+        }
+      ]
+    },
+    "TimeWindow": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [],
+      "properties": {
+        "start": {
+          "$ref": "#/$defs/DateBound"
+        },
+        "end": {
+          "$ref": "#/$defs/DateBound"
+        }
+      }
+    },
+    "ProArguments": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "query"
+      ],
+      "properties": {
+        "query": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048,
+          "pattern": "\\S"
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 20,
+          "default": 5
+        },
+        "sites": {
+          "type": "array",
+          "maxItems": 5,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096,
+            "pattern": "^[^\\s()]+$"
+          }
+        },
+        "time_window": {
+          "$ref": "#/$defs/TimeWindow"
+        }
+      }
+    },
+    "ContentResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "title",
+        "url",
+        "snippet",
+        "text",
+        "content_status"
+      ],
+      "properties": {
+        "title": {
+          "type": "string",
+          "maxLength": 65536
+        },
+        "url": {
+          "$ref": "#/$defs/PublicUrl"
+        },
+        "snippet": {
+          "type": "string",
+          "maxLength": 65536
+        },
+        "text": {
+          "type": "string",
+          "maxLength": 65536
+        },
+        "content_status": {
+          "$ref": "#/$defs/ContentStatus"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "content_status": {
+                "const": "available"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "text": {
+                "type": "string",
+                "pattern": "\\S"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "content_status": {
+                "const": "unavailable"
+              }
+            }
+          },
+          "then": {
+            "not": {
+              "properties": {
+                "text": {
+                  "type": "string",
+                  "pattern": "\\S"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "ProResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "title",
+        "url",
+        "snippet",
+        "site_name",
+        "date",
+        "authority",
+        "chunks",
+        "content_status"
+      ],
+      "properties": {
+        "title": {
+          "type": "string",
+          "maxLength": 65536
+        },
+        "url": {
+          "$ref": "#/$defs/PublicUrl"
+        },
+        "snippet": {
+          "type": "string",
+          "maxLength": 65536
+        },
+        "site_name": {
+          "type": "string",
+          "maxLength": 65536
+        },
+        "date": {
+          "type": "string",
+          "maxLength": 65536
+        },
+        "authority": {
+          "type": "string",
+          "maxLength": 65536
+        },
+        "chunks": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SearchChunk"
+          }
+        },
+        "content_status": {
+          "$ref": "#/$defs/ContentStatus"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "content_status": {
+                "const": "available"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "chunks": {
+                "type": "array",
+                "contains": {
+                  "type": "object",
+                  "required": [
+                    "text"
+                  ],
+                  "properties": {
+                    "text": {
+                      "type": "string",
+                      "pattern": "\\S"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "content_status": {
+                "const": "unavailable"
+              }
+            }
+          },
+          "then": {
+            "not": {
+              "properties": {
+                "chunks": {
+                  "type": "array",
+                  "contains": {
+                    "type": "object",
+                    "required": [
+                      "text"
+                    ],
+                    "properties": {
+                      "text": {
+                        "type": "string",
+                        "pattern": "\\S"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "ContentSuccess": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "results",
+        "truncated",
+        "dropped_results"
+      ],
+      "properties": {
+        "results": {
+          "type": "array",
+          "maxItems": 20,
+          "items": {
+            "$ref": "#/$defs/ContentResult"
+          }
+        },
+        "truncated": {
+          "type": "boolean"
+        },
+        "dropped_results": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "anyOf": [
+              {
+                "properties": {
+                  "dropped_results": {
+                    "type": "integer",
+                    "minimum": 1
+                  }
+                }
+              },
+              {
+                "properties": {
+                  "results": {
+                    "type": "array",
+                    "contains": {
+                      "type": "object",
+                      "properties": {
+                        "content_status": {
+                          "const": "truncated"
+                        }
+                      },
+                      "required": [
+                        "content_status"
+                      ]
+                    }
+                  }
+                }
+              }
+            ]
+          },
+          "then": {
+            "properties": {
+              "truncated": {
+                "const": true
+              }
+            }
+          }
+        }
+      ]
+    },
+    "ProSuccess": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "results",
+        "truncated",
+        "dropped_results"
+      ],
+      "properties": {
+        "results": {
+          "type": "array",
+          "maxItems": 20,
+          "items": {
+            "$ref": "#/$defs/ProResult"
+          }
+        },
+        "truncated": {
+          "type": "boolean"
+        },
+        "dropped_results": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "anyOf": [
+              {
+                "properties": {
+                  "dropped_results": {
+                    "type": "integer",
+                    "minimum": 1
+                  }
+                }
+              },
+              {
+                "properties": {
+                  "results": {
+                    "type": "array",
+                    "contains": {
+                      "type": "object",
+                      "properties": {
+                        "content_status": {
+                          "const": "truncated"
+                        }
+                      },
+                      "required": [
+                        "content_status"
+                      ]
+                    }
+                  }
+                }
+              }
+            ]
+          },
+          "then": {
+            "properties": {
+              "truncated": {
+                "const": true
+              }
+            }
+          }
+        }
+      ]
+    },
+    "ProOutput": {
+      "type": "object",
+      "oneOf": [
+        {
+          "$ref": "#/$defs/ProSuccess"
         },
         {
           "$ref": "#/$defs/ErrorOutput"

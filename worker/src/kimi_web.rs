@@ -23,6 +23,17 @@ use wire::ErrorCode;
 
 const API_ORIGIN: &str = "https://api.moonshot.cn";
 
+pub fn legacy_descriptors() -> Vec<Tool> {
+    serde_json::from_str(wire::LEGACY_TOOLS_JSON).expect("canonical legacy descriptors")
+}
+
+#[path = "kimi_web_content.rs"]
+mod content;
+
+pub fn requires_full_budget(tool: &str, args: &Map<String, Value>) -> Result<bool, ErrorCode> {
+    Ok(Arguments::parse(tool, args)?.content_mode())
+}
+
 pub fn descriptors() -> Vec<Tool> {
     serde_json::from_str(wire::TOOLS_JSON).expect("canonical web retrieval descriptors")
 }
@@ -79,6 +90,7 @@ fn public_url(value: &str) -> bool {
 enum Arguments {
     Search(wire::SearchArguments),
     Fetch(wire::FetchArguments),
+    Pro(wire::ProArguments),
 }
 impl Arguments {
     fn parse(name: &str, args: &Map<String, Value>) -> Result<Self, ErrorCode> {
@@ -86,6 +98,9 @@ impl Arguments {
         match name {
             wire::SEARCH_TOOL_NAME => serde_json::from_value(value)
                 .map(Self::Search)
+                .map_err(|_| ErrorCode::InvalidArguments),
+            wire::PRO_TOOL_NAME => serde_json::from_value(value)
+                .map(Self::Pro)
                 .map_err(|_| ErrorCode::InvalidArguments),
             wire::FETCH_TOOL_NAME => {
                 let args: wire::FetchArguments =
@@ -98,16 +113,31 @@ impl Arguments {
             _ => Err(ErrorCode::InvalidArguments),
         }
     }
+    fn content_mode(&self) -> bool {
+        matches!(self, Self::Pro(_))
+            || matches!(self, Self::Search(a) if a.include_content.unwrap_or(false))
+    }
     fn path(&self) -> &'static str {
         match self {
             Self::Search(_) => wire::SEARCH_PATH,
             Self::Fetch(_) => wire::FETCH_PATH,
+            Self::Pro(_) => wire::PRO_PATH,
         }
     }
     fn body(&self) -> Value {
         match self {
             Self::Search(args) => json!({"text_query": args.query, "limit": args.effective_limit(),
-                "timeout_seconds": wire::SEARCH_TIMEOUT_SECONDS, "include_content": false}),
+                "timeout_seconds": if self.content_mode() {wire::CONTENT_SEARCH_TIMEOUT_SECONDS} else {wire::SEARCH_TIMEOUT_SECONDS}, "include_content": args.include_content.unwrap_or(false)}),
+            Self::Pro(args) => {
+                let mut body = json!({"text_query":args.query,"limit":args.effective_limit(),"timeout_seconds":wire::CONTENT_SEARCH_TIMEOUT_SECONDS});
+                if let Some(sites) = &args.sites {
+                    body["sites"] = json!(sites);
+                }
+                if let Some(window) = &args.time_window {
+                    body["time_window"] = json!(window);
+                }
+                body
+            }
             Self::Fetch(args) => json!({"url": args.url}),
         }
     }
@@ -206,12 +236,30 @@ impl Backend {
         let _guard = self.serial.lock().await;
     }
     pub fn contains(&self, tool: &str) -> bool {
-        matches!(tool, wire::SEARCH_TOOL_NAME | wire::FETCH_TOOL_NAME)
+        matches!(
+            tool,
+            wire::SEARCH_TOOL_NAME | wire::PRO_TOOL_NAME | wire::FETCH_TOOL_NAME
+        )
     }
     pub fn review(
         &self,
         tool: &str,
         args: &Map<String, Value>,
+    ) -> Result<broker_wire::ReviewProjection, ErrorCode> {
+        self.review_profile(tool, args, false)
+    }
+    pub fn review_legacy(
+        &self,
+        tool: &str,
+        args: &Map<String, Value>,
+    ) -> Result<broker_wire::ReviewProjection, ErrorCode> {
+        self.review_profile(tool, args, true)
+    }
+    fn review_profile(
+        &self,
+        tool: &str,
+        args: &Map<String, Value>,
+        legacy: bool,
     ) -> Result<broker_wire::ReviewProjection, ErrorCode> {
         let arguments = Value::Object(args.clone());
         if !self.permit.1.safe(&arguments) {
@@ -219,13 +267,18 @@ impl Backend {
         }
         let parsed = Arguments::parse(tool, args)?;
         let (title, summary) = match parsed {
-            Arguments::Search(args) => ("Kimi 网页搜索", format!("只读搜索，最多返回 {} 条标题、链接和摘要。查询词将发给 Kimi，服务按次计费；本次批准仅允许一次请求，不自动重试。", args.effective_limit())),
+            Arguments::Search(args) => ("Kimi Basic 网页搜索", format!("只读搜索，最多 {} 条；请求正文：{}。按次计费0.01元；本次批准一次请求，不自动重试，正文可能缺失或截断。", args.effective_limit(), if args.include_content.unwrap_or(false) {"是"} else {"否"})),
+            Arguments::Pro(args) => ("Kimi Pro 网页搜索",format!("只读问答检索，最多 {} 条相关正文片段；站点/日期以完整参数为准。按次计费0.015元，本次批准一次请求；缺片段不等于免费，不自动重试。",args.effective_limit())),
             Arguments::Fetch(_) => ("Kimi 网页读取", "只读获取指定公开网页的 Markdown 正文。网页地址将发给 Kimi，服务按次计费；本次批准仅允许一次请求，不自动重试，不承诺 JavaScript 渲染。".into()),
         };
-        let definition = descriptors()
-            .into_iter()
-            .find(|d| d.name == tool)
-            .ok_or(ErrorCode::InvalidArguments)?;
+        let definition = (if legacy {
+            legacy_descriptors()
+        } else {
+            descriptors()
+        })
+        .into_iter()
+        .find(|d| d.name == tool)
+        .ok_or(ErrorCode::InvalidArguments)?;
         let bytes = serde_json::to_vec(&definition).map_err(|_| ErrorCode::InvalidArguments)?;
         let encoded = serde_json::to_string(&arguments).map_err(|_| ErrorCode::InvalidArguments)?;
         if encoded.len() > broker_wire::GENERIC_MAX_REVIEW_ARGUMENTS_BYTES {
@@ -244,10 +297,19 @@ impl Backend {
         url: String,
         body: Option<Value>,
         deadline: Instant,
+        full_budget: bool,
     ) -> Result<HttpRequestParams, ErrorCode> {
         let remaining = deadline.saturating_duration_since(Instant::now());
+        let budget = if full_budget {
+            wire::CONTENT_HTTP_TIMEOUT_MS
+        } else {
+            wire::HTTP_TIMEOUT_MS
+        };
+        if full_budget && remaining < Duration::from_millis(budget as u64) {
+            return Err(ErrorCode::Timeout);
+        }
         let timeout = remaining
-            .min(Duration::from_millis(wire::HTTP_TIMEOUT_MS as u64))
+            .min(Duration::from_millis(budget as u64))
             .as_millis() as u64;
         if timeout == 0 {
             return Err(ErrorCode::Timeout);
@@ -256,6 +318,7 @@ impl Backend {
         if !(method == "POST"
             && [
                 format!("{API_ORIGIN}{}", wire::SEARCH_PATH),
+                format!("{API_ORIGIN}{}", wire::PRO_PATH),
                 format!("{API_ORIGIN}{}", wire::FETCH_PATH),
             ]
             .contains(&url))
@@ -327,7 +390,7 @@ impl Backend {
         if !self.available() {
             return Err(Failure::Cancelled);
         }
-        if descriptors().len() != 2 {
+        if descriptors().len() != 3 {
             return Err(Failure::InvalidMetadata);
         }
         Ok(())
@@ -364,6 +427,7 @@ impl Backend {
             format!("{API_ORIGIN}{}", arguments.path()),
             Some(arguments.body()),
             permit.deadline,
+            arguments.content_mode(),
         )?;
         let reviewed = Value::Object(args);
         self.permit.arm(
@@ -382,6 +446,12 @@ impl Backend {
             return Err(ErrorCode::Cancelled);
         }
         // Consume before the sole send. No retries or alternate endpoint follows.
+        if arguments.content_mode()
+            && permit.deadline.saturating_duration_since(Instant::now())
+                < Duration::from_millis(wire::CONTENT_HTTP_TIMEOUT_MS as u64)
+        {
+            return Err(ErrorCode::Timeout);
+        }
         let response = self.send(request, permit.deadline, diagnostic).await;
         if !self.available() || permit.request.is_cancelled() || permit.lease.is_cancelled() {
             return Err(ErrorCode::Cancelled);
@@ -397,6 +467,12 @@ impl Backend {
             return Err(ErrorCode::InvalidResponse);
         }
         let result = match arguments {
+            Arguments::Search(args) if args.include_content.unwrap_or(false) => {
+                content::normalize(&value, args.effective_limit() as usize, false)?
+            }
+            Arguments::Pro(args) => {
+                content::normalize(&value, args.effective_limit() as usize, true)?
+            }
             Arguments::Search(args) => normalize_search(&value, args.effective_limit() as usize)?,
             Arguments::Fetch(_) => normalize_fetch(&value)?,
         };
