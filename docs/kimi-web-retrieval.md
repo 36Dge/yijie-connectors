@@ -68,3 +68,5 @@ make worker-build
 - https://platform.kimi.com/docs/api/tools-search
 - https://platform.kimi.com/docs/api/tools-fetch
 - https://platform.kimi.com/docs/api/list-models
+
+2026-10-30 构建接口修订（semantic，工具/公共 wire 不变）：`build-market-worker.sh --check-only [--output-root ...]` 只检查输出目录、固定源码/工具链及四家族来源，成功后退出，不编译/发布。Desktop 在全部来源检查完成后再调用原标准 build。新 primary generation 通过 `YIJIE_WORKER_BUILD_DIR` 指定独立中间缓存；脚本将其映射到稳定 Cargo `CARGO_BUILD_BUILD_DIR`，而 `YIJIE_WORKER_TARGET_DIR` 和内容寻址 worker 输出仍逐代独立。旧调用方式保持。缓存策略/容量/互斥由 Desktop primary owner 管理，缓存不替代来源、manifest 和哈希校验；08/09 和历史产物不迁移。本轮 `--check-only` 与现有正规 worker 的本机 Host 集成通过，未重编 worker、构建 App 或调用供应商。
