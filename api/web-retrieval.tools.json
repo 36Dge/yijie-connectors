@@ -1,7 +1,7 @@
 [
   {
     "name": "kimi_web_search",
-    "description": "用于展示网页标题、摘要、链接列表或找官网，默认include_content=false；用户明确采集正文供自行加工时才用true。选中本连接器的普通联网问答、事实核查、研究或总结直接用kimi_web_search_pro，不先Basic试探，也不为同一信息需求重复原生搜索。不能使用站点/日期过滤；明确只用Basic却要求过滤时说明冲突。只读按次计费，单次批准，不自动重试。",
+    "description": "用户只要网页标题、摘要和链接列表，未限定站点/日期且不要求问答或分析时，直接使用本Basic工具，不使用Pro。用于展示网页标题、摘要、链接列表或找官网，默认include_content=false；用户明确采集正文供自行加工时才用true。选中本连接器的普通联网问答、事实核查、研究或总结直接用kimi_web_search_pro，不先Basic试探，也不为同一信息需求重复原生搜索。不能使用站点/日期过滤；明确只用Basic却要求过滤时说明冲突。只读按次计费，单次批准，不自动重试。",
     "inputSchema": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "type": "object",
@@ -514,7 +514,7 @@
   },
   {
     "name": "kimi_web_search_pro",
-    "description": "选中本连接器时，普通联网问答、事实核查、研究、总结和RAG材料直接使用Pro，即使没有站点或时间过滤；不要先Basic或并行原生搜索。仅按用户明确要求设置sites(最多5，OR)及time_window；不得擅自增加过滤。返回关联真实URL的正文chunks，缺正文或截断须说明，score仅同次查询相对相关性。仅在还需某页当前正文时对结果URL另提Fetch，不声称历史快照。只读按次计费，单次批准，失败不自动重试/换接口。",
+    "description": "先区分交付物：仅列网页标题、摘要、链接列表、未限定站点/日期且不做问答或分析的任务，不使用本工具，只使用kimi_web_search（Basic摘要）。除此之外，选中本连接器时，普通联网问答、事实核查、研究、总结和RAG材料直接使用Pro，即使没有站点或时间过滤；不要先Basic或并行原生搜索。仅按用户明确要求设置sites(最多5，OR)及time_window；不得擅自增加过滤。返回关联真实URL的正文chunks，缺正文或截断须说明，score仅同次查询相对相关性。仅在还需某页当前正文时对结果URL另提Fetch，不声称历史快照。只读按次计费，单次批准，失败不自动重试/换接口。",
     "inputSchema": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "type": "object",
