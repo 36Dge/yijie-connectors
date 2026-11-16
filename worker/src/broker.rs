@@ -161,6 +161,9 @@ pub enum Execution {
 }
 struct CallRecord {
     view: wire::PendingCall,
+    // Existing owner decision identity, retained only for the result receipt.
+    // It is never consulted as a new execution authority.
+    approval_ref: Option<String>,
     decision_deadline: u64,
     deadline: u64,
     // This exact parsed snapshot is used after admission; no re-parse/defaults.
@@ -622,6 +625,7 @@ impl Broker {
         }
         call.view.decision_id = Some(payload.decision_id.clone());
         call.view.decision = Some(payload.decision);
+        call.approval_ref = Some(payload.approval_ref.clone());
         call.view.state = match payload.decision {
             wire::Decision::ApproveOnce => wire::CallState::Approved,
             wire::Decision::Reject => wire::CallState::Rejected,
@@ -1022,6 +1026,7 @@ impl Broker {
             call_ref,
             CallRecord {
                 view: call.clone(),
+                approval_ref: None,
                 decision_deadline,
                 deadline,
                 arguments,
@@ -1112,6 +1117,44 @@ impl Broker {
                 serde_json::json!({"value":"public-synthetic-value","query":arguments["query"]}),
             ))
         }
+    }
+    /// Read after admission under the same Broker lock. The original pending
+    /// response predates the user decision and cannot supply this receipt.
+    pub fn result_receipt(&self, call_ref: &str) -> Option<wire::GatewayCallReceipt> {
+        let call = self.calls.get(call_ref)?;
+        let identity = &call.view.identity;
+        let decision_receipt = match (
+            &call.approval_ref,
+            &call.view.decision_id,
+            call.view.decision,
+        ) {
+            (Some(approval), Some(decision_id), Some(decision)) => {
+                Some(wire::GatewayDecisionReceipt {
+                    approval_id: approval.clone(),
+                    decision_id: decision_id.clone(),
+                    decision,
+                })
+            }
+            (None, None, None) => None,
+            _ => return None,
+        };
+        let receipt = wire::GatewayCallReceipt {
+            schema_version: 1,
+            call_ref: identity.call_ref.clone(),
+            service_id: identity.service_id.clone(),
+            reference: identity.reference.clone(),
+            native_thread_id: identity.native_thread_id.clone(),
+            native_turn_id: identity.native_turn_id.clone(),
+            turn_operation_id: identity.binding.turn_operation_id.clone(),
+            selection_digest: identity.binding.selection_digest.clone(),
+            tool_name: identity.tool_name.clone(),
+            args_digest: identity.args_digest.clone(),
+            args_encoding: identity.args_encoding.clone(),
+            decision_receipt,
+            admission_consumed: call.view.state == wire::CallState::Consumed,
+        };
+        receipt.validate().ok()?;
+        Some(receipt)
     }
     #[cfg(all(test, feature = "broker-qualification"))]
     fn consume_call(
@@ -1652,6 +1695,7 @@ mod tests {
             .unwrap()
             .clone();
         let cancellation = tokio_util::sync::CancellationToken::new();
+        let mut call_refs = std::collections::HashSet::new();
         for decision in [wire::Decision::Reject, wire::Decision::ApproveOnce] {
             let call = broker
                 .register_call(
@@ -1662,6 +1706,14 @@ mod tests {
                     Some(args.clone()),
                 )
                 .unwrap();
+            assert!(call_refs.insert(call.identity.call_ref.clone()));
+            assert!(
+                broker
+                    .result_receipt(&call.identity.call_ref)
+                    .unwrap()
+                    .decision_receipt
+                    .is_none()
+            );
             assert_eq!(call.identity.reference, second);
             assert_eq!(call.identity.service_id, service);
             assert_eq!(call.review.risk, "write");
@@ -1670,17 +1722,32 @@ mod tests {
                 Some(serde_json::to_string(&args).unwrap().as_str())
             );
             assert!(call.review.schema_digest.is_some());
+            let approval_id = Uuid::new_v4().to_string();
+            let decision_id = Uuid::new_v4().to_string();
             broker
                 .decide_call(wire::DecideCallPayload {
                     operation_id: Uuid::new_v4().to_string(),
                     identity: call.identity.clone(),
                     expected_revision: 1,
-                    approval_ref: Uuid::new_v4().to_string(),
-                    decision_id: Uuid::new_v4().to_string(),
+                    approval_ref: approval_id.clone(),
+                    decision_id: decision_id.clone(),
                     decision,
                 })
                 .unwrap();
             let execution = broker.consume_execution(&call.identity.call_ref, true, &cancellation);
+            let receipt = broker.result_receipt(&call.identity.call_ref).unwrap();
+            assert_eq!(receipt.call_ref, call.identity.call_ref);
+            assert_eq!(receipt.reference, second);
+            assert_eq!(receipt.selection_digest, prepared.snapshot.selection_digest);
+            assert_eq!(receipt.args_digest, call.identity.args_digest);
+            assert_eq!(
+                receipt.admission_consumed,
+                decision == wire::Decision::ApproveOnce
+            );
+            let decided = receipt.decision_receipt.unwrap();
+            assert_eq!(decided.approval_id, approval_id);
+            assert_eq!(decided.decision_id, decision_id);
+            assert_eq!(decided.decision, decision);
             if let Ok(Execution::Generic {
                 backend,
                 tool,
@@ -1857,6 +1924,18 @@ mod tests {
         let (mut broker, _, context) = fixture(ProviderMode::Qualification);
         let lease = broker.prepare(prepare(context, true)).unwrap();
         let lease = bind(&mut broker, &lease);
+        let pending = register(&mut broker, &lease);
+        assert!(
+            broker
+                .consume_call(
+                    &pending.identity.call_ref,
+                    true,
+                    &tokio_util::sync::CancellationToken::new()
+                )
+                .is_err()
+        );
+        let pending_receipt = broker.result_receipt(&pending.identity.call_ref).unwrap();
+        assert!(!pending_receipt.admission_consumed && pending_receipt.decision_receipt.is_none());
         let call = register(&mut broker, &lease);
         let payload = approve(&mut broker, &call);
         assert_eq!(

@@ -20,11 +20,11 @@
     },
     {
       "path": "compatibility/market-broker-control/wire.schema.json",
-      "sha256": "614b37f68d13ce80f0a2f17573084507c11f888d283c092544bd84d6540c6c6f"
+      "sha256": "8e8cccb5ff5569f308205f01e56abd37a8ae582093652efafc1ad981123c5882"
     },
     {
       "path": "scripts/market-host-source.mjs",
-      "sha256": "cdabd5c2591be3e724e5a8fd2d1c12150efdef26f5086088f04c7dd924f27e9e"
+      "sha256": "9e4b3b04e865e9237676fa51e489a76a612acc6ad1cc5aa5ea1f59c711d8e929"
     },
     {
       "path": "scripts/generate-market-provider.mjs",

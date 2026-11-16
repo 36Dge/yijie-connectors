@@ -47,11 +47,11 @@
     },
     {
       "path": "compatibility/market-broker-control/control.json",
-      "sha256": "93060771eded94dc945ec05eb73be430a9ed7b46b3830e18885301b4385cffa4"
+      "sha256": "3fd86dc72cad08932bd9c1e95ea88e96779501d3cee93dcbe45cc9e522e54135"
     },
     {
       "path": "compatibility/runtime-tool-search/source.lock.json",
-      "sha256": "4514cd2a40d0b62a5534b54c74795b160efaabce2b8670c5f7cfdc1dc0018c89"
+      "sha256": "6bdde9eeb08baefbef3997bd34b0bb0963b7f11075042481f34624712e6a0eb7"
     },
     {
       "path": "scripts/builtin-web-source.mjs",

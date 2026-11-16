@@ -2687,6 +2687,244 @@ impl std::fmt::Debug for ElicitationMetadata {
         f.write_str("ElicitationMetadata([redacted])")
     }
 }
+#[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", try_from = "GatewayDecisionReceiptWire")]
+pub struct GatewayDecisionReceipt {
+    pub approval_id: CanonicalId,
+    pub decision_id: CanonicalId,
+    pub decision: Decision,
+}
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct GatewayDecisionReceiptWire {
+    pub approval_id: CanonicalId,
+    pub decision_id: CanonicalId,
+    pub decision: Decision,
+}
+impl TryFrom<GatewayDecisionReceiptWire> for GatewayDecisionReceipt {
+    type Error = &'static str;
+    fn try_from(w: GatewayDecisionReceiptWire) -> Result<Self, Self::Error> {
+        let v = Self {
+            approval_id: w.approval_id,
+            decision_id: w.decision_id,
+            decision: w.decision,
+        };
+        v.validate()?;
+        Ok(v)
+    }
+}
+impl GatewayDecisionReceipt {
+    pub fn validate(&self) -> Result<(), &'static str> {
+        {
+            let value_approval_id = &self.approval_id;
+            if !canonical_id(value_approval_id) {
+                return Err("invalid broker UUID");
+            }
+            if value_approval_id == "00000000-0000-0000-0000-000000000000" {
+                return Err("invalid broker identity");
+            }
+        }
+        {
+            let value_decision_id = &self.decision_id;
+            if !canonical_id(value_decision_id) {
+                return Err("invalid broker UUID");
+            }
+            if value_decision_id == "00000000-0000-0000-0000-000000000000" {
+                return Err("invalid broker identity");
+            }
+        }
+        Ok(())
+    }
+}
+impl std::fmt::Debug for GatewayDecisionReceipt {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("GatewayDecisionReceipt([redacted])")
+    }
+}
+#[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", try_from = "GatewayCallReceiptWire")]
+pub struct GatewayCallReceipt {
+    pub schema_version: i64,
+    pub call_ref: CanonicalId,
+    pub service_id: ServiceId,
+    pub reference: SelectionRef,
+    pub native_thread_id: NativeId,
+    pub native_turn_id: NativeId,
+    pub turn_operation_id: CanonicalId,
+    pub selection_digest: SelectionDigest,
+    pub tool_name: ToolName,
+    pub args_digest: ArgsDigest,
+    pub args_encoding: String,
+    #[serde(deserialize_with = "required_nullable")]
+    pub decision_receipt: Option<GatewayDecisionReceipt>,
+    pub admission_consumed: bool,
+}
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct GatewayCallReceiptWire {
+    pub schema_version: i64,
+    pub call_ref: CanonicalId,
+    pub service_id: ServiceId,
+    pub reference: SelectionRef,
+    pub native_thread_id: NativeId,
+    pub native_turn_id: NativeId,
+    pub turn_operation_id: CanonicalId,
+    pub selection_digest: SelectionDigest,
+    pub tool_name: ToolName,
+    pub args_digest: ArgsDigest,
+    pub args_encoding: String,
+    #[serde(deserialize_with = "required_nullable")]
+    pub decision_receipt: Option<GatewayDecisionReceipt>,
+    pub admission_consumed: bool,
+}
+impl TryFrom<GatewayCallReceiptWire> for GatewayCallReceipt {
+    type Error = &'static str;
+    fn try_from(w: GatewayCallReceiptWire) -> Result<Self, Self::Error> {
+        let v = Self {
+            schema_version: w.schema_version,
+            call_ref: w.call_ref,
+            service_id: w.service_id,
+            reference: w.reference,
+            native_thread_id: w.native_thread_id,
+            native_turn_id: w.native_turn_id,
+            turn_operation_id: w.turn_operation_id,
+            selection_digest: w.selection_digest,
+            tool_name: w.tool_name,
+            args_digest: w.args_digest,
+            args_encoding: w.args_encoding,
+            decision_receipt: w.decision_receipt,
+            admission_consumed: w.admission_consumed,
+        };
+        v.validate()?;
+        Ok(v)
+    }
+}
+impl GatewayCallReceipt {
+    pub fn validate(&self) -> Result<(), &'static str> {
+        {
+            let value_schema_version = &self.schema_version;
+            if *value_schema_version != 1 {
+                return Err("invalid broker constant");
+            }
+        }
+        {
+            let value_call_ref = &self.call_ref;
+            if !canonical_id(value_call_ref) {
+                return Err("invalid broker UUID");
+            }
+            if value_call_ref == "00000000-0000-0000-0000-000000000000" {
+                return Err("invalid broker identity");
+            }
+        }
+        {
+            let value_service_id = &self.service_id;
+            if value_service_id.chars().count() < 1 {
+                return Err("invalid broker text");
+            }
+            if value_service_id.chars().count() > 128 {
+                return Err("invalid broker text");
+            }
+            if value_service_id.is_empty()
+                || !value_service_id.as_bytes()[0].is_ascii_alphanumeric()
+                || !value_service_id
+                    .bytes()
+                    .all(|b| b.is_ascii_alphanumeric() || b == b'_' || b == b'-')
+            {
+                return Err("invalid broker service ID");
+            }
+        }
+        {
+            let value_reference = &self.reference;
+            value_reference.validate()?;
+        }
+        {
+            let value_native_thread_id = &self.native_thread_id;
+            if value_native_thread_id.chars().count() < 1 {
+                return Err("invalid broker text");
+            }
+            if value_native_thread_id.chars().count() > 256 {
+                return Err("invalid broker text");
+            }
+        }
+        {
+            let value_native_turn_id = &self.native_turn_id;
+            if value_native_turn_id.chars().count() < 1 {
+                return Err("invalid broker text");
+            }
+            if value_native_turn_id.chars().count() > 256 {
+                return Err("invalid broker text");
+            }
+        }
+        {
+            let value_turn_operation_id = &self.turn_operation_id;
+            if !canonical_id(value_turn_operation_id) {
+                return Err("invalid broker UUID");
+            }
+            if value_turn_operation_id == "00000000-0000-0000-0000-000000000000" {
+                return Err("invalid broker identity");
+            }
+        }
+        {
+            let value_selection_digest = &self.selection_digest;
+            if value_selection_digest.len() != 64
+                || !value_selection_digest
+                    .bytes()
+                    .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+            {
+                return Err("invalid broker digest");
+            }
+        }
+        {
+            let value_tool_name = &self.tool_name;
+            if value_tool_name.chars().count() < 1 {
+                return Err("invalid broker text");
+            }
+            if value_tool_name.chars().count() > 128 {
+                return Err("invalid broker text");
+            }
+        }
+        {
+            let value_args_digest = &self.args_digest;
+            if value_args_digest.len() != 64
+                || !value_args_digest
+                    .bytes()
+                    .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+            {
+                return Err("invalid broker digest");
+            }
+        }
+        {
+            let value_args_encoding = &self.args_encoding;
+            if value_args_encoding != "worker-json-v1" {
+                return Err("invalid broker constant");
+            }
+        }
+        {
+            let value_decision_receipt = &self.decision_receipt;
+            value_decision_receipt
+                .as_ref()
+                .map(|value| -> Result<(), &'static str> {
+                    value.validate()?;
+                    Ok(())
+                })
+                .transpose()?;
+        }
+        if self.admission_consumed
+            && self
+                .decision_receipt
+                .as_ref()
+                .is_none_or(|r| r.decision != Decision::ApproveOnce)
+        {
+            return Err("consumed call requires its one-shot decision");
+        }
+        Ok(())
+    }
+}
+impl std::fmt::Debug for GatewayCallReceipt {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("GatewayCallReceipt([redacted])")
+    }
+}
 fn canonical_id(s: &str) -> bool {
     let b = s.as_bytes();
     b.len() == 36
@@ -2736,6 +2974,10 @@ impl Request {
         }
     }
 }
+pub const GATEWAY_RESULT_KEY: &str = "yijie.market.call";
+pub const GATEWAY_RESULT_DEFINITION: &str = "GatewayCallReceipt";
+pub const GATEWAY_RESULT_MAX_METADATA_BYTES: usize = 4096;
+pub const GATEWAY_RESULT_MAX_RESULT_ENVELOPE_BYTES: usize = 73728;
 pub const GENERIC_MAX_TOOLS_PER_SERVICE: usize = 512;
 pub const GENERIC_MAX_TOOLS_PER_SELECTION: usize = 512;
 pub const GENERIC_MAX_SCHEMA_BYTES: usize = 65536;

@@ -1123,6 +1123,130 @@
       },
       "description": "Only the Gateway-owned metadata fragment of fixed-upstream MCP elicitation. Query locator only; no authorization, tool identity or parameters. Host must use actual native thread/turn and trusted pending-call response, never construct a call from metadata."
     },
+    "GatewayDecisionReceipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "approvalId",
+        "decisionId",
+        "decision"
+      ],
+      "properties": {
+        "approvalId": {
+          "$ref": "#/$defs/CanonicalId"
+        },
+        "decisionId": {
+          "$ref": "#/$defs/CanonicalId"
+        },
+        "decision": {
+          "$ref": "#/$defs/Decision"
+        }
+      },
+      "description": "Read-only copy of the exact owner decision already accepted by decide_call. Never an approval capability."
+    },
+    "GatewayCallReceipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "callRef",
+        "serviceId",
+        "reference",
+        "nativeThreadId",
+        "nativeTurnId",
+        "turnOperationId",
+        "selectionDigest",
+        "toolName",
+        "argsDigest",
+        "argsEncoding",
+        "decisionReceipt",
+        "admissionConsumed"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "type": "integer",
+          "const": 1
+        },
+        "callRef": {
+          "$ref": "#/$defs/CanonicalId"
+        },
+        "serviceId": {
+          "$ref": "#/$defs/ServiceId"
+        },
+        "reference": {
+          "$ref": "#/$defs/SelectionRef"
+        },
+        "nativeThreadId": {
+          "$ref": "#/$defs/NativeId"
+        },
+        "nativeTurnId": {
+          "$ref": "#/$defs/NativeId"
+        },
+        "turnOperationId": {
+          "$ref": "#/$defs/CanonicalId"
+        },
+        "selectionDigest": {
+          "$ref": "#/$defs/SelectionDigest"
+        },
+        "toolName": {
+          "$ref": "#/$defs/ToolName"
+        },
+        "argsDigest": {
+          "$ref": "#/$defs/ArgsDigest"
+        },
+        "argsEncoding": {
+          "type": "string",
+          "const": "worker-json-v1"
+        },
+        "decisionReceipt": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/GatewayDecisionReceipt"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "admissionConsumed": {
+          "type": "boolean"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "admissionConsumed": {
+                "const": true
+              }
+            },
+            "required": [
+              "admissionConsumed"
+            ]
+          },
+          "then": {
+            "properties": {
+              "decisionReceipt": {
+                "allOf": [
+                  {
+                    "$ref": "#/$defs/GatewayDecisionReceipt"
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "decision": {
+                        "const": "approve_once"
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        }
+      ],
+      "description": "Gateway-owned result _meta[yijie.market.call], not supplier metadata. Capture the current frozen call and accepted decision atomically with admission. Null decisionReceipt means no accepted owner decision observed, not that no prompt occurred. admissionConsumed is only permission consumption, never HTTP delivery or provider success. Native Item identity/status remain authoritative. No credentialRef, capabilityRef, bearer, raw arguments or authority context."
+    },
     "Selection": {
       "type": "array",
       "maxItems": 58,

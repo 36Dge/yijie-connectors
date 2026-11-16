@@ -215,11 +215,12 @@ impl ServerHandler for Gateway {
                 _=changed=>{},
             }
         };
-        let admission = {
+        let (admission, receipt) = {
             let mut state = self.broker.state.lock().expect("broker lock");
             let result = state.consume_execution(&call.identity.call_ref, accepted, &context.ct);
             let after = state.pending_call_view(&call.identity.call_ref);
-            result.map_err(|_| admission_failure(after))
+            let receipt = state.result_receipt(&call.identity.call_ref);
+            (result.map_err(|_| admission_failure(after)), receipt)
         };
         let execution = match admission {
             Ok(execution) => {
@@ -228,7 +229,10 @@ impl ServerHandler for Gateway {
             }
             Err((message, event)) => {
                 diagnostic.emit(Stage::CallAdmission, event, None, None);
-                return Ok(CallToolResult::error(vec![Content::text(message)]));
+                return Ok(with_call_receipt(
+                    CallToolResult::error(vec![Content::text(message)]),
+                    receipt,
+                ));
             }
         };
         let result = match execution {
@@ -277,12 +281,46 @@ impl ServerHandler for Gateway {
                 Ok(backend.execute(&tool, arguments, permit, diagnostic).await)
             }
         };
-        match result {
-            Ok(value) => Ok(value),
-            Err(_) => Ok(CallToolResult::error(vec![Content::text(
+        let result = match result {
+            Ok(value) => value,
+            Err(_) => CallToolResult::error(vec![Content::text(
                 wire::GATEWAY_ERROR_EXECUTION_UNVERIFIED_MESSAGE,
-            )])),
-        }
+            )]),
+        };
+        Ok(with_call_receipt(result, receipt))
+    }
+}
+
+/// Only this owned Gateway writes correlation. Supplier metadata cannot become
+/// a receipt. Native status/result remain authoritative and no-result paths do
+/// not invent an Item. Code Mode may expose this non-secret metadata.
+fn with_call_receipt(
+    mut result: CallToolResult,
+    receipt: Option<wire::GatewayCallReceipt>,
+) -> CallToolResult {
+    result.meta = None;
+    if let Some(receipt) = receipt.filter(|value| value.validate().is_ok())
+        && let Ok(bytes) = serde_json::to_vec(&receipt)
+        && bytes.len() <= wire::GATEWAY_RESULT_MAX_METADATA_BYTES
+        && let Ok(value) = serde_json::to_value(receipt)
+    {
+        result.meta = Some(Meta(serde_json::Map::from_iter([(
+            wire::GATEWAY_RESULT_KEY.into(),
+            value,
+        )])));
+    }
+    if serde_json::to_vec(&result)
+        .is_ok_and(|bytes| bytes.len() <= wire::GATEWAY_RESULT_MAX_RESULT_ENVELOPE_BYTES)
+    {
+        result
+    } else {
+        // Preserve the small receipt even if a future adapter exceeds its
+        // declared output budget; never turn an unknown outcome into success.
+        let mut bounded = CallToolResult::error(vec![Content::text(
+            wire::GATEWAY_ERROR_EXECUTION_UNVERIFIED_MESSAGE,
+        )]);
+        bounded.meta = result.meta;
+        bounded
     }
 }
 
@@ -456,6 +494,95 @@ fn control_loop(
 #[cfg(test)]
 mod outcome_tests {
     use super::*;
+    fn receipt() -> wire::GatewayCallReceipt {
+        wire::GatewayCallReceipt {
+            schema_version: 1,
+            call_ref: uuid::Uuid::new_v4().to_string(),
+            service_id: "sorftime".into(),
+            reference: crate::generated::SelectionRef {
+                installation_id: uuid::Uuid::new_v4().to_string(),
+                revision: 1,
+                generation: 1,
+            },
+            native_thread_id: "ordinary-thread".into(),
+            native_turn_id: "ordinary-turn".into(),
+            turn_operation_id: uuid::Uuid::new_v4().to_string(),
+            selection_digest: "a".repeat(64),
+            tool_name: "ordinary_lookup".into(),
+            args_digest: "b".repeat(64),
+            args_encoding: "worker-json-v1".into(),
+            decision_receipt: Some(wire::GatewayDecisionReceipt {
+                approval_id: uuid::Uuid::new_v4().to_string(),
+                decision_id: uuid::Uuid::new_v4().to_string(),
+                decision: wire::Decision::ApproveOnce,
+            }),
+            admission_consumed: true,
+        }
+    }
+    #[test]
+    fn result_receipt_preserves_native_outcome_and_only_owned_metadata() {
+        let receipt = receipt();
+        for mut original in [
+            CallToolResult::structured(serde_json::json!({"rows":[1]})),
+            CallToolResult::error(vec![Content::text("ordinary failure")]),
+        ] {
+            original.meta = Some(Meta(serde_json::Map::from_iter([(
+                "supplier_page".into(),
+                serde_json::json!(1),
+            )])));
+            let result = with_call_receipt(original.clone(), Some(receipt.clone()));
+            assert_eq!(result.is_error, original.is_error);
+            assert_eq!(result.content, original.content);
+            assert_eq!(result.structured_content, original.structured_content);
+            let meta = result.meta.unwrap();
+            assert_eq!(meta.0.len(), 1);
+            assert_eq!(
+                meta.0[wire::GATEWAY_RESULT_KEY],
+                serde_json::to_value(&receipt).unwrap()
+            );
+        }
+    }
+    #[test]
+    fn result_receipt_denied_and_expired_calls_do_not_claim_execution() {
+        let mut receipt = receipt();
+        receipt.admission_consumed = false;
+        receipt.decision_receipt.as_mut().unwrap().decision = wire::Decision::Reject;
+        for value in [
+            Some(receipt.clone()),
+            Some(wire::GatewayCallReceipt {
+                decision_receipt: None,
+                ..receipt
+            }),
+            None,
+        ] {
+            let present = value.is_some();
+            let result = with_call_receipt(
+                CallToolResult::error(vec![Content::text("not admitted")]),
+                value,
+            );
+            assert_eq!(result.is_error, Some(true));
+            assert_eq!(result.meta.is_some(), present);
+            if let Some(meta) = result.meta {
+                assert_eq!(meta.0[wire::GATEWAY_RESULT_KEY]["admissionConsumed"], false);
+            }
+        }
+    }
+    #[test]
+    fn result_receipt_budget_retains_link_without_claiming_large_output_success() {
+        let receipt = receipt();
+        let result = with_call_receipt(
+            CallToolResult::success(vec![Content::text(
+                "x".repeat(wire::GATEWAY_RESULT_MAX_RESULT_ENVELOPE_BYTES),
+            )]),
+            Some(receipt),
+        );
+        assert_eq!(result.is_error, Some(true));
+        assert!(result.meta.is_some());
+        assert!(
+            serde_json::to_vec(&result).unwrap().len()
+                < wire::GATEWAY_RESULT_MAX_RESULT_ENVELOPE_BYTES
+        );
+    }
     #[test]
     fn kimi_expired_budget_is_an_explicit_tool_error() {
         let result = content_budget_expired();
