@@ -5,6 +5,16 @@ mod broker;
 #[allow(dead_code)]
 #[path = "../src/broker_generated.rs"]
 mod broker_generated;
+// Compile the same Web helpers as the product Gateway. Qualification mode
+// never installs its product-only route/control or exposes the executor entry.
+#[allow(dead_code)]
+#[path = "../src/builtin_web_executor.rs"]
+mod builtin_web_executor;
+#[path = "../src/builtin_web_gateway.rs"]
+mod builtin_web_gateway;
+#[allow(dead_code)]
+#[path = "../src/builtin_web_generated.rs"]
+mod builtin_web_generated;
 #[path = "../src/credentials.rs"]
 mod credentials;
 #[path = "../src/daily.rs"]

@@ -11,3 +11,5 @@ worker/target/
 .local/feat162-k31-worker-*/
 .local/feat175-product-worker-*/
 .local/feat175-product-worker-path
+# Isolated qualification builds and their local verification evidence.
+.local/qualification-entry-*/

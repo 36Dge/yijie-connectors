@@ -125,10 +125,10 @@ impl WebGateway {
             return Some(ack("unavailable"));
         }
         let mut s = self.0.lock().expect("web state");
-        if let Some(current) = &s.install {
-            if current["control"]["process_epoch"] != epoch {
-                return Some(ack("unavailable"));
-            }
+        if let Some(current) = &s.install
+            && current["control"]["process_epoch"] != epoch
+        {
+            return Some(ack("unavailable"));
         }
         match method {
             "web_worker_install" => {
@@ -267,10 +267,8 @@ impl WebGateway {
             owner: self.clone(),
             id: id.clone(),
         };
-        let outcome = self
-            .execute(&install, &id, &thread, &turn, request, &cancellation)
-            .await;
-        outcome
+        self.execute(&install, &id, &thread, &turn, request, &cancellation)
+            .await
     }
     async fn execute(
         &self,
