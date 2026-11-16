@@ -44,7 +44,7 @@ func LoadArtifact(path string) (Artifact, error) {
 	}
 	decoder := json.NewDecoder(bytes.NewReader(data))
 	decoder.DisallowUnknownFields()
-	if decoder.Decode(&value) != nil || !value.CandidateOnly || value.QualificationOnly || !((value.SchemaVersion == 1 && !value.ExternalCallsEnabled && value.ProviderProfile == "") || (value.SchemaVersion == 2 && value.ExternalCallsEnabled && (value.ProviderProfile == "tushare-oauth-v1" || value.ProviderProfile == "tushare-daily-v1"))) || value.CodexSource != "7fd463bcef07f37b0211acd9f62b9f93ea0a4b12" {
+	if decoder.Decode(&value) != nil || decoder.Decode(new(any)) != io.EOF || !value.CandidateOnly || value.QualificationOnly || !((value.SchemaVersion == 1 && !value.ExternalCallsEnabled && value.ProviderProfile == "") || (value.SchemaVersion == 2 && value.ExternalCallsEnabled && (value.ProviderProfile == "tushare-oauth-v1" || value.ProviderProfile == "tushare-daily-v1" || value.ProviderProfile == "generic-mcp-v1"))) || value.CodexSource != "7fd463bcef07f37b0211acd9f62b9f93ea0a4b12" {
 		return Artifact{}, errors.New("worker build manifest is unsupported")
 	}
 	if !filepath.IsAbs(value.Binary) || filepath.Base(value.Binary) != "yijie-mcp-worker" {

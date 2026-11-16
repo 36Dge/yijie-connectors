@@ -9,3 +9,5 @@ coverage/
 worker/target/
 # Canonical local build outputs are never source or release artifacts.
 .local/feat162-k31-worker-*/
+.local/feat175-product-worker-*/
+.local/feat175-product-worker-path

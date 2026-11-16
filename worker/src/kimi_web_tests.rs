@@ -173,6 +173,7 @@ fn ordinary_stream_budget_and_status_mapping_do_not_infer_success() {
         (403, ErrorCode::PermissionDenied),
         (429, ErrorCode::RateLimited),
         (408, ErrorCode::Timeout),
+        (504, ErrorCode::Timeout),
         (500, ErrorCode::Unavailable),
     ] {
         assert_eq!(status_error(status, false), Err(code));
@@ -321,6 +322,35 @@ async fn ordinary_rate_limit_is_returned_without_another_request() {
         !serde_json::to_string(&result)
             .unwrap()
             .contains("ordinary rate limit")
+    );
+    backend.close().await;
+}
+
+#[tokio::test]
+async fn ordinary_fetch_upstream_timeout_is_diagnosed_without_retry() {
+    let http = Arc::new(OrdinaryHttp {
+        requests: Default::default(),
+        calls: Arc::new(AtomicUsize::new(0)),
+        status: 504,
+        response: json!({"message":"ordinary upstream timeout"}),
+        cancel_after_send: None,
+    });
+    let credential = serde_json::from_value(json!({"serviceId":wire::SERVICE_ID,"name":"Authorization","value":"Bearer ordinary-kimi-test-value"})).unwrap();
+    let backend = Backend::new(credential, http.clone());
+    let result = backend
+        .execute(
+            wire::FETCH_TOOL_NAME,
+            args(json!({"url":"https://example.com/documentation"})),
+            permit(),
+            Diagnostic::service_stderr(),
+        )
+        .await;
+    assert_eq!(value(&result)["error"]["code"], "timeout");
+    assert_eq!(http.calls.load(Ordering::SeqCst), 1);
+    assert!(
+        !serde_json::to_string(&result)
+            .unwrap()
+            .contains("ordinary upstream timeout")
     );
     backend.close().await;
 }

@@ -365,9 +365,14 @@ impl Backend {
         }
         request.timeout_ms = Some(timeout);
         diagnostic.emit(Stage::WebHttpSend, Event::Request, None, None);
-        let result = tokio::time::timeout_at(deadline.into(), self.http.request(request))
-            .await
-            .map_err(|_| ErrorCode::Timeout)?;
+        let result =
+            match tokio::time::timeout_at(deadline.into(), self.http.request(request)).await {
+                Ok(result) => result,
+                Err(_) => {
+                    diagnostic.emit(Stage::WebHttpResponse, Event::Expired, None, None);
+                    return Err(ErrorCode::Timeout);
+                }
+            };
         match &result {
             Ok(reply) => diagnostic.emit(
                 Stage::WebHttpResponse,
@@ -375,6 +380,9 @@ impl Backend {
                 Some(reply.status),
                 None,
             ),
+            Err(ErrorCode::Timeout) => {
+                diagnostic.emit(Stage::WebHttpResponse, Event::Expired, None, None)
+            }
             Err(_) => diagnostic.emit(
                 Stage::WebHttpResponse,
                 Event::TransportUnavailable,

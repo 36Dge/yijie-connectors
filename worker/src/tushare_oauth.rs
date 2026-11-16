@@ -124,12 +124,24 @@ pub enum Event {
     UnknownShape,
 }
 struct DiagnosticFile {
-    file: std::fs::File,
+    sink: DiagnosticSink,
     count: usize,
+}
+enum DiagnosticSink {
+    File(std::fs::File),
+    ServiceStderr,
 }
 #[derive(Clone, Default)]
 pub struct Diagnostic(Option<Arc<Mutex<DiagnosticFile>>>);
 impl Diagnostic {
+    // The service owner accepts only the bounded enum/numeric web records below
+    // and supplies the operation identity itself. No provider body is logged.
+    pub fn service_stderr() -> Self {
+        Self(Some(Arc::new(Mutex::new(DiagnosticFile {
+            sink: DiagnosticSink::ServiceStderr,
+            count: 0,
+        }))))
+    }
     pub fn for_operation(operation: &str) -> Self {
         use std::os::unix::fs::OpenOptionsExt;
         let create = || -> Option<DiagnosticFile> {
@@ -165,7 +177,10 @@ impl Diagnostic {
                 .mode(0o600)
                 .open(directory.join(format!("{operation}.jsonl")))
                 .ok()?;
-            Some(DiagnosticFile { file, count: 0 })
+            Some(DiagnosticFile {
+                sink: DiagnosticSink::File(file),
+                count: 0,
+            })
         };
         Self(create().map(|file| Arc::new(Mutex::new(file))))
     }
@@ -206,7 +221,11 @@ impl Diagnostic {
             if bytes.len() > 512 {
                 return;
             }
-            if file.file.write_all(&bytes).is_ok() {
+            let written = match &mut file.sink {
+                DiagnosticSink::File(output) => output.write_all(&bytes),
+                DiagnosticSink::ServiceStderr => std::io::stderr().lock().write_all(&bytes),
+            };
+            if written.is_ok() {
                 file.count += 1;
             }
         }
@@ -1822,7 +1841,7 @@ mod tests {
             .open(&path)
             .unwrap();
         let diagnostic = Diagnostic(Some(Arc::new(Mutex::new(DiagnosticFile {
-            file,
+            sink: DiagnosticSink::File(file),
             count: 0,
         }))));
         for _ in 0..140 {
@@ -1928,11 +1947,13 @@ mod tests {
             Uuid::new_v4()
         ));
         let diagnostic = Diagnostic(Some(Arc::new(Mutex::new(DiagnosticFile {
-            file: std::fs::OpenOptions::new()
-                .write(true)
-                .create_new(true)
-                .open(&path)
-                .unwrap(),
+            sink: DiagnosticSink::File(
+                std::fs::OpenOptions::new()
+                    .write(true)
+                    .create_new(true)
+                    .open(&path)
+                    .unwrap(),
+            ),
             count: 0,
         }))));
         let credential = serde_json::from_value(serde_json::json!({"serviceId":"sorftime","name":"Authorization","value":"Bearer ordinary-local-key"})).unwrap();

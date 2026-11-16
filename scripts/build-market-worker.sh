@@ -14,6 +14,7 @@ node "$connector_root/../yijie-contracts/scripts/sync-market-connectors.mjs" --c
 node "$connector_root/../yijie-contracts/scripts/sync-market-broker.mjs" --consumer=connectors --check
 node "$connector_root/../yijie-contracts/scripts/sync-market-provider.mjs" --consumer=connectors --check
 node "$connector_root/../yijie-contracts/scripts/sync-web-retrieval.mjs" --consumer=connectors --check
+node "$connector_root/../yijie-contracts/scripts/generate-builtin-web.mjs" --consumer=connectors --check
 if [[ "$check_only" == "true" ]]; then exit 0; fi
 export CARGO_TARGET_DIR="${YIJIE_WORKER_TARGET_DIR:-$connector_root/../yijie-codex/codex-rs/target}"
 if [[ -n "${YIJIE_WORKER_BUILD_DIR:-}" ]]; then

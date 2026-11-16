@@ -1,0 +1,2075 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.yijie.ai/builtin-web-retrieval/v1",
+  "title": "BuiltinWebRetrievalV1",
+  "$defs": {
+    "PublicUrl": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 4096,
+      "format": "uri",
+      "pattern": "^https?://",
+      "description": "Public HTTP(S) URL. Connector additionally parses authority, rejects userinfo/control characters and local/private literal destinations; no local request to this target is made."
+    },
+    "SearchArguments": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "query"
+      ],
+      "properties": {
+        "query": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048,
+          "pattern": "\\S"
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 20,
+          "default": 5
+        },
+        "include_content": {
+          "type": "boolean",
+          "default": false
+        }
+      }
+    },
+    "FetchArguments": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "url"
+      ],
+      "properties": {
+        "url": {
+          "$ref": "#/$defs/PublicUrl"
+        }
+      }
+    },
+    "SearchResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "title",
+        "url",
+        "snippet"
+      ],
+      "properties": {
+        "title": {
+          "type": "string",
+          "maxLength": 65536
+        },
+        "url": {
+          "$ref": "#/$defs/PublicUrl"
+        },
+        "snippet": {
+          "type": "string",
+          "maxLength": 65536
+        }
+      }
+    },
+    "SearchSuccess": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "results",
+        "truncated"
+      ],
+      "properties": {
+        "results": {
+          "type": "array",
+          "maxItems": 20,
+          "items": {
+            "$ref": "#/$defs/SearchResult"
+          }
+        },
+        "truncated": {
+          "type": "boolean"
+        }
+      }
+    },
+    "FetchSuccess": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "url",
+        "title",
+        "markdown",
+        "truncated"
+      ],
+      "properties": {
+        "url": {
+          "$ref": "#/$defs/PublicUrl"
+        },
+        "title": {
+          "type": "string",
+          "maxLength": 65536
+        },
+        "markdown": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536,
+          "pattern": "\\S"
+        },
+        "truncated": {
+          "type": "boolean"
+        }
+      }
+    },
+    "ErrorCode": {
+      "type": "string",
+      "enum": [
+        "invalid_arguments",
+        "authentication_failed",
+        "permission_denied",
+        "rate_limited",
+        "timeout",
+        "unavailable",
+        "no_content",
+        "response_too_large",
+        "invalid_response",
+        "cancelled"
+      ]
+    },
+    "ToolError": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "code",
+        "message"
+      ],
+      "properties": {
+        "code": {
+          "$ref": "#/$defs/ErrorCode"
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "code": {
+                "const": "invalid_arguments"
+              }
+            },
+            "required": [
+              "code"
+            ]
+          },
+          "then": {
+            "properties": {
+              "message": {
+                "const": "检索参数无效，请检查查询词、数量或网页地址。"
+              }
+            },
+            "required": [
+              "message"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "code": {
+                "const": "authentication_failed"
+              }
+            },
+            "required": [
+              "code"
+            ]
+          },
+          "then": {
+            "properties": {
+              "message": {
+                "const": "Kimi API Key 无效或已失效，请重新配置。"
+              }
+            },
+            "required": [
+              "message"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "code": {
+                "const": "permission_denied"
+              }
+            },
+            "required": [
+              "code"
+            ]
+          },
+          "then": {
+            "properties": {
+              "message": {
+                "const": "服务拒绝了此请求，请检查账户权限或目标网页是否允许读取。"
+              }
+            },
+            "required": [
+              "message"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "code": {
+                "const": "rate_limited"
+              }
+            },
+            "required": [
+              "code"
+            ]
+          },
+          "then": {
+            "properties": {
+              "message": {
+                "const": "Kimi 请求频率或并发受限，请确认后重新发起调用。"
+              }
+            },
+            "required": [
+              "message"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "code": {
+                "const": "timeout"
+              }
+            },
+            "required": [
+              "code"
+            ]
+          },
+          "then": {
+            "properties": {
+              "message": {
+                "const": "本次网页检索超时，未自动重试；已发送的请求可能计费。"
+              }
+            },
+            "required": [
+              "message"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "code": {
+                "const": "unavailable"
+              }
+            },
+            "required": [
+              "code"
+            ]
+          },
+          "then": {
+            "properties": {
+              "message": {
+                "const": "网页检索服务暂不可用，未自动重试。"
+              }
+            },
+            "required": [
+              "message"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "code": {
+                "const": "no_content"
+              }
+            },
+            "required": [
+              "code"
+            ]
+          },
+          "then": {
+            "properties": {
+              "message": {
+                "const": "目标网页未返回可读取的正文。"
+              }
+            },
+            "required": [
+              "message"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "code": {
+                "const": "response_too_large"
+              }
+            },
+            "required": [
+              "code"
+            ]
+          },
+          "then": {
+            "properties": {
+              "message": {
+                "const": "网页检索结果超过可处理的大小限制。"
+              }
+            },
+            "required": [
+              "message"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "code": {
+                "const": "invalid_response"
+              }
+            },
+            "required": [
+              "code"
+            ]
+          },
+          "then": {
+            "properties": {
+              "message": {
+                "const": "网页检索服务返回了无法验证的结果。"
+              }
+            },
+            "required": [
+              "message"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "code": {
+                "const": "cancelled"
+              }
+            },
+            "required": [
+              "code"
+            ]
+          },
+          "then": {
+            "properties": {
+              "message": {
+                "const": "本次网页检索已取消；已发送的请求可能计费。"
+              }
+            },
+            "required": [
+              "message"
+            ]
+          }
+        }
+      ]
+    },
+    "ErrorOutput": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "error"
+      ],
+      "properties": {
+        "error": {
+          "$ref": "#/$defs/ToolError"
+        }
+      }
+    },
+    "SearchOutput": {
+      "type": "object",
+      "oneOf": [
+        {
+          "$ref": "#/$defs/SearchSuccess"
+        },
+        {
+          "$ref": "#/$defs/ContentSuccess"
+        },
+        {
+          "$ref": "#/$defs/ErrorOutput"
+        }
+      ]
+    },
+    "FetchOutput": {
+      "type": "object",
+      "oneOf": [
+        {
+          "$ref": "#/$defs/FetchSuccess"
+        },
+        {
+          "$ref": "#/$defs/ErrorOutput"
+        }
+      ]
+    },
+    "ContentStatus": {
+      "type": "string",
+      "enum": [
+        "available",
+        "unavailable",
+        "truncated"
+      ]
+    },
+    "ChunkScore": {
+      "type": "number",
+      "description": "Finite query-relative score. No cross-query trust threshold."
+    },
+    "SearchChunk": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "text",
+        "score"
+      ],
+      "properties": {
+        "text": {
+          "type": "string",
+          "maxLength": 65536
+        },
+        "score": {
+          "$ref": "#/$defs/ChunkScore"
+        }
+      }
+    },
+    "DateBound": {
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^(?!0000)[0-9]{4}$"
+        },
+        {
+          "type": "string",
+          "pattern": "^(?!0000)[0-9]{4}-(0[1-9]|1[0-2])$"
+        },
+        {
+          "type": "string",
+          "format": "date",
+          "pattern": "^(?!0000)[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+        }
+      ]
+    },
+    "TimeWindow": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [],
+      "properties": {
+        "start": {
+          "$ref": "#/$defs/DateBound"
+        },
+        "end": {
+          "$ref": "#/$defs/DateBound"
+        }
+      }
+    },
+    "ProArguments": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "query"
+      ],
+      "properties": {
+        "query": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048,
+          "pattern": "\\S"
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 20,
+          "default": 5
+        },
+        "sites": {
+          "type": "array",
+          "maxItems": 5,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096,
+            "pattern": "^[^\\s()]+$"
+          }
+        },
+        "time_window": {
+          "$ref": "#/$defs/TimeWindow"
+        }
+      }
+    },
+    "ContentResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "title",
+        "url",
+        "snippet",
+        "text",
+        "content_status"
+      ],
+      "properties": {
+        "title": {
+          "type": "string",
+          "maxLength": 65536
+        },
+        "url": {
+          "$ref": "#/$defs/PublicUrl"
+        },
+        "snippet": {
+          "type": "string",
+          "maxLength": 65536
+        },
+        "text": {
+          "type": "string",
+          "maxLength": 65536
+        },
+        "content_status": {
+          "$ref": "#/$defs/ContentStatus"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "content_status": {
+                "const": "available"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "text": {
+                "type": "string",
+                "pattern": "\\S"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "content_status": {
+                "const": "unavailable"
+              }
+            }
+          },
+          "then": {
+            "not": {
+              "properties": {
+                "text": {
+                  "type": "string",
+                  "pattern": "\\S"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "ProResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "title",
+        "url",
+        "snippet",
+        "site_name",
+        "date",
+        "authority",
+        "chunks",
+        "content_status"
+      ],
+      "properties": {
+        "title": {
+          "type": "string",
+          "maxLength": 65536
+        },
+        "url": {
+          "$ref": "#/$defs/PublicUrl"
+        },
+        "snippet": {
+          "type": "string",
+          "maxLength": 65536
+        },
+        "site_name": {
+          "type": "string",
+          "maxLength": 65536
+        },
+        "date": {
+          "type": "string",
+          "maxLength": 65536
+        },
+        "authority": {
+          "type": "string",
+          "maxLength": 65536
+        },
+        "chunks": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SearchChunk"
+          }
+        },
+        "content_status": {
+          "$ref": "#/$defs/ContentStatus"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "content_status": {
+                "const": "available"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "chunks": {
+                "type": "array",
+                "contains": {
+                  "type": "object",
+                  "required": [
+                    "text"
+                  ],
+                  "properties": {
+                    "text": {
+                      "type": "string",
+                      "pattern": "\\S"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "content_status": {
+                "const": "unavailable"
+              }
+            }
+          },
+          "then": {
+            "not": {
+              "properties": {
+                "chunks": {
+                  "type": "array",
+                  "contains": {
+                    "type": "object",
+                    "required": [
+                      "text"
+                    ],
+                    "properties": {
+                      "text": {
+                        "type": "string",
+                        "pattern": "\\S"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "ContentSuccess": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "results",
+        "truncated",
+        "dropped_results"
+      ],
+      "properties": {
+        "results": {
+          "type": "array",
+          "maxItems": 20,
+          "items": {
+            "$ref": "#/$defs/ContentResult"
+          }
+        },
+        "truncated": {
+          "type": "boolean"
+        },
+        "dropped_results": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "anyOf": [
+              {
+                "properties": {
+                  "dropped_results": {
+                    "type": "integer",
+                    "minimum": 1
+                  }
+                }
+              },
+              {
+                "properties": {
+                  "results": {
+                    "type": "array",
+                    "contains": {
+                      "type": "object",
+                      "properties": {
+                        "content_status": {
+                          "const": "truncated"
+                        }
+                      },
+                      "required": [
+                        "content_status"
+                      ]
+                    }
+                  }
+                }
+              }
+            ]
+          },
+          "then": {
+            "properties": {
+              "truncated": {
+                "const": true
+              }
+            }
+          }
+        }
+      ]
+    },
+    "ProSuccess": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "results",
+        "truncated",
+        "dropped_results"
+      ],
+      "properties": {
+        "results": {
+          "type": "array",
+          "maxItems": 20,
+          "items": {
+            "$ref": "#/$defs/ProResult"
+          }
+        },
+        "truncated": {
+          "type": "boolean"
+        },
+        "dropped_results": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "anyOf": [
+              {
+                "properties": {
+                  "dropped_results": {
+                    "type": "integer",
+                    "minimum": 1
+                  }
+                }
+              },
+              {
+                "properties": {
+                  "results": {
+                    "type": "array",
+                    "contains": {
+                      "type": "object",
+                      "properties": {
+                        "content_status": {
+                          "const": "truncated"
+                        }
+                      },
+                      "required": [
+                        "content_status"
+                      ]
+                    }
+                  }
+                }
+              }
+            ]
+          },
+          "then": {
+            "properties": {
+              "truncated": {
+                "const": true
+              }
+            }
+          }
+        }
+      ]
+    },
+    "ProOutput": {
+      "type": "object",
+      "oneOf": [
+        {
+          "$ref": "#/$defs/ProSuccess"
+        },
+        {
+          "$ref": "#/$defs/ErrorOutput"
+        }
+      ]
+    },
+    "OperationId": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+    },
+    "BindingId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "NativeId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "Revision": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 9007199254740991
+    },
+    "AppErrorCode": {
+      "type": "string",
+      "enum": [
+        "invalid_arguments",
+        "session_expired",
+        "not_entitled",
+        "quota_exceeded",
+        "busy",
+        "upstream_unavailable",
+        "timeout",
+        "no_content",
+        "response_too_large",
+        "invalid_response",
+        "cancelled",
+        "outcome_unknown",
+        "operation_conflict",
+        "operation_expired",
+        "result_unavailable"
+      ]
+    },
+    "AppError": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "$ref": "#/$defs/AppErrorCode"
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        }
+      },
+      "required": [
+        "code",
+        "message"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "code": {
+                "const": "invalid_arguments"
+              }
+            },
+            "required": [
+              "code"
+            ]
+          },
+          "then": {
+            "properties": {
+              "message": {
+                "const": "网页检索参数无效。"
+              }
+            },
+            "required": [
+              "message"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "code": {
+                "const": "session_expired"
+              }
+            },
+            "required": [
+              "code"
+            ]
+          },
+          "then": {
+            "properties": {
+              "message": {
+                "const": "产品会话已过期，请恢复易界会话。"
+              }
+            },
+            "required": [
+              "message"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "code": {
+                "const": "not_entitled"
+              }
+            },
+            "required": [
+              "code"
+            ]
+          },
+          "then": {
+            "properties": {
+              "message": {
+                "const": "当前账户没有网页检索资格。"
+              }
+            },
+            "required": [
+              "message"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "code": {
+                "const": "quota_exceeded"
+              }
+            },
+            "required": [
+              "code"
+            ]
+          },
+          "then": {
+            "properties": {
+              "message": {
+                "const": "网页检索额度已用尽。"
+              }
+            },
+            "required": [
+              "message"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "code": {
+                "const": "busy"
+              }
+            },
+            "required": [
+              "code"
+            ]
+          },
+          "then": {
+            "properties": {
+              "message": {
+                "const": "网页检索暂时繁忙。"
+              }
+            },
+            "required": [
+              "message"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "code": {
+                "const": "upstream_unavailable"
+              }
+            },
+            "required": [
+              "code"
+            ]
+          },
+          "then": {
+            "properties": {
+              "message": {
+                "const": "网页检索服务暂不可用。"
+              }
+            },
+            "required": [
+              "message"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "code": {
+                "const": "timeout"
+              }
+            },
+            "required": [
+              "code"
+            ]
+          },
+          "then": {
+            "properties": {
+              "message": {
+                "const": "网页检索请求超时，未自动重试。"
+              }
+            },
+            "required": [
+              "message"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "code": {
+                "const": "no_content"
+              }
+            },
+            "required": [
+              "code"
+            ]
+          },
+          "then": {
+            "properties": {
+              "message": {
+                "const": "网页未返回可用正文。"
+              }
+            },
+            "required": [
+              "message"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "code": {
+                "const": "response_too_large"
+              }
+            },
+            "required": [
+              "code"
+            ]
+          },
+          "then": {
+            "properties": {
+              "message": {
+                "const": "网页检索结果超过限制。"
+              }
+            },
+            "required": [
+              "message"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "code": {
+                "const": "invalid_response"
+              }
+            },
+            "required": [
+              "code"
+            ]
+          },
+          "then": {
+            "properties": {
+              "message": {
+                "const": "网页检索服务返回了无效结果。"
+              }
+            },
+            "required": [
+              "message"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "code": {
+                "const": "cancelled"
+              }
+            },
+            "required": [
+              "code"
+            ]
+          },
+          "then": {
+            "properties": {
+              "message": {
+                "const": "网页检索已取消。"
+              }
+            },
+            "required": [
+              "message"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "code": {
+                "const": "outcome_unknown"
+              }
+            },
+            "required": [
+              "code"
+            ]
+          },
+          "then": {
+            "properties": {
+              "message": {
+                "const": "请求可能已发送，结果暂时未知。"
+              }
+            },
+            "required": [
+              "message"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "code": {
+                "const": "operation_conflict"
+              }
+            },
+            "required": [
+              "code"
+            ]
+          },
+          "then": {
+            "properties": {
+              "message": {
+                "const": "操作标识与原请求不一致。"
+              }
+            },
+            "required": [
+              "message"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "code": {
+                "const": "operation_expired"
+              }
+            },
+            "required": [
+              "code"
+            ]
+          },
+          "then": {
+            "properties": {
+              "message": {
+                "const": "操作标识已超过新准入期限。"
+              }
+            },
+            "required": [
+              "message"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "code": {
+                "const": "result_unavailable"
+              }
+            },
+            "required": [
+              "code"
+            ]
+          },
+          "then": {
+            "properties": {
+              "message": {
+                "const": "原操作结果正文不可恢复，请勿自动重发。"
+              }
+            },
+            "required": [
+              "message"
+            ]
+          }
+        }
+      ]
+    },
+    "AppErrorOutput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "error": {
+          "$ref": "#/$defs/AppError"
+        }
+      },
+      "required": [
+        "error"
+      ]
+    },
+    "DelegationRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "native_binding_reference": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "required": [
+        "native_binding_reference"
+      ]
+    },
+    "Delegation": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "binding_id": {
+          "$ref": "#/$defs/BindingId"
+        },
+        "grant_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "bearer": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "x-sensitive": true
+        },
+        "expires_at_unix_ms": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "authorization_revision": {
+          "$ref": "#/$defs/Revision"
+        },
+        "credential_revision": {
+          "$ref": "#/$defs/Revision"
+        },
+        "audience": {
+          "const": "builtin-web-retrieval/1",
+          "type": "string"
+        }
+      },
+      "required": [
+        "binding_id",
+        "grant_id",
+        "bearer",
+        "expires_at_unix_ms",
+        "authorization_revision",
+        "credential_revision",
+        "audience"
+      ]
+    },
+    "BindingRevocation": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "binding_id": {
+          "$ref": "#/$defs/BindingId"
+        },
+        "state": {
+          "const": "revoked",
+          "type": "string"
+        }
+      },
+      "required": [
+        "binding_id",
+        "state"
+      ]
+    },
+    "OperationState": {
+      "type": "string",
+      "enum": [
+        "ready",
+        "dispatch_committed",
+        "completed",
+        "unknown",
+        "cancelled",
+        "rejected"
+      ]
+    },
+    "DispatchFact": {
+      "type": "string",
+      "enum": [
+        "not_dispatched",
+        "may_have_dispatched",
+        "completed"
+      ]
+    },
+    "OperationStatus": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "operation_id": {
+          "$ref": "#/$defs/OperationId"
+        },
+        "state": {
+          "$ref": "#/$defs/OperationState"
+        },
+        "dispatch": {
+          "$ref": "#/$defs/DispatchFact"
+        },
+        "result_availability": {
+          "type": "string",
+          "enum": [
+            "none",
+            "available",
+            "result_unavailable"
+          ]
+        }
+      },
+      "required": [
+        "operation_id",
+        "state",
+        "dispatch",
+        "result_availability"
+      ]
+    },
+    "CancelResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "operation_id": {
+          "$ref": "#/$defs/OperationId"
+        },
+        "dispatch": {
+          "$ref": "#/$defs/DispatchFact"
+        },
+        "state": {
+          "type": "string",
+          "enum": [
+            "cancelled_before_dispatch",
+            "may_have_dispatched",
+            "already_completed"
+          ]
+        }
+      },
+      "required": [
+        "operation_id",
+        "dispatch",
+        "state"
+      ]
+    },
+    "ClaimRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "operation_id": {
+          "$ref": "#/$defs/OperationId"
+        },
+        "parameter_digest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "executor_instance": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "required": [
+        "operation_id",
+        "parameter_digest",
+        "executor_instance"
+      ]
+    },
+    "ClaimReceipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "operation_id": {
+          "$ref": "#/$defs/OperationId"
+        },
+        "claim_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "parameter_digest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "executor_instance": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "deadline_unix_ms": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "operation_id",
+        "claim_id",
+        "parameter_digest",
+        "executor_instance",
+        "deadline_unix_ms"
+      ]
+    },
+    "ClaimFinish": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "receipt": {
+          "$ref": "#/$defs/ClaimReceipt"
+        },
+        "state": {
+          "type": "string",
+          "enum": [
+            "completed",
+            "unknown"
+          ]
+        },
+        "dispatch": {
+          "$ref": "#/$defs/DispatchFact"
+        }
+      },
+      "required": [
+        "receipt",
+        "state",
+        "dispatch"
+      ]
+    },
+    "WebCapabilityInstall": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "method": {
+          "type": "string",
+          "const": "web_capability_install"
+        },
+        "process_epoch": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "binding_epoch": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "delegation": {
+          "$ref": "#/$defs/Delegation"
+        }
+      },
+      "required": [
+        "method",
+        "process_epoch",
+        "binding_epoch",
+        "delegation"
+      ]
+    },
+    "WebCapabilityClear": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "method": {
+          "type": "string",
+          "const": "web_capability_clear"
+        },
+        "process_epoch": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "binding_epoch": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "required": [
+        "method",
+        "process_epoch",
+        "binding_epoch"
+      ]
+    },
+    "WebTurnRevoke": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "method": {
+          "type": "string",
+          "const": "web_turn_revoke"
+        },
+        "process_epoch": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "thread_id": {
+          "$ref": "#/$defs/NativeId"
+        },
+        "turn_id": {
+          "$ref": "#/$defs/NativeId"
+        }
+      },
+      "required": [
+        "method",
+        "process_epoch",
+        "thread_id",
+        "turn_id"
+      ]
+    },
+    "WebCallCancel": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "method": {
+          "type": "string",
+          "const": "web_call_cancel"
+        },
+        "process_epoch": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "operation_id": {
+          "$ref": "#/$defs/OperationId"
+        }
+      },
+      "required": [
+        "method",
+        "process_epoch",
+        "operation_id"
+      ]
+    },
+    "ControlAck": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "state": {
+          "type": "string",
+          "enum": [
+            "applied",
+            "already_applied",
+            "unavailable"
+          ]
+        },
+        "process_epoch": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "required": [
+        "state",
+        "process_epoch"
+      ]
+    },
+    "ExpertWebPolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "expert_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 32
+        },
+        "role_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "policy": {
+          "type": "string",
+          "enum": [
+            "inherit",
+            "disabled"
+          ]
+        }
+      },
+      "required": [
+        "expert_id",
+        "version",
+        "role_sha256",
+        "policy"
+      ]
+    },
+    "BasicOperation": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "operation_id": {
+          "$ref": "#/$defs/OperationId"
+        },
+        "tool": {
+          "type": "string",
+          "const": "kimi_web_search"
+        },
+        "arguments": {
+          "$ref": "#/$defs/SearchArguments"
+        }
+      },
+      "required": [
+        "operation_id",
+        "tool",
+        "arguments"
+      ]
+    },
+    "ProOperation": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "operation_id": {
+          "$ref": "#/$defs/OperationId"
+        },
+        "tool": {
+          "type": "string",
+          "const": "kimi_web_search_pro"
+        },
+        "arguments": {
+          "$ref": "#/$defs/ProArguments"
+        }
+      },
+      "required": [
+        "operation_id",
+        "tool",
+        "arguments"
+      ]
+    },
+    "FetchOperation": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "operation_id": {
+          "$ref": "#/$defs/OperationId"
+        },
+        "tool": {
+          "type": "string",
+          "const": "kimi_web_fetch"
+        },
+        "arguments": {
+          "$ref": "#/$defs/FetchArguments"
+        }
+      },
+      "required": [
+        "operation_id",
+        "tool",
+        "arguments"
+      ]
+    },
+    "OperationRequest": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/BasicOperation"
+        },
+        {
+          "$ref": "#/$defs/ProOperation"
+        },
+        {
+          "$ref": "#/$defs/FetchOperation"
+        }
+      ]
+    },
+    "InternalExecute": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "binding_id": {
+          "$ref": "#/$defs/BindingId"
+        },
+        "request": {
+          "$ref": "#/$defs/OperationRequest"
+        },
+        "parameter_digest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "deadline_unix_ms": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "binding_id",
+        "request",
+        "parameter_digest",
+        "deadline_unix_ms"
+      ]
+    },
+    "APIError": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "error": {
+          "$ref": "#/$defs/AppError"
+        },
+        "attempt_dispatched": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "error",
+        "attempt_dispatched"
+      ]
+    },
+    "ExecutionResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "operation": {
+          "$ref": "#/$defs/OperationStatus"
+        },
+        "result": {
+          "$ref": "#/$defs/ToolOutput"
+        }
+      },
+      "required": [
+        "operation"
+      ]
+    },
+    "ToolOutput": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/SearchSuccess"
+        },
+        {
+          "$ref": "#/$defs/ContentSuccess"
+        },
+        {
+          "$ref": "#/$defs/ProSuccess"
+        },
+        {
+          "$ref": "#/$defs/FetchSuccess"
+        },
+        {
+          "$ref": "#/$defs/AppErrorOutput"
+        }
+      ]
+    },
+    "ExecutorWorkerRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "execute": {
+          "$ref": "#/$defs/InternalExecute"
+        },
+        "receipt": {
+          "$ref": "#/$defs/ClaimReceipt"
+        }
+      },
+      "required": [
+        "execute",
+        "receipt"
+      ],
+      "description": "Server-owned private stdin only, after managed mTLS admission and claim. EOF cancels. Supplier credential enters the existing owned startup descriptor, never this payload. One process consumes at most one request."
+    },
+    "WebControlRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schemaVersion": {
+          "type": "integer",
+          "const": 1
+        },
+        "requestId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "method": {
+          "type": "string",
+          "enum": [
+            "web_capability_install",
+            "web_capability_clear",
+            "web_turn_revoke",
+            "web_call_cancel"
+          ]
+        },
+        "payload": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/WebCapabilityInstall"
+            },
+            {
+              "$ref": "#/$defs/WebCapabilityClear"
+            },
+            {
+              "$ref": "#/$defs/WebTurnRevoke"
+            },
+            {
+              "$ref": "#/$defs/WebCallCancel"
+            }
+          ]
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "requestId",
+        "method",
+        "payload"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "method": {
+                "const": "web_capability_install"
+              }
+            },
+            "required": [
+              "method"
+            ]
+          },
+          "then": {
+            "properties": {
+              "payload": {
+                "properties": {
+                  "method": {
+                    "const": "web_capability_install"
+                  }
+                },
+                "required": [
+                  "method"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "method": {
+                "const": "web_capability_clear"
+              }
+            },
+            "required": [
+              "method"
+            ]
+          },
+          "then": {
+            "properties": {
+              "payload": {
+                "properties": {
+                  "method": {
+                    "const": "web_capability_clear"
+                  }
+                },
+                "required": [
+                  "method"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "method": {
+                "const": "web_turn_revoke"
+              }
+            },
+            "required": [
+              "method"
+            ]
+          },
+          "then": {
+            "properties": {
+              "payload": {
+                "properties": {
+                  "method": {
+                    "const": "web_turn_revoke"
+                  }
+                },
+                "required": [
+                  "method"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "method": {
+                "const": "web_call_cancel"
+              }
+            },
+            "required": [
+              "method"
+            ]
+          },
+          "then": {
+            "properties": {
+              "payload": {
+                "properties": {
+                  "method": {
+                    "const": "web_call_cancel"
+                  }
+                },
+                "required": [
+                  "method"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "WebControlResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schemaVersion": {
+          "type": "integer",
+          "const": 1
+        },
+        "requestId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "data": {
+          "$ref": "#/$defs/ControlAck"
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "requestId",
+        "data"
+      ]
+    },
+    "WebAdmissionRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "process_epoch": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "binding_epoch": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "operation_id": {
+          "$ref": "#/$defs/OperationId"
+        },
+        "thread_id": {
+          "$ref": "#/$defs/NativeId"
+        },
+        "turn_id": {
+          "$ref": "#/$defs/NativeId"
+        }
+      },
+      "required": [
+        "process_epoch",
+        "binding_epoch",
+        "operation_id",
+        "thread_id",
+        "turn_id"
+      ]
+    },
+    "WebAdmissionReceipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "operation_id": {
+          "$ref": "#/$defs/OperationId"
+        },
+        "root_thread_id": {
+          "$ref": "#/$defs/NativeId"
+        },
+        "root_turn_id": {
+          "$ref": "#/$defs/NativeId"
+        },
+        "deadline_unix_ms": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "operation_id",
+        "root_thread_id",
+        "root_turn_id",
+        "deadline_unix_ms"
+      ]
+    },
+    "WebWorkerInstall": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "method": {
+          "type": "string",
+          "const": "web_worker_install"
+        },
+        "control": {
+          "$ref": "#/$defs/WebCapabilityInstall"
+        },
+        "api_origin": {
+          "type": "string",
+          "format": "uri",
+          "maxLength": 2048
+        },
+        "admission_url": {
+          "type": "string",
+          "format": "uri",
+          "maxLength": 2048
+        },
+        "admission_bearer": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$",
+          "x-sensitive": true
+        },
+        "profile": {
+          "type": "string",
+          "enum": [
+            "product",
+            "local_demo"
+          ],
+          "default": "product"
+        }
+      },
+      "required": [
+        "method",
+        "control",
+        "api_origin",
+        "admission_url",
+        "admission_bearer"
+      ]
+    },
+    "LocalNativeCredential": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "type": "integer",
+          "const": 1
+        },
+        "run_epoch": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "token": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$",
+          "x-sensitive": true
+        }
+      },
+      "required": [
+        "schema_version",
+        "run_epoch",
+        "token"
+      ]
+    }
+  }
+}

@@ -1,0 +1,1782 @@
+[
+  {
+    "name": "kimi_web_search",
+    "title": "网页资料采集",
+    "description": "Built-in read-only web retrieval needs no connector selection. Use returned results to decide follow-up retrieval: continue only for a specific missing part of the requested deliverable, without adding verification goals. Once the requested items or facts are supported, finish within the user's full output limit. For an unfiltered source list or material collection, call kimi_web_search (Basic). Titles, URLs and short descriptions for later reading are a collection deliverable, not ordinary Q&A or a researched answer. Provider-hosted pre-search does not replace this Basic step; reuse a sufficient collection already returned by Basic for the same need. With include_content=false, enough relevant titles, URLs and snippets satisfy a metadata-only list. Do not run Pro or Fetch merely to verify those links or improve that completed list. Site/date filters or researched conclusions instead require Pro. Within schema bounds, set limit to the requested item count when specified; collect more only if relevant results are insufficient. Use include_content=false for source metadata, true only when the user needs collected page bodies.",
+    "inputSchema": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "query"
+      ],
+      "properties": {
+        "query": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048,
+          "pattern": "\\S"
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 20,
+          "default": 5
+        },
+        "include_content": {
+          "type": "boolean",
+          "default": false
+        }
+      }
+    },
+    "outputSchema": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "oneOf": [
+        {
+          "$ref": "#/$defs/SearchSuccess"
+        },
+        {
+          "$ref": "#/$defs/ContentSuccess"
+        },
+        {
+          "$ref": "#/$defs/AppErrorOutput"
+        }
+      ],
+      "$defs": {
+        "SearchSuccess": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "results",
+            "truncated"
+          ],
+          "properties": {
+            "results": {
+              "type": "array",
+              "maxItems": 20,
+              "items": {
+                "$ref": "#/$defs/SearchResult"
+              }
+            },
+            "truncated": {
+              "type": "boolean"
+            }
+          }
+        },
+        "SearchResult": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "title",
+            "url",
+            "snippet"
+          ],
+          "properties": {
+            "title": {
+              "type": "string",
+              "maxLength": 65536
+            },
+            "url": {
+              "$ref": "#/$defs/PublicUrl"
+            },
+            "snippet": {
+              "type": "string",
+              "maxLength": 65536
+            }
+          }
+        },
+        "PublicUrl": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096,
+          "format": "uri",
+          "pattern": "^https?://",
+          "description": "Public HTTP(S) URL. Connector additionally parses authority, rejects userinfo/control characters and local/private literal destinations; no local request to this target is made."
+        },
+        "ContentSuccess": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "results",
+            "truncated",
+            "dropped_results"
+          ],
+          "properties": {
+            "results": {
+              "type": "array",
+              "maxItems": 20,
+              "items": {
+                "$ref": "#/$defs/ContentResult"
+              }
+            },
+            "truncated": {
+              "type": "boolean"
+            },
+            "dropped_results": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "allOf": [
+            {
+              "if": {
+                "anyOf": [
+                  {
+                    "properties": {
+                      "dropped_results": {
+                        "type": "integer",
+                        "minimum": 1
+                      }
+                    }
+                  },
+                  {
+                    "properties": {
+                      "results": {
+                        "type": "array",
+                        "contains": {
+                          "type": "object",
+                          "properties": {
+                            "content_status": {
+                              "const": "truncated"
+                            }
+                          },
+                          "required": [
+                            "content_status"
+                          ]
+                        }
+                      }
+                    }
+                  }
+                ]
+              },
+              "then": {
+                "properties": {
+                  "truncated": {
+                    "const": true
+                  }
+                }
+              }
+            }
+          ]
+        },
+        "ContentResult": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "title",
+            "url",
+            "snippet",
+            "text",
+            "content_status"
+          ],
+          "properties": {
+            "title": {
+              "type": "string",
+              "maxLength": 65536
+            },
+            "url": {
+              "$ref": "#/$defs/PublicUrl"
+            },
+            "snippet": {
+              "type": "string",
+              "maxLength": 65536
+            },
+            "text": {
+              "type": "string",
+              "maxLength": 65536
+            },
+            "content_status": {
+              "$ref": "#/$defs/ContentStatus"
+            }
+          },
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "content_status": {
+                    "const": "available"
+                  }
+                }
+              },
+              "then": {
+                "properties": {
+                  "text": {
+                    "type": "string",
+                    "pattern": "\\S"
+                  }
+                }
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "content_status": {
+                    "const": "unavailable"
+                  }
+                }
+              },
+              "then": {
+                "not": {
+                  "properties": {
+                    "text": {
+                      "type": "string",
+                      "pattern": "\\S"
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        },
+        "ContentStatus": {
+          "type": "string",
+          "enum": [
+            "available",
+            "unavailable",
+            "truncated"
+          ]
+        },
+        "AppError": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "code": {
+              "$ref": "#/$defs/AppErrorCode"
+            },
+            "message": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            }
+          },
+          "required": [
+            "code",
+            "message"
+          ],
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "code": {
+                    "const": "invalid_arguments"
+                  }
+                },
+                "required": [
+                  "code"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "message": {
+                    "const": "网页检索参数无效。"
+                  }
+                },
+                "required": [
+                  "message"
+                ]
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "code": {
+                    "const": "session_expired"
+                  }
+                },
+                "required": [
+                  "code"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "message": {
+                    "const": "产品会话已过期，请恢复易界会话。"
+                  }
+                },
+                "required": [
+                  "message"
+                ]
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "code": {
+                    "const": "not_entitled"
+                  }
+                },
+                "required": [
+                  "code"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "message": {
+                    "const": "当前账户没有网页检索资格。"
+                  }
+                },
+                "required": [
+                  "message"
+                ]
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "code": {
+                    "const": "quota_exceeded"
+                  }
+                },
+                "required": [
+                  "code"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "message": {
+                    "const": "网页检索额度已用尽。"
+                  }
+                },
+                "required": [
+                  "message"
+                ]
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "code": {
+                    "const": "busy"
+                  }
+                },
+                "required": [
+                  "code"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "message": {
+                    "const": "网页检索暂时繁忙。"
+                  }
+                },
+                "required": [
+                  "message"
+                ]
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "code": {
+                    "const": "upstream_unavailable"
+                  }
+                },
+                "required": [
+                  "code"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "message": {
+                    "const": "网页检索服务暂不可用。"
+                  }
+                },
+                "required": [
+                  "message"
+                ]
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "code": {
+                    "const": "timeout"
+                  }
+                },
+                "required": [
+                  "code"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "message": {
+                    "const": "网页检索请求超时，未自动重试。"
+                  }
+                },
+                "required": [
+                  "message"
+                ]
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "code": {
+                    "const": "no_content"
+                  }
+                },
+                "required": [
+                  "code"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "message": {
+                    "const": "网页未返回可用正文。"
+                  }
+                },
+                "required": [
+                  "message"
+                ]
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "code": {
+                    "const": "response_too_large"
+                  }
+                },
+                "required": [
+                  "code"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "message": {
+                    "const": "网页检索结果超过限制。"
+                  }
+                },
+                "required": [
+                  "message"
+                ]
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "code": {
+                    "const": "invalid_response"
+                  }
+                },
+                "required": [
+                  "code"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "message": {
+                    "const": "网页检索服务返回了无效结果。"
+                  }
+                },
+                "required": [
+                  "message"
+                ]
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "code": {
+                    "const": "cancelled"
+                  }
+                },
+                "required": [
+                  "code"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "message": {
+                    "const": "网页检索已取消。"
+                  }
+                },
+                "required": [
+                  "message"
+                ]
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "code": {
+                    "const": "outcome_unknown"
+                  }
+                },
+                "required": [
+                  "code"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "message": {
+                    "const": "请求可能已发送，结果暂时未知。"
+                  }
+                },
+                "required": [
+                  "message"
+                ]
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "code": {
+                    "const": "operation_conflict"
+                  }
+                },
+                "required": [
+                  "code"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "message": {
+                    "const": "操作标识与原请求不一致。"
+                  }
+                },
+                "required": [
+                  "message"
+                ]
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "code": {
+                    "const": "operation_expired"
+                  }
+                },
+                "required": [
+                  "code"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "message": {
+                    "const": "操作标识已超过新准入期限。"
+                  }
+                },
+                "required": [
+                  "message"
+                ]
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "code": {
+                    "const": "result_unavailable"
+                  }
+                },
+                "required": [
+                  "code"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "message": {
+                    "const": "原操作结果正文不可恢复，请勿自动重发。"
+                  }
+                },
+                "required": [
+                  "message"
+                ]
+              }
+            }
+          ]
+        },
+        "AppErrorCode": {
+          "type": "string",
+          "enum": [
+            "invalid_arguments",
+            "session_expired",
+            "not_entitled",
+            "quota_exceeded",
+            "busy",
+            "upstream_unavailable",
+            "timeout",
+            "no_content",
+            "response_too_large",
+            "invalid_response",
+            "cancelled",
+            "outcome_unknown",
+            "operation_conflict",
+            "operation_expired",
+            "result_unavailable"
+          ]
+        },
+        "AppErrorOutput": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "error": {
+              "$ref": "#/$defs/AppError"
+            }
+          },
+          "required": [
+            "error"
+          ]
+        }
+      }
+    },
+    "annotations": {
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": true
+    }
+  },
+  {
+    "name": "kimi_web_search_pro",
+    "title": "网页研究检索",
+    "description": "Built-in read-only web retrieval needs no connector selection. Use returned results to decide follow-up retrieval: continue only for a specific missing part of the requested deliverable, without adding verification goals. Once the requested items or facts are supported, finish within the user's full output limit. Ordinary questions normally use native web_search; an explicit URL-reading request uses kimi_web_fetch. For a researched answer or comparison needing body evidence, or a search with explicit site/date restrictions, call kimi_web_search_pro before answering and pass requested sites/time_window filters. An unfiltered list of sources for later reading belongs to Basic. Provider-hosted pre-search may occur independently, but does not replace this Pro step or its filters. Reuse sufficient Pro evidence already returned for the same information need; do not repeat a successful search just to satisfy this rule. Returns query-relevant body chunks and source URLs. Mentioning a site in query alone does not apply a filter. Use a focused query for facts missing from a truncated page.",
+    "inputSchema": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "query"
+      ],
+      "properties": {
+        "query": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048,
+          "pattern": "\\S"
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 20,
+          "default": 5
+        },
+        "sites": {
+          "type": "array",
+          "maxItems": 5,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096,
+            "pattern": "^[^\\s()]+$"
+          }
+        },
+        "time_window": {
+          "$ref": "#/$defs/TimeWindow"
+        }
+      },
+      "$defs": {
+        "TimeWindow": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [],
+          "properties": {
+            "start": {
+              "$ref": "#/$defs/DateBound"
+            },
+            "end": {
+              "$ref": "#/$defs/DateBound"
+            }
+          }
+        },
+        "DateBound": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^(?!0000)[0-9]{4}$"
+            },
+            {
+              "type": "string",
+              "pattern": "^(?!0000)[0-9]{4}-(0[1-9]|1[0-2])$"
+            },
+            {
+              "type": "string",
+              "format": "date",
+              "pattern": "^(?!0000)[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+            }
+          ]
+        }
+      }
+    },
+    "outputSchema": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "oneOf": [
+        {
+          "$ref": "#/$defs/ProSuccess"
+        },
+        {
+          "$ref": "#/$defs/AppErrorOutput"
+        }
+      ],
+      "$defs": {
+        "ProSuccess": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "results",
+            "truncated",
+            "dropped_results"
+          ],
+          "properties": {
+            "results": {
+              "type": "array",
+              "maxItems": 20,
+              "items": {
+                "$ref": "#/$defs/ProResult"
+              }
+            },
+            "truncated": {
+              "type": "boolean"
+            },
+            "dropped_results": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "allOf": [
+            {
+              "if": {
+                "anyOf": [
+                  {
+                    "properties": {
+                      "dropped_results": {
+                        "type": "integer",
+                        "minimum": 1
+                      }
+                    }
+                  },
+                  {
+                    "properties": {
+                      "results": {
+                        "type": "array",
+                        "contains": {
+                          "type": "object",
+                          "properties": {
+                            "content_status": {
+                              "const": "truncated"
+                            }
+                          },
+                          "required": [
+                            "content_status"
+                          ]
+                        }
+                      }
+                    }
+                  }
+                ]
+              },
+              "then": {
+                "properties": {
+                  "truncated": {
+                    "const": true
+                  }
+                }
+              }
+            }
+          ]
+        },
+        "ProResult": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "title",
+            "url",
+            "snippet",
+            "site_name",
+            "date",
+            "authority",
+            "chunks",
+            "content_status"
+          ],
+          "properties": {
+            "title": {
+              "type": "string",
+              "maxLength": 65536
+            },
+            "url": {
+              "$ref": "#/$defs/PublicUrl"
+            },
+            "snippet": {
+              "type": "string",
+              "maxLength": 65536
+            },
+            "site_name": {
+              "type": "string",
+              "maxLength": 65536
+            },
+            "date": {
+              "type": "string",
+              "maxLength": 65536
+            },
+            "authority": {
+              "type": "string",
+              "maxLength": 65536
+            },
+            "chunks": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/SearchChunk"
+              }
+            },
+            "content_status": {
+              "$ref": "#/$defs/ContentStatus"
+            }
+          },
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "content_status": {
+                    "const": "available"
+                  }
+                }
+              },
+              "then": {
+                "properties": {
+                  "chunks": {
+                    "type": "array",
+                    "contains": {
+                      "type": "object",
+                      "required": [
+                        "text"
+                      ],
+                      "properties": {
+                        "text": {
+                          "type": "string",
+                          "pattern": "\\S"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "content_status": {
+                    "const": "unavailable"
+                  }
+                }
+              },
+              "then": {
+                "not": {
+                  "properties": {
+                    "chunks": {
+                      "type": "array",
+                      "contains": {
+                        "type": "object",
+                        "required": [
+                          "text"
+                        ],
+                        "properties": {
+                          "text": {
+                            "type": "string",
+                            "pattern": "\\S"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        },
+        "PublicUrl": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096,
+          "format": "uri",
+          "pattern": "^https?://",
+          "description": "Public HTTP(S) URL. Connector additionally parses authority, rejects userinfo/control characters and local/private literal destinations; no local request to this target is made."
+        },
+        "SearchChunk": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "text",
+            "score"
+          ],
+          "properties": {
+            "text": {
+              "type": "string",
+              "maxLength": 65536
+            },
+            "score": {
+              "$ref": "#/$defs/ChunkScore"
+            }
+          }
+        },
+        "ChunkScore": {
+          "type": "number",
+          "description": "Finite query-relative score. No cross-query trust threshold."
+        },
+        "ContentStatus": {
+          "type": "string",
+          "enum": [
+            "available",
+            "unavailable",
+            "truncated"
+          ]
+        },
+        "AppError": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "code": {
+              "$ref": "#/$defs/AppErrorCode"
+            },
+            "message": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            }
+          },
+          "required": [
+            "code",
+            "message"
+          ],
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "code": {
+                    "const": "invalid_arguments"
+                  }
+                },
+                "required": [
+                  "code"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "message": {
+                    "const": "网页检索参数无效。"
+                  }
+                },
+                "required": [
+                  "message"
+                ]
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "code": {
+                    "const": "session_expired"
+                  }
+                },
+                "required": [
+                  "code"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "message": {
+                    "const": "产品会话已过期，请恢复易界会话。"
+                  }
+                },
+                "required": [
+                  "message"
+                ]
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "code": {
+                    "const": "not_entitled"
+                  }
+                },
+                "required": [
+                  "code"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "message": {
+                    "const": "当前账户没有网页检索资格。"
+                  }
+                },
+                "required": [
+                  "message"
+                ]
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "code": {
+                    "const": "quota_exceeded"
+                  }
+                },
+                "required": [
+                  "code"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "message": {
+                    "const": "网页检索额度已用尽。"
+                  }
+                },
+                "required": [
+                  "message"
+                ]
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "code": {
+                    "const": "busy"
+                  }
+                },
+                "required": [
+                  "code"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "message": {
+                    "const": "网页检索暂时繁忙。"
+                  }
+                },
+                "required": [
+                  "message"
+                ]
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "code": {
+                    "const": "upstream_unavailable"
+                  }
+                },
+                "required": [
+                  "code"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "message": {
+                    "const": "网页检索服务暂不可用。"
+                  }
+                },
+                "required": [
+                  "message"
+                ]
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "code": {
+                    "const": "timeout"
+                  }
+                },
+                "required": [
+                  "code"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "message": {
+                    "const": "网页检索请求超时，未自动重试。"
+                  }
+                },
+                "required": [
+                  "message"
+                ]
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "code": {
+                    "const": "no_content"
+                  }
+                },
+                "required": [
+                  "code"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "message": {
+                    "const": "网页未返回可用正文。"
+                  }
+                },
+                "required": [
+                  "message"
+                ]
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "code": {
+                    "const": "response_too_large"
+                  }
+                },
+                "required": [
+                  "code"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "message": {
+                    "const": "网页检索结果超过限制。"
+                  }
+                },
+                "required": [
+                  "message"
+                ]
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "code": {
+                    "const": "invalid_response"
+                  }
+                },
+                "required": [
+                  "code"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "message": {
+                    "const": "网页检索服务返回了无效结果。"
+                  }
+                },
+                "required": [
+                  "message"
+                ]
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "code": {
+                    "const": "cancelled"
+                  }
+                },
+                "required": [
+                  "code"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "message": {
+                    "const": "网页检索已取消。"
+                  }
+                },
+                "required": [
+                  "message"
+                ]
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "code": {
+                    "const": "outcome_unknown"
+                  }
+                },
+                "required": [
+                  "code"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "message": {
+                    "const": "请求可能已发送，结果暂时未知。"
+                  }
+                },
+                "required": [
+                  "message"
+                ]
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "code": {
+                    "const": "operation_conflict"
+                  }
+                },
+                "required": [
+                  "code"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "message": {
+                    "const": "操作标识与原请求不一致。"
+                  }
+                },
+                "required": [
+                  "message"
+                ]
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "code": {
+                    "const": "operation_expired"
+                  }
+                },
+                "required": [
+                  "code"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "message": {
+                    "const": "操作标识已超过新准入期限。"
+                  }
+                },
+                "required": [
+                  "message"
+                ]
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "code": {
+                    "const": "result_unavailable"
+                  }
+                },
+                "required": [
+                  "code"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "message": {
+                    "const": "原操作结果正文不可恢复，请勿自动重发。"
+                  }
+                },
+                "required": [
+                  "message"
+                ]
+              }
+            }
+          ]
+        },
+        "AppErrorCode": {
+          "type": "string",
+          "enum": [
+            "invalid_arguments",
+            "session_expired",
+            "not_entitled",
+            "quota_exceeded",
+            "busy",
+            "upstream_unavailable",
+            "timeout",
+            "no_content",
+            "response_too_large",
+            "invalid_response",
+            "cancelled",
+            "outcome_unknown",
+            "operation_conflict",
+            "operation_expired",
+            "result_unavailable"
+          ]
+        },
+        "AppErrorOutput": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "error": {
+              "$ref": "#/$defs/AppError"
+            }
+          },
+          "required": [
+            "error"
+          ]
+        }
+      }
+    },
+    "annotations": {
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": true
+    }
+  },
+  {
+    "name": "kimi_web_fetch",
+    "title": "读取指定网页",
+    "description": "Built-in read-only web retrieval needs no connector selection. Use returned results to decide follow-up retrieval: continue only for a specific missing part of the requested deliverable, without adding verification goals. Once the requested items or facts are supported, finish within the user's full output limit. Read an explicitly requested public HTTP(S) URL, or a returned research source whose body is still needed after consuming Pro. A URL in a source list or used only as an example is not itself a reading request. This tool accepts only url, with no pagination or adjustable content limit. A successful truncated=true result is usable partial evidence: do not refetch it to obtain a missing tail. Changing only #fragment is not pagination; reuse the returned page body. If required facts remain missing, use a focused Pro query with sites or state the gap. An explicit refresh is a new need for the same page.",
+    "inputSchema": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "url"
+      ],
+      "properties": {
+        "url": {
+          "$ref": "#/$defs/PublicUrl"
+        }
+      },
+      "$defs": {
+        "PublicUrl": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096,
+          "format": "uri",
+          "pattern": "^https?://",
+          "description": "Public HTTP(S) URL. Connector additionally parses authority, rejects userinfo/control characters and local/private literal destinations; no local request to this target is made."
+        }
+      }
+    },
+    "outputSchema": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "oneOf": [
+        {
+          "$ref": "#/$defs/FetchSuccess"
+        },
+        {
+          "$ref": "#/$defs/AppErrorOutput"
+        }
+      ],
+      "$defs": {
+        "FetchSuccess": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "url",
+            "title",
+            "markdown",
+            "truncated"
+          ],
+          "properties": {
+            "url": {
+              "$ref": "#/$defs/PublicUrl"
+            },
+            "title": {
+              "type": "string",
+              "maxLength": 65536
+            },
+            "markdown": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 65536,
+              "pattern": "\\S"
+            },
+            "truncated": {
+              "type": "boolean"
+            }
+          }
+        },
+        "PublicUrl": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096,
+          "format": "uri",
+          "pattern": "^https?://",
+          "description": "Public HTTP(S) URL. Connector additionally parses authority, rejects userinfo/control characters and local/private literal destinations; no local request to this target is made."
+        },
+        "AppError": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "code": {
+              "$ref": "#/$defs/AppErrorCode"
+            },
+            "message": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            }
+          },
+          "required": [
+            "code",
+            "message"
+          ],
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "code": {
+                    "const": "invalid_arguments"
+                  }
+                },
+                "required": [
+                  "code"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "message": {
+                    "const": "网页检索参数无效。"
+                  }
+                },
+                "required": [
+                  "message"
+                ]
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "code": {
+                    "const": "session_expired"
+                  }
+                },
+                "required": [
+                  "code"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "message": {
+                    "const": "产品会话已过期，请恢复易界会话。"
+                  }
+                },
+                "required": [
+                  "message"
+                ]
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "code": {
+                    "const": "not_entitled"
+                  }
+                },
+                "required": [
+                  "code"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "message": {
+                    "const": "当前账户没有网页检索资格。"
+                  }
+                },
+                "required": [
+                  "message"
+                ]
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "code": {
+                    "const": "quota_exceeded"
+                  }
+                },
+                "required": [
+                  "code"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "message": {
+                    "const": "网页检索额度已用尽。"
+                  }
+                },
+                "required": [
+                  "message"
+                ]
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "code": {
+                    "const": "busy"
+                  }
+                },
+                "required": [
+                  "code"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "message": {
+                    "const": "网页检索暂时繁忙。"
+                  }
+                },
+                "required": [
+                  "message"
+                ]
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "code": {
+                    "const": "upstream_unavailable"
+                  }
+                },
+                "required": [
+                  "code"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "message": {
+                    "const": "网页检索服务暂不可用。"
+                  }
+                },
+                "required": [
+                  "message"
+                ]
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "code": {
+                    "const": "timeout"
+                  }
+                },
+                "required": [
+                  "code"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "message": {
+                    "const": "网页检索请求超时，未自动重试。"
+                  }
+                },
+                "required": [
+                  "message"
+                ]
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "code": {
+                    "const": "no_content"
+                  }
+                },
+                "required": [
+                  "code"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "message": {
+                    "const": "网页未返回可用正文。"
+                  }
+                },
+                "required": [
+                  "message"
+                ]
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "code": {
+                    "const": "response_too_large"
+                  }
+                },
+                "required": [
+                  "code"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "message": {
+                    "const": "网页检索结果超过限制。"
+                  }
+                },
+                "required": [
+                  "message"
+                ]
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "code": {
+                    "const": "invalid_response"
+                  }
+                },
+                "required": [
+                  "code"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "message": {
+                    "const": "网页检索服务返回了无效结果。"
+                  }
+                },
+                "required": [
+                  "message"
+                ]
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "code": {
+                    "const": "cancelled"
+                  }
+                },
+                "required": [
+                  "code"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "message": {
+                    "const": "网页检索已取消。"
+                  }
+                },
+                "required": [
+                  "message"
+                ]
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "code": {
+                    "const": "outcome_unknown"
+                  }
+                },
+                "required": [
+                  "code"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "message": {
+                    "const": "请求可能已发送，结果暂时未知。"
+                  }
+                },
+                "required": [
+                  "message"
+                ]
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "code": {
+                    "const": "operation_conflict"
+                  }
+                },
+                "required": [
+                  "code"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "message": {
+                    "const": "操作标识与原请求不一致。"
+                  }
+                },
+                "required": [
+                  "message"
+                ]
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "code": {
+                    "const": "operation_expired"
+                  }
+                },
+                "required": [
+                  "code"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "message": {
+                    "const": "操作标识已超过新准入期限。"
+                  }
+                },
+                "required": [
+                  "message"
+                ]
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "code": {
+                    "const": "result_unavailable"
+                  }
+                },
+                "required": [
+                  "code"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "message": {
+                    "const": "原操作结果正文不可恢复，请勿自动重发。"
+                  }
+                },
+                "required": [
+                  "message"
+                ]
+              }
+            }
+          ]
+        },
+        "AppErrorCode": {
+          "type": "string",
+          "enum": [
+            "invalid_arguments",
+            "session_expired",
+            "not_entitled",
+            "quota_exceeded",
+            "busy",
+            "upstream_unavailable",
+            "timeout",
+            "no_content",
+            "response_too_large",
+            "invalid_response",
+            "cancelled",
+            "outcome_unknown",
+            "operation_conflict",
+            "operation_expired",
+            "result_unavailable"
+          ]
+        },
+        "AppErrorOutput": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "error": {
+              "$ref": "#/$defs/AppError"
+            }
+          },
+          "required": [
+            "error"
+          ]
+        }
+      }
+    },
+    "annotations": {
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": true
+    }
+  }
+]

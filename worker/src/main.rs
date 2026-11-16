@@ -2,6 +2,10 @@
 use std::io::{self, BufRead, Read, Write};
 
 mod broker;
+mod builtin_web_executor;
+mod builtin_web_gateway;
+#[allow(dead_code)]
+mod builtin_web_generated;
 #[allow(dead_code)]
 mod broker_generated;
 mod credentials;
@@ -85,6 +89,10 @@ fn handle(line: &[u8], catalog: &ProductCatalog) -> serde_json::Value {
 
 fn main() -> io::Result<()> {
     let args: Vec<String> = std::env::args().skip(1).collect();
+    if args == ["--builtin-web-execute-stdio"] {
+        model_credentials::capture_startup_source();
+        return builtin_web_executor::run();
+    }
     if args == ["--broker-control-stdio"] {
         model_credentials::capture_startup_source();
         return gateway::run(broker::ProviderMode::Product);

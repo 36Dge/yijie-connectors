@@ -367,6 +367,15 @@ pub fn run(mode: ProviderMode) -> io::Result<()> {
     let gateway = Gateway {
         broker: broker.clone(),
     };
+    let web = crate::builtin_web_gateway::WebGateway::default();
+    let web_factory = web.clone();
+    let web_service = StreamableHttpService::new(
+        move || Ok(web_factory.clone()),
+        Arc::new(LocalSessionManager::default()),
+        StreamableHttpServerConfig::default()
+            .with_cancellation_token(shutdown.clone())
+            .with_allowed_hosts([address.to_string()]),
+    );
     let service = StreamableHttpService::new(
         move || Ok(gateway.clone()),
         Arc::new(LocalSessionManager::default()),
@@ -375,6 +384,7 @@ pub fn run(mode: ProviderMode) -> io::Result<()> {
             .with_allowed_hosts([address.to_string()]),
     );
     let router = Router::new()
+        .route_service("/builtin-web", web_service)
         .route_service("/mcp/{capability_ref}", service)
         .layer(middleware::from_fn_with_state(
             Auth(Arc::new(capability)),
@@ -390,10 +400,11 @@ pub fn run(mode: ProviderMode) -> io::Result<()> {
         crate::providers::Providers::new(broker.clone(), matches!(mode, ProviderMode::Product));
     let outcome = {
         let _runtime_context = runtime.enter();
-        control_loop(&broker, &mut providers)
+        control_loop(&broker, &mut providers, &web)
     };
     // EOF, shutdown and malformed framing all close admission first.
     broker.stop();
+    web.stop();
     shutdown.cancel();
     // Host has its own bounded wait and retains STOP_PENDING. This process
     // retains all join owners after EOF instead of exiting and losing a live
@@ -411,6 +422,7 @@ pub fn run(mode: ProviderMode) -> io::Result<()> {
 fn control_loop(
     broker: &BrokerHandle,
     providers: &mut crate::providers::Providers,
+    web: &crate::builtin_web_gateway::WebGateway,
 ) -> io::Result<()> {
     let mut input = io::stdin().lock();
     let mut output = io::stdout().lock();
@@ -427,8 +439,8 @@ fn control_loop(
         let response = if too_large {
             broker::safe_error(None, wire::ErrorCode::InvalidRequest)
         } else {
-            providers
-                .handle(&line)
+            web.control(&line)
+                .or_else(|| providers.handle(&line))
                 .or_else(|| providers.broker_initialize_error(&line))
                 .unwrap_or_else(|| broker.handle(&line))
         };

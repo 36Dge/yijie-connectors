@@ -1,0 +1,147 @@
+{
+  "schema_version": 1,
+  "feature": "FEAT-175",
+  "contract_version": "0.1.0",
+  "mode": "local_worktree_candidate",
+  "release": false,
+  "base_commit": "2592f5d5b07fcd92de10d25c4dcf73bd1ce03cb5",
+  "runtime_relative_path": ".yijie/build/tool-search-v1/fac52ad79cc7e0a379fc597a7ecfcee573205d38a60c9d0ed3a2e96871ab0f45/aarch64-apple-darwin",
+  "runtime_manifest_sha256": "5d1113d0333e5b677fc9cfa5ae441872bc4797f1ca6328ad4936b1e99480ee89",
+  "runtime_binary_sha256": "7d49018c29704fa9863da72a34d780b8ad0e67c9ffe1821ebd1c1b94d9a46d49",
+  "canonical_schemas": {
+    "McpServerElicitationRequestParams": "1bb165eee93a24842ea3ab8b6c79fba7e35d57d1b41b0e583105bb609cc605b0",
+    "McpServerElicitationRequestResponse": "5d62379a1f9303cc4a4a493fb04b47d6643adf9a4085cb85a4ea9b026c85797f"
+  },
+  "sources": [
+    {
+      "path": "compatibility/builtin-web-retrieval/wire.schema.json",
+      "sha256": "34da5ee2d4e0aadcd043a7a3466dc6c25dc60d6fb302e052f413bd74736c6eb3"
+    },
+    {
+      "path": "compatibility/builtin-web-retrieval/policy.json",
+      "sha256": "15aee18bdad7666960e358bb56666ced427475c6971ef0a80c290614a53ab52a"
+    },
+    {
+      "path": "openapi/public/web-retrieval.yaml",
+      "sha256": "5edc5e13413834eb013e5e9d3197a08475c170eac211e8f9c3b0ee2e2660cfb7"
+    },
+    {
+      "path": "openapi/internal/web-retrieval.yaml",
+      "sha256": "085501ea9998a8f1b1ebdf014efc36730dd199bb8594a787fb1e45927f104c28"
+    },
+    {
+      "path": "openapi/agent-host/builtin-web.yaml",
+      "sha256": "f5b5a88acd6e70c1253909c760dc8af88dab954d5f996e9aaee7754ae231c1cb"
+    },
+    {
+      "path": "openapi/local/web-retrieval.yaml",
+      "sha256": "d76df872a1905f664f0533f6820c5cbae4d3f8c2eb77ea561e00f4f2e5fae89e"
+    },
+    {
+      "path": "compatibility/web-retrieval/wire.schema.json",
+      "sha256": "fc049ab088a4b638b3affd1d40f51cfa2b908dbe554f8d8711e883c7400797ff"
+    },
+    {
+      "path": "compatibility/web-retrieval/tools.json",
+      "sha256": "15bb3a88cfde5c772a3a80820b217a47a9fe263ab0fe3ddd33f8a950367c4d19"
+    },
+    {
+      "path": "compatibility/market-broker-control/control.json",
+      "sha256": "93060771eded94dc945ec05eb73be430a9ed7b46b3830e18885301b4385cffa4"
+    },
+    {
+      "path": "compatibility/runtime-tool-search/source.lock.json",
+      "sha256": "4514cd2a40d0b62a5534b54c74795b160efaabce2b8670c5f7cfdc1dc0018c89"
+    },
+    {
+      "path": "scripts/builtin-web-source.mjs",
+      "sha256": "f29aa8e0c2e00b061149d443b71451c6d039157af6dd6fa4b1588934aff33fd4"
+    },
+    {
+      "path": "scripts/generate-builtin-web.mjs",
+      "sha256": "c074a70b77b423ad6ee33fcee051dec54106d1bc79a1b6c20ea5925821a1ef1b"
+    },
+    {
+      "path": "scripts/generation-plan.mjs",
+      "sha256": "192363f46acf59ef580968c9baa86751a9a19df387a36bc28ee5d7087d97fac3"
+    },
+    {
+      "path": "pnpm-lock.yaml",
+      "sha256": "57eece158a0405a85ea9b8fd2c382af130e4248897b67af587878737bbf86313"
+    },
+    {
+      "path": "go.mod",
+      "sha256": "4bd3ff739f9383a42d641a0cbfcf17d812bf2c260c19be379effff5c528bfc35"
+    },
+    {
+      "path": "go.sum",
+      "sha256": "0bb3ffbefa7ef6a6507a59feed3708cf92ac542e4c9911241eb2d9f4a7604b36"
+    }
+  ],
+  "generated": [
+    {
+      "path": "sdks/go/builtinweb/native.gen.go",
+      "sha256": "29328344210ba00553170ffbf0ee3120e4c7927f16090b941c36c503eb18dc70"
+    },
+    {
+      "path": "sdks/go/builtinweb/wire.gen.go",
+      "sha256": "da2a00edd058571f480600b18102ed3619b894bc2fc0253b620fd441fb56c557"
+    },
+    {
+      "path": "sdks/go/builtinweb/policy.gen.go",
+      "sha256": "eccf5414f2e5692ef8021006a0455df4fe3db544440e989d493b25b2600be42e"
+    },
+    {
+      "path": "sdks/go/builtinweb/tools.json",
+      "sha256": "d6ba09caf2f216cb9cb3694979bff184c53c2ceeddf33609aa84ba6b5e2b5227"
+    },
+    {
+      "path": "sdks/go/builtinweb/wire.schema.json",
+      "sha256": "82dba18497975f2b23326c6b2e92e4d5f5eb3a098a8ba99a98155e27330a416e"
+    },
+    {
+      "path": "sdks/jsonschema/builtin-web-retrieval.schema.json",
+      "sha256": "82dba18497975f2b23326c6b2e92e4d5f5eb3a098a8ba99a98155e27330a416e"
+    },
+    {
+      "path": "sdks/jsonschema/builtin-web-retrieval.tools.json",
+      "sha256": "d6ba09caf2f216cb9cb3694979bff184c53c2ceeddf33609aa84ba6b5e2b5227"
+    },
+    {
+      "path": "sdks/rust/builtinweb/source.gen.rs",
+      "sha256": "f64a7e157bc8fb099f555d00528b9f8fad2fe82cc6074f71d668ee64de48b311"
+    },
+    {
+      "path": "sdks/go/builtinweb/validate.gen.go",
+      "sha256": "cb6c3d443f3f288790df2c37e0a2d15b6f93d4aed42859ebf1912c80d24e8af8"
+    },
+    {
+      "path": "sdks/go/builtinweb/redact.gen.go",
+      "sha256": "70d95a78aff225270c2195e8d55f55d613067b0e4701f30e190a2920ecc803b7"
+    },
+    {
+      "path": "sdks/jsonschema/builtin-web-native/McpServerElicitationRequestParams.json",
+      "sha256": "1bb165eee93a24842ea3ab8b6c79fba7e35d57d1b41b0e583105bb609cc605b0"
+    },
+    {
+      "path": "sdks/jsonschema/builtin-web-native/McpServerElicitationRequestResponse.json",
+      "sha256": "5d62379a1f9303cc4a4a493fb04b47d6643adf9a4085cb85a4ea9b026c85797f"
+    },
+    {
+      "path": "sdks/typescript/src/domain/builtin-web-native.generated.ts",
+      "sha256": "e2feec4e3eef5add7ebe5511ba8b346cc58f569868cf954ca423e094e942c2ae"
+    },
+    {
+      "path": "sdks/typescript/src/domain/builtin-web.generated.ts",
+      "sha256": "bc8ea984bf682fda518a2dfa73bdf97c501c6adceebce8a440ca8664cb57e3d4"
+    },
+    {
+      "path": "sdks/typescript/src/api/generated/builtin-web-error-validator.gen.js",
+      "sha256": "b1742085f280bce9a93960d024ff59a228a2d6476beee86cdff6e009cff0ddb5"
+    },
+    {
+      "path": "sdks/typescript/src/api/generated/builtin-web-error-validator.gen.d.ts",
+      "sha256": "9f98e36fc05b507d3a36d169feaf5177cf004a2c5e2213e823228976b2cefe70"
+    }
+  ]
+}
