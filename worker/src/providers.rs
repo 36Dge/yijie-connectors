@@ -222,6 +222,9 @@ impl Providers {
         if !self.enabled {
             return Err(wire::ErrorCode::UnsupportedAuth);
         }
+        if crate::local_acceptance::enabled() && payload.binding.service_id != crate::local_acceptance::service_id() {
+            return Err(wire::ErrorCode::UnsupportedAuth);
+        }
         if crate::provider_registry::oauth(&payload.binding.service_id).is_none()
             && !crate::credentials::supports(&payload.binding.service_id)
             && !crate::provider_registry::keyless(&payload.binding.service_id)

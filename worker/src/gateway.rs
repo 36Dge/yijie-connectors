@@ -409,7 +409,7 @@ pub fn run(mode: ProviderMode) -> io::Result<()> {
     // externalCallsEnabled=false policy. Share the implementation, not the
     // product-only Web route and owner control surface.
     let web =
-        matches!(mode, ProviderMode::Product).then(crate::builtin_web_gateway::WebGateway::default);
+        (matches!(mode, ProviderMode::Product) && !crate::local_acceptance::enabled()).then(crate::builtin_web_gateway::WebGateway::default);
     let service = StreamableHttpService::new(
         move || Ok(gateway.clone()),
         Arc::new(LocalSessionManager::default()),

@@ -16,6 +16,7 @@ mod generated;
 mod generic;
 mod google_calendar;
 mod kimi_web;
+mod local_acceptance;
 mod model_credentials;
 mod native_library;
 mod oauth_policy;
@@ -89,6 +90,10 @@ fn handle(line: &[u8], catalog: &ProductCatalog) -> serde_json::Value {
 
 fn main() -> io::Result<()> {
     let args: Vec<String> = std::env::args().skip(1).collect();
+    if args.len() == 2 && args[0] == local_acceptance::profile()["workerArgument"] {
+        local_acceptance::activate(&args[1])?;
+        return gateway::run(broker::ProviderMode::Product);
+    }
     if args == ["--builtin-web-execute-stdio"] {
         model_credentials::capture_startup_source();
         return builtin_web_executor::run();

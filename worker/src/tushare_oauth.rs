@@ -317,7 +317,7 @@ struct Target {
 }
 impl Target {
     fn is_keyless(&self) -> bool {
-        crate::provider_registry::get(crate::shopify::SERVICE).is_some_and(|spec| {
+        crate::provider_registry::services().iter().any(|spec| {
             crate::provider_registry::keyless(&spec.service_id)
                 && spec.transport == "http"
                 && spec.resource.as_deref() == Some(self.resource.as_str())

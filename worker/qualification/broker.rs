@@ -31,6 +31,9 @@ mod google_calendar;
 #[path = "../src/kimi_web.rs"]
 mod kimi_web;
 #[allow(dead_code)]
+#[path = "../src/local_acceptance.rs"]
+mod local_acceptance;
+#[allow(dead_code)]
 #[path = "../src/model_credentials.rs"]
 mod model_credentials;
 #[allow(dead_code)]

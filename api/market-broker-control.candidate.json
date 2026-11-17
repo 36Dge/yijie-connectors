@@ -72,7 +72,7 @@
     },
     {
       "path": "compatibility/market-connectors/source.lock.json",
-      "sha256": "d2ca1bbc68d3698da3264187817fa8792dbe81fa04cd907d486dab8a7eb21037"
+      "sha256": "d19b690164e955f172049e903df1cafd3571edcf4b87bb86bc33878190e12fbf"
     },
     {
       "path": "pnpm-lock.yaml",

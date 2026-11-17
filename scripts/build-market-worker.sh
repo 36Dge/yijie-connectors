@@ -13,6 +13,7 @@ python3 "$connector_root/scripts/check-worker-source.py"
 node "$connector_root/../yijie-contracts/scripts/sync-market-connectors.mjs" --consumer=connectors --check
 node "$connector_root/../yijie-contracts/scripts/sync-market-broker.mjs" --consumer=connectors --check
 node "$connector_root/../yijie-contracts/scripts/sync-market-provider.mjs" --consumer=connectors --check
+node "$connector_root/../yijie-contracts/scripts/sync-market-local-acceptance.mjs" --check
 node "$connector_root/../yijie-contracts/scripts/sync-web-retrieval.mjs" --consumer=connectors --check
 node "$connector_root/../yijie-contracts/scripts/generate-builtin-web.mjs" --consumer=connectors --check
 if [[ "$check_only" == "true" ]]; then exit 0; fi

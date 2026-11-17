@@ -13,7 +13,7 @@
     },
     {
       "path": "scripts/generate-market-connectors.mjs",
-      "sha256": "432dd1b63e0b9c2ccf5c3f98c10d23b16c09015355ffe1073eed3698e9fde31e"
+      "sha256": "84bf4d84529b2e785a2855b54078e0491658903e2369ca3541d5439ff3d3d605"
     },
     {
       "path": "scripts/sync-market-connectors.mjs",

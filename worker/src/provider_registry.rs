@@ -29,6 +29,7 @@ struct Registry {
     services: Vec<Service>,
 }
 pub fn services() -> &'static [Service] {
+    if crate::local_acceptance::enabled() { return crate::local_acceptance::services(); }
     static REGISTRY: OnceLock<Registry> = OnceLock::new();
     &REGISTRY
         .get_or_init(|| {
@@ -54,7 +55,8 @@ pub fn oauth(service: &str) -> Option<&'static Service> {
 }
 pub fn keyless(service: &str) -> bool {
     // Only the reviewed public Global Catalog adapter has this capability.
-    service == "shopify" && get(service).is_some_and(|s| s.auth_mode == "none")
+    (service == "shopify" || crate::local_acceptance::enabled() && service == crate::local_acceptance::service_id())
+        && get(service).is_some_and(|s| s.auth_mode == "none")
 }
 #[cfg(test)]
 mod tests {
