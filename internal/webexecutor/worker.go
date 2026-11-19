@@ -100,6 +100,22 @@ func (o *output) Write(p []byte) (int, error) {
 	return len(p), nil
 }
 func (w *Worker) Execute(ctx context.Context, q wire.ExecutorWorkerRequest) ([]byte, error) {
+	return w.run(ctx, q, "--builtin-web-execute-stdio", "ToolOutput")
+}
+func (w *Worker) ExecuteObserved(ctx context.Context, q wire.ExecutorWorkerRequest) ([]byte, wire.WebWorkerFacts, error) {
+	facts := wire.WebWorkerFacts{Transport: "uncertain", Outcome: "unknown"}
+	body, err := w.run(ctx, q, "--builtin-web-execute-stdio-v2", "WebWorkerEnvelopeV2")
+	if err != nil {
+		return nil, facts, err
+	}
+	var v wire.WebWorkerEnvelopeV2
+	if json.Unmarshal(body, &v) != nil {
+		return nil, facts, unavailable
+	}
+	body, err = v.Result.MarshalJSON()
+	return body, v.Facts, err
+}
+func (w *Worker) run(ctx context.Context, q wire.ExecutorWorkerRequest, mode, schema string) ([]byte, error) {
 	select {
 	case w.slots <- struct{}{}:
 	default:
@@ -123,7 +139,7 @@ func (w *Worker) Execute(ctx context.Context, q wire.ExecutorWorkerRequest) ([]b
 		return nil, unavailable
 	}
 	defer keyReader.Close()
-	command := exec.Command(w.artifact.Binary, "--builtin-web-execute-stdio")
+	command := exec.Command(w.artifact.Binary, mode)
 	command.Env = []string{wire.CredentialPipeEnvironmentKey + "=3"}
 	command.ExtraFiles = []*os.File{keyReader}
 	input, err := command.StdinPipe()
@@ -170,7 +186,7 @@ func (w *Worker) Execute(ctx context.Context, q wire.ExecutorWorkerRequest) ([]b
 	case <-ctx.Done():
 		return nil, stopPending
 	}
-	if err != nil || len(body) > 65536 || wire.Validate("ToolOutput", body) != nil {
+	if err != nil || len(body) > 65536 || wire.Validate(schema, body) != nil {
 		return nil, unavailable
 	}
 	return bytes.TrimSpace(body), nil

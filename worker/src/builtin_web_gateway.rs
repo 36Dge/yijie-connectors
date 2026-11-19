@@ -12,6 +12,16 @@ use std::{
     time::Duration,
 };
 use tokio_util::sync::CancellationToken;
+mod scoped;
+#[cfg(test)]
+mod scoped_tests;
+mod search_reuse;
+#[derive(Default)]
+struct Feedback {
+    legacy_reused: bool,
+    fact: Option<Value>,
+}
+use search_reuse::{Key, Search, Searches};
 
 struct Call {
     thread: String,
@@ -25,6 +35,8 @@ struct State {
     install: Option<Value>,
     calls: HashMap<String, Call>,
     stopped: HashSet<(String, String)>,
+    searches: Searches,
+    scoped: HashMap<Key, scoped::Flight>,
 }
 #[derive(Clone)]
 pub struct WebGateway(
@@ -103,6 +115,8 @@ impl WebGateway {
             call.cancel.cancel()
         }
         s.install = None;
+        s.scoped.clear();
+        s.searches.clear();
     }
     pub fn control(&self, bytes: &[u8]) -> Option<Value> {
         let value: Value = serde_json::from_slice(bytes).ok()?;
@@ -167,6 +181,12 @@ impl WebGateway {
                     {
                         return Some(ack("already_applied"));
                     }
+                    if current["control"]["delegation"]["authorization_revision"]
+                        != control["delegation"]["authorization_revision"]
+                    {
+                        s.scoped.clear();
+                        s.searches.clear();
+                    }
                 }
                 s.install = Some(value.clone());
             }
@@ -182,11 +202,15 @@ impl WebGateway {
                 }
                 s.install = None;
                 s.stopped.clear();
+                s.scoped.clear();
+                s.searches.clear();
             }
             "web_turn_revoke" => {
                 let thread = control["thread_id"].as_str().unwrap_or("");
                 let turn = control["turn_id"].as_str().unwrap_or("");
                 s.stopped.insert((thread.into(), turn.into()));
+                s.searches.retain(|key, _| !key.belongs_to(thread, turn));
+                s.scoped.retain(|key, _| !key.belongs_to(thread, turn));
                 for call in s.calls.values() {
                     if (call.thread == thread && call.turn == turn)
                         || (call.root == thread && call.root_turn == turn)
@@ -199,6 +223,8 @@ impl WebGateway {
                         call.cancel.cancel()
                     }
                     s.install = None;
+                    s.scoped.clear();
+                    s.searches.clear();
                 }
             }
             "web_call_cancel" => {
@@ -215,6 +241,7 @@ impl WebGateway {
         &self,
         request: CallToolRequestParams,
         context: RequestContext<RoleServer>,
+        feedback: &mut Feedback,
     ) -> Value {
         let thread = context
             .meta
@@ -267,19 +294,27 @@ impl WebGateway {
             owner: self.clone(),
             id: id.clone(),
         };
-        self.execute(&install, &id, &thread, &turn, request, &cancellation)
-            .await
+        self.execute(
+            &install,
+            &id,
+            (&thread, &turn),
+            request,
+            &cancellation,
+            feedback,
+        )
+        .await
     }
     async fn execute(
         &self,
         install: &Value,
         id: &str,
-        thread: &str,
-        turn: &str,
+        caller: (&str, &str),
         request: CallToolRequestParams,
         cancel: &CancellationToken,
+        feedback: &mut Feedback,
     ) -> Value {
-        let operation = json!({"operation_id":id,"tool":request.name,"arguments":request.arguments.unwrap_or_default()});
+        let (thread, turn) = caller;
+        let mut operation = json!({"operation_id":id,"tool":request.name,"arguments":request.arguments.unwrap_or_default()});
         if !validate("OperationRequest", &operation) {
             return error("invalid_arguments");
         }
@@ -293,11 +328,12 @@ impl WebGateway {
             return error("upstream_unavailable");
         };
         let probe = json!({"process_epoch":install["control"]["process_epoch"],"binding_epoch":install["control"]["binding_epoch"],"operation_id":id,"thread_id":thread,"turn_id":turn});
-        let admission = post(
+        let deep = operation["tool"] == "kimi_web_search_pro";
+        let admission = admit(
             &client,
-            install["admission_url"].as_str().unwrap_or(""),
-            install["admission_bearer"].as_str().unwrap_or(""),
+            install,
             &probe,
+            deep,
             cancel,
             Duration::from_secs(5),
         )
@@ -305,7 +341,9 @@ impl WebGateway {
         let Ok((200, receipt)) = admission else {
             return error("not_entitled");
         };
-        if !validate("WebAdmissionReceipt", &receipt) || receipt["operation_id"] != id {
+        let scoped = deep && validate("WebAdmissionReceiptV2", &receipt);
+        if (!scoped && !validate("WebAdmissionReceipt", &receipt)) || receipt["operation_id"] != id
+        {
             return error("not_entitled");
         }
         let root = receipt["root_thread_id"].as_str().unwrap_or("").to_owned();
@@ -323,13 +361,81 @@ impl WebGateway {
         if cancel.is_cancelled() || receipt["deadline_unix_ms"].as_u64().unwrap_or(0) <= now_ms() {
             return error("cancelled");
         }
-        // Resolve the root binding before waiting, so the existing root-stop
-        // control cancels queued child calls as well as active calls.
-        let _slot = match self.dispatch_slot(cancel).await {
-            Ok(slot) => slot,
-            Err(code) => return error(code),
+        let deadline = receipt["deadline_unix_ms"].as_u64().unwrap_or(0);
+        if scoped {
+            let key = Key::new(install, caller, &receipt, &operation["arguments"]);
+            let r = self
+                .scoped_search(
+                    key,
+                    scoped::Request {
+                        client,
+                        install: install.clone(),
+                        operation,
+                        admission: receipt,
+                        probe,
+                    },
+                    cancel,
+                )
+                .await;
+            feedback.fact = Some(r.fact);
+            return r.body;
+        }
+        let mut leader = None;
+        let mut replay = false;
+        if operation["tool"] == "kimi_web_search_pro" {
+            let key = Key::new(install, caller, &receipt, &operation["arguments"]);
+            match self.begin_search(key, id) {
+                Err(failure) => return failure,
+                Ok(Search::First(first)) => leader = Some(first),
+                Ok(Search::Existing(original, mut done)) => {
+                    let wait = Duration::from_millis(deadline.saturating_sub(now_ms()));
+                    let completed = tokio::select! {
+                        biased;
+                        _ = cancel.cancelled() => return error("cancelled"),
+                        result = tokio::time::timeout(wait, done.wait_for(Option::is_some)) => match result {
+                            Ok(Ok(value)) => value.clone().expect("completed search"),
+                            Ok(Err(_)) => return error("outcome_unknown"),
+                            Err(_) => return error("timeout"),
+                        },
+                    };
+                    if let Err(failure) = completed {
+                        return failure;
+                    }
+                    operation["operation_id"] = original.into();
+                    replay = true;
+                }
+            }
+        }
+        let value = self
+            .submit_operation(&client, install, &operation, deadline, cancel, replay)
+            .await;
+        if let Some(leader) = leader {
+            leader.finish(&value);
+        }
+        feedback.legacy_reused = replay && value.get("error").is_none();
+        value
+    }
+
+    async fn submit_operation(
+        &self,
+        client: &reqwest::Client,
+        install: &Value,
+        operation: &Value,
+        deadline: u64,
+        cancel: &CancellationToken,
+        replay: bool,
+    ) -> Value {
+        // A completed operation is reauthorized by the API using its original
+        // ID. Reading it consumes neither a supplier slot nor another quota unit.
+        let _slot = if replay {
+            None
+        } else {
+            match self.dispatch_slot(cancel).await {
+                Ok(slot) => Some(slot),
+                Err(code) => return error(code),
+            }
         };
-        if cancel.is_cancelled() || receipt["deadline_unix_ms"].as_u64().unwrap_or(0) <= now_ms() {
+        if cancel.is_cancelled() || deadline <= now_ms() {
             return error("cancelled");
         }
         let url = format!(
@@ -343,10 +449,10 @@ impl WebGateway {
             .as_str()
             .unwrap_or("");
         let mut response = post(
-            &client,
+            client,
             &url,
             token,
-            &operation,
+            operation,
             cancel,
             Duration::from_secs(45),
         )
@@ -368,6 +474,9 @@ impl WebGateway {
                         v["control"]["binding_epoch"] == install["control"]["binding_epoch"]
                             && v["control"]["delegation"]["binding_id"]
                                 == install["control"]["delegation"]["binding_id"]
+                            && (!replay
+                                || v["control"]["delegation"]["authorization_revision"]
+                                    == install["control"]["delegation"]["authorization_revision"])
                             && v["control"]["delegation"]["bearer"]
                                 != install["control"]["delegation"]["bearer"]
                     })
@@ -378,12 +487,12 @@ impl WebGateway {
             }
             if let Some(fresh) = fresh {
                 response = post(
-                    &client,
+                    client,
                     &url,
                     fresh["control"]["delegation"]["bearer"]
                         .as_str()
                         .unwrap_or(""),
-                    &operation,
+                    operation,
                     cancel,
                     Duration::from_secs(45),
                 )
@@ -392,11 +501,26 @@ impl WebGateway {
         }
         match response {
             Ok((200, reply)) if validate("ExecutionResult", &reply) => {
-                if reply["operation"]["operation_id"] != id {
+                if cancel.is_cancelled() {
+                    return error("cancelled");
+                }
+                if reply["operation"]["operation_id"] != operation["operation_id"] {
                     return error("invalid_response");
                 }
-                if reply.get("result").is_some() {
-                    reply["result"].clone()
+                if let Some(body) = reply.get("result") {
+                    if operation["tool"] == "kimi_web_search_pro" && body.get("error").is_none() {
+                        if reply["operation"]["state"] != "completed"
+                            || reply["operation"]["dispatch"] != "completed"
+                        {
+                            return error("outcome_unknown");
+                        }
+                        if !validate("ProSuccess", body) {
+                            return error("invalid_response");
+                        }
+                    }
+                    body.clone()
+                } else if reply["operation"]["result_availability"] == "result_unavailable" {
+                    error("result_unavailable")
                 } else if reply["operation"]["state"] == "cancelled" {
                     error("cancelled")
                 } else {
@@ -422,13 +546,48 @@ async fn post(
     cancel: &CancellationToken,
     budget: Duration,
 ) -> Result<(u16, Value), ()> {
-    let bytes = serde_json::to_vec(body).map_err(|_| ())?;
-    tokio::select! {biased;_=cancel.cancelled()=>Err(()),result=async{
-        let mut response=client.post(url).bearer_auth(token).header("content-type","application/json").timeout(budget).body(bytes).send().await.map_err(|_|())?;
-        let status=response.status().as_u16();let mut raw=Vec::new();
-        while let Some(chunk)=response.chunk().await.map_err(|_|())?{if raw.len()+chunk.len()>69632{return Err(())};raw.extend_from_slice(&chunk)}
-        let value=serde_json::from_slice(&raw).map_err(|_|())?;Ok((status,value))
-    }=>result}
+    exchange(
+        client
+            .post(url)
+            .bearer_auth(token)
+            .header("content-type", "application/json")
+            .body(body.to_string()),
+        cancel,
+        budget,
+    )
+    .await
+}
+async fn admit(
+    client: &reqwest::Client,
+    install: &Value,
+    probe: &Value,
+    v2: bool,
+    cancel: &CancellationToken,
+    budget: Duration,
+) -> Result<(u16, Value), ()> {
+    let mut request = client
+        .post(install["admission_url"].as_str().unwrap_or(""))
+        .bearer_auth(install["admission_bearer"].as_str().unwrap_or(""))
+        .header("content-type", "application/json")
+        .body(probe.to_string());
+    if v2 {
+        request = request.header("Accept", "application/vnd.yijie.web-admission.v2+json");
+    }
+    exchange(request, cancel, budget).await
+}
+async fn exchange(
+    request: reqwest::RequestBuilder,
+    cancel: &CancellationToken,
+    budget: Duration,
+) -> Result<(u16, Value), ()> {
+    if budget.is_zero() {
+        return Err(());
+    }
+    tokio::select! {biased;_=cancel.cancelled()=>Err(()),r=async{
+     let mut resp=request.timeout(budget).send().await.map_err(|_|())?;let status=resp.status().as_u16();let mut bytes=Vec::new();
+     while let Some(chunk)=resp.chunk().await.map_err(|_|())?{if bytes.len()+chunk.len()>69632{return Err(())}bytes.extend_from_slice(&chunk);}
+     Ok((status,serde_json::from_slice(&bytes).map_err(|_|())?))
+    }=>r}
 }
 impl ServerHandler for WebGateway {
     fn get_info(&self) -> ServerInfo {
@@ -463,10 +622,42 @@ impl ServerHandler for WebGateway {
         request: CallToolRequestParams,
         context: RequestContext<RoleServer>,
     ) -> Result<CallToolResult, ErrorData> {
-        Ok(result(self.invoke(request, context).await))
+        let mut feedback = Feedback::default();
+        let body = self.invoke(request, context, &mut feedback).await;
+        Ok(gateway_receipt(body, feedback))
     }
 }
 
+fn gateway_receipt(body: Value, feedback: Feedback) -> CallToolResult {
+    let mut receipt = result(body);
+    if let Some(fact) = feedback.fact {
+        let mut meta = Meta::new();
+        if matches!(fact["relation"].as_str(), Some("joined" | "reused")) {
+            meta.insert("yijie/search-reused".into(), true.into());
+        }
+        meta.insert("ai.yijie/deep-search-receipt".into(), fact);
+        receipt.meta = Some(meta);
+        if serde_json::to_vec(&receipt).map_or(true, |v| v.len() > 65536) {
+            let mut meta = receipt.meta.take();
+            if let Some(fact) = meta
+                .as_mut()
+                .and_then(|m| m.get_mut("ai.yijie/deep-search-receipt"))
+            {
+                fact["availability"] = json!("unavailable");
+            }
+            receipt = result(error("response_too_large"));
+            receipt.meta = meta;
+        }
+    } else if feedback.legacy_reused && receipt.is_error != Some(true) {
+        let mut meta = Meta::new();
+        meta.insert("yijie/search-reused".into(), Value::Bool(true));
+        receipt.meta = Some(meta);
+        if serde_json::to_vec(&receipt).map_or(true, |v| v.len() > 65536) {
+            receipt.meta = None;
+        }
+    }
+    receipt
+}
 #[cfg(test)]
 mod tests {
     use super::*;

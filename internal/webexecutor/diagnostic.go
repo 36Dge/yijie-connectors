@@ -15,6 +15,7 @@ type webDiagnostic struct {
 	Stage         string  `json:"stage"`
 	Event         string  `json:"event"`
 	HTTPStatus    *int    `json:"httpStatus"`
+	Field         string  `json:"field,omitempty"`
 	SafeFailure   *string `json:"safeFailure"`
 }
 
@@ -73,9 +74,16 @@ func (w *diagnosticWriter) emit() {
 		valid = record.Event == "response" && record.HTTPStatus != nil && *record.HTTPStatus >= 100 && *record.HTTPStatus <= 599
 		valid = valid || ((record.Event == "expired" || record.Event == "transport_unavailable") && record.HTTPStatus == nil)
 	case "web_normalize":
-		valid = record.Event == "succeeded" && record.HTTPStatus == nil
+		switch record.Field {
+		case "":
+			valid = record.Event == "succeeded" && record.HTTPStatus == nil
+		case "results[]", "url", "title", "snippet", "site_name", "date", "authority", "text", "chunks", "chunks[].text", "chunks[].score":
+			valid = record.Event == "invalid_field" && record.HTTPStatus == nil
+		}
+	case "web_decode", "web_contract":
+		valid = record.Event == "invalid_field" && record.Field == "result" && record.HTTPStatus == nil
 	}
-	if !valid {
+	if !valid || (record.Field != "" && record.Event != "invalid_field") {
 		return
 	}
 	entry := struct {

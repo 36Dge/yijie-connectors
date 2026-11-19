@@ -10,14 +10,39 @@ use std::{
 use tokio_util::sync::CancellationToken;
 
 pub(crate) fn validate(name: &str, value: &Value) -> bool {
-    let Ok(mut schema) = serde_json::from_str::<Value>(wire::SCHEMA_JSON) else {
-        return false;
+    use std::collections::HashMap;
+    use std::sync::{Mutex, OnceLock};
+    static SCHEMA: OnceLock<Value> = OnceLock::new();
+    static VALIDATORS: OnceLock<Mutex<HashMap<String, Arc<jsonschema::Validator>>>> =
+        OnceLock::new();
+    let compiled = {
+        let mut validators = VALIDATORS
+            .get_or_init(Default::default)
+            .lock()
+            .expect("web schema cache");
+        if let Some(c) = validators.get(name) {
+            Arc::clone(c)
+        } else {
+            let schema = SCHEMA.get_or_init(|| {
+                serde_json::from_str(wire::SCHEMA_JSON).expect("generated web schema")
+            });
+            if schema["$defs"].get(name).is_none() {
+                return false;
+            }
+            let mut schema = schema.clone();
+            schema["$ref"] = json!(format!("#/$defs/{name}"));
+            let Ok(v) = jsonschema::options()
+                .should_validate_formats(true)
+                .build(&schema)
+            else {
+                return false;
+            };
+            let c = Arc::new(v);
+            validators.insert(name.to_owned(), Arc::clone(&c));
+            c
+        }
     };
-    schema["$ref"] = Value::String(format!("#/$defs/{name}"));
-    jsonschema::options()
-        .should_validate_formats(true)
-        .build(&schema)
-        .is_ok_and(|validator| validator.is_valid(value))
+    compiled.is_valid(value)
 }
 pub(crate) fn error(code: &str) -> Value {
     let messages: Value =
@@ -35,6 +60,7 @@ async fn execute(
     value: Value,
     backend: Arc<kimi_web::Backend>,
     cancellation: CancellationToken,
+    diagnostic: Diagnostic,
 ) -> Value {
     if !validate("ExecutorWorkerRequest", &value) {
         return error("invalid_arguments");
@@ -71,7 +97,7 @@ async fn execute(
     let result = tokio::select! {
         biased;
         _ = cancellation.cancelled() => { return error("cancelled") },
-        result = backend.execute(tool, arguments.clone(), permit, Diagnostic::service_stderr()) => result,
+        result = backend.execute(tool, arguments.clone(), permit, diagnostic.clone()) => result,
     };
     let Some(mut output) = result.structured_content else {
         return error("invalid_response");
@@ -94,12 +120,13 @@ async fn execute(
         output = error(code);
     }
     if !validate("ToolOutput", &output) {
+        diagnostic.validation_issue("web_contract", "result");
         return error("invalid_response");
     }
     output
 }
 
-pub fn run() -> io::Result<()> {
+pub fn run(with_facts: bool) -> io::Result<()> {
     let backend = kimi_web::Backend::load()
         .map_err(|_| io::Error::other("server web credential unavailable"))?;
     let cancelled = CancellationToken::new();
@@ -125,10 +152,29 @@ pub fn run() -> io::Result<()> {
     let runtime = tokio::runtime::Builder::new_multi_thread()
         .enable_all()
         .build()?;
-    let output = match value {
-        Some(value) => runtime.block_on(execute(value, backend, cancelled)),
+    let diagnostic = Diagnostic::service_stderr();
+    let mut output = match value {
+        Some(value) => runtime.block_on(execute(value, backend, cancelled, diagnostic.clone())),
         None => error("invalid_arguments"),
     };
+    if with_facts {
+        let code = output.pointer("/error/code").and_then(Value::as_str);
+        let outcome = if code.is_some() {
+            "failed"
+        } else if output["truncated"] == true || output["dropped_results"].as_u64().unwrap_or(0) > 0
+        {
+            "partial"
+        } else if output["results"].as_array().is_some_and(Vec::is_empty) {
+            "empty"
+        } else {
+            "results"
+        };
+        let mut facts = json!({"transport":diagnostic.web_transport(),"outcome":outcome});
+        if let Some(code) = code {
+            facts["error_code"] = json!(code);
+        }
+        output = json!({"facts":facts,"result":output});
+    }
     let mut stdout = io::stdout().lock();
     serde_json::to_writer(&mut stdout, &output)?;
     stdout.write_all(b"\n")?;
@@ -151,7 +197,13 @@ mod tests {
         let request = json!({"execute":{"binding_id":"11111111-1111-4111-8111-111111111111","request":{"operation_id":"0199aaaa-aaaa-7aaa-8aaa-aaaaaaaaaaaa","tool":"kimi_web_search","arguments":{"query":"public documentation"}},"parameter_digest":"a".repeat(64),"deadline_unix_ms":now_ms()+45000},"receipt":{"operation_id":"0199aaaa-aaaa-7aaa-8aaa-aaaaaaaaaaaa","claim_id":"22222222-2222-4222-8222-222222222222","executor_instance":"33333333-3333-4333-8333-333333333333","parameter_digest":"a".repeat(64),"deadline_unix_ms":0}});
         let mut request = request;
         request["receipt"]["deadline_unix_ms"] = request["execute"]["deadline_unix_ms"].clone();
-        let result = execute(request, backend, CancellationToken::new()).await;
+        let result = execute(
+            request,
+            backend,
+            CancellationToken::new(),
+            Diagnostic::service_stderr(),
+        )
+        .await;
         assert!(validate("ToolOutput", &result));
         assert_eq!(http.load(std::sync::atomic::Ordering::SeqCst), 1);
     }

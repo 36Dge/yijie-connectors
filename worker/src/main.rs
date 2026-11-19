@@ -2,12 +2,12 @@
 use std::io::{self, BufRead, Read, Write};
 
 mod broker;
+#[allow(dead_code)]
+mod broker_generated;
 mod builtin_web_executor;
 mod builtin_web_gateway;
 #[allow(dead_code)]
 mod builtin_web_generated;
-#[allow(dead_code)]
-mod broker_generated;
 mod credentials;
 mod daily;
 mod gateway;
@@ -94,9 +94,9 @@ fn main() -> io::Result<()> {
         local_acceptance::activate(&args[1])?;
         return gateway::run(broker::ProviderMode::Product);
     }
-    if args == ["--builtin-web-execute-stdio"] {
+    if args == ["--builtin-web-execute-stdio"] || args == ["--builtin-web-execute-stdio-v2"] {
         model_credentials::capture_startup_source();
-        return builtin_web_executor::run();
+        return builtin_web_executor::run(args[0].ends_with("-v2"));
     }
     if args == ["--broker-control-stdio"] {
         model_credentials::capture_startup_source();

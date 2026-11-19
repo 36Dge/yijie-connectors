@@ -2070,6 +2070,220 @@
         "run_epoch",
         "token"
       ]
+    },
+    "DeepSearchReceipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "version": {
+          "type": "integer",
+          "minimum": 2,
+          "maximum": 2
+        },
+        "operation_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "relation": {
+          "type": "string",
+          "enum": [
+            "first",
+            "joined",
+            "reused"
+          ]
+        },
+        "dispatch": {
+          "type": "string",
+          "enum": [
+            "not_dispatched",
+            "uncertain",
+            "attempted",
+            "responded"
+          ]
+        },
+        "outcome": {
+          "type": "string",
+          "enum": [
+            "pending",
+            "results",
+            "empty",
+            "partial",
+            "failed",
+            "unknown"
+          ]
+        },
+        "availability": {
+          "type": "string",
+          "enum": [
+            "pending",
+            "available",
+            "unavailable"
+          ]
+        },
+        "error_code": {
+          "type": "string",
+          "enum": [
+            "invalid_arguments",
+            "session_expired",
+            "not_entitled",
+            "quota_exceeded",
+            "busy",
+            "upstream_unavailable",
+            "timeout",
+            "no_content",
+            "response_too_large",
+            "invalid_response",
+            "cancelled",
+            "outcome_unknown",
+            "operation_conflict",
+            "operation_expired",
+            "result_unavailable"
+          ]
+        }
+      },
+      "required": [
+        "version",
+        "relation",
+        "dispatch",
+        "outcome",
+        "availability"
+      ]
+    },
+    "WebAdmissionReceiptV2": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "operation_id": {
+          "$ref": "#/$defs/OperationId"
+        },
+        "root_thread_id": {
+          "$ref": "#/$defs/NativeId"
+        },
+        "root_turn_id": {
+          "$ref": "#/$defs/NativeId"
+        },
+        "deadline_unix_ms": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "scope_id": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "required": [
+        "operation_id",
+        "root_thread_id",
+        "root_turn_id",
+        "deadline_unix_ms",
+        "scope_id"
+      ]
+    },
+    "DeepSearchRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "scope_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "deadline_unix_ms": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "request": {
+          "$ref": "#/$defs/ProOperation"
+        }
+      },
+      "required": [
+        "scope_id",
+        "deadline_unix_ms",
+        "request"
+      ]
+    },
+    "DeepSearchResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "call_id": {
+          "$ref": "#/$defs/OperationId"
+        },
+        "receipt": {
+          "$ref": "#/$defs/DeepSearchReceipt"
+        },
+        "result": {
+          "$ref": "#/$defs/ToolOutput"
+        }
+      },
+      "required": [
+        "call_id",
+        "receipt"
+      ]
+    },
+    "WebWorkerFacts": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "transport": {
+          "type": "string",
+          "enum": [
+            "uncertain",
+            "attempted",
+            "responded"
+          ]
+        },
+        "outcome": {
+          "type": "string",
+          "enum": [
+            "results",
+            "empty",
+            "partial",
+            "failed",
+            "unknown"
+          ]
+        },
+        "error_code": {
+          "$ref": "#/$defs/AppErrorCode"
+        }
+      },
+      "required": [
+        "transport",
+        "outcome"
+      ]
+    },
+    "ClaimFinishV2": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "finish": {
+          "$ref": "#/$defs/ClaimFinish"
+        },
+        "facts": {
+          "$ref": "#/$defs/WebWorkerFacts"
+        }
+      },
+      "required": [
+        "finish",
+        "facts"
+      ]
+    },
+    "WebWorkerEnvelopeV2": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "result": {
+          "$ref": "#/$defs/ToolOutput"
+        },
+        "facts": {
+          "$ref": "#/$defs/WebWorkerFacts"
+        }
+      },
+      "required": [
+        "result",
+        "facts"
+      ]
     }
   }
 }

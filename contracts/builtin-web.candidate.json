@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "feature": "FEAT-175",
-  "contract_version": "0.1.0",
+  "contract_version": "0.3.0",
   "mode": "local_worktree_candidate",
   "release": false,
   "base_commit": "2592f5d5b07fcd92de10d25c4dcf73bd1ce03cb5",
@@ -15,23 +15,23 @@
   "sources": [
     {
       "path": "compatibility/builtin-web-retrieval/wire.schema.json",
-      "sha256": "34da5ee2d4e0aadcd043a7a3466dc6c25dc60d6fb302e052f413bd74736c6eb3"
+      "sha256": "551f6bc735b4d96d4990f69799dec06b81b579adef214e8ece40b40745472ffa"
     },
     {
       "path": "compatibility/builtin-web-retrieval/policy.json",
-      "sha256": "15aee18bdad7666960e358bb56666ced427475c6971ef0a80c290614a53ab52a"
+      "sha256": "9340e14adac8a472d15de45aa75b1a3d457ff32dd372ba83af4298d0f2a82bc4"
     },
     {
       "path": "openapi/public/web-retrieval.yaml",
-      "sha256": "5edc5e13413834eb013e5e9d3197a08475c170eac211e8f9c3b0ee2e2660cfb7"
+      "sha256": "71985a8725cd3c33d6aab574e87816626d901c7971248dd24928f323e30e2bd9"
     },
     {
       "path": "openapi/internal/web-retrieval.yaml",
-      "sha256": "085501ea9998a8f1b1ebdf014efc36730dd199bb8594a787fb1e45927f104c28"
+      "sha256": "2c6d9288cd7b17220d7b4c8aa2037def26258458fb16a4773a6aeaa5356f1a64"
     },
     {
       "path": "openapi/agent-host/builtin-web.yaml",
-      "sha256": "f5b5a88acd6e70c1253909c760dc8af88dab954d5f996e9aaee7754ae231c1cb"
+      "sha256": "9113449a4c4ad7f2d8fce97bcac375ac4529506fa61d2d33d200324c05ed39ee"
     },
     {
       "path": "openapi/local/web-retrieval.yaml",
@@ -51,15 +51,15 @@
     },
     {
       "path": "compatibility/runtime-tool-search/source.lock.json",
-      "sha256": "6bdde9eeb08baefbef3997bd34b0bb0963b7f11075042481f34624712e6a0eb7"
+      "sha256": "f7da4d129b97a17c743fef3320033171cbcd67b88e1154b2f918de5084e4aafc"
     },
     {
       "path": "scripts/builtin-web-source.mjs",
-      "sha256": "f29aa8e0c2e00b061149d443b71451c6d039157af6dd6fa4b1588934aff33fd4"
+      "sha256": "1155f042da70602bd9c41f2993ac62c36826a1de8aa098cf8c8f51d08e023adf"
     },
     {
       "path": "scripts/generate-builtin-web.mjs",
-      "sha256": "c074a70b77b423ad6ee33fcee051dec54106d1bc79a1b6c20ea5925821a1ef1b"
+      "sha256": "43ecceabfe579b1c3a657a635026f55e50aa75a7215c80eb78349977e8216d82"
     },
     {
       "path": "scripts/generation-plan.mjs",
@@ -85,7 +85,7 @@
     },
     {
       "path": "sdks/go/builtinweb/wire.gen.go",
-      "sha256": "da2a00edd058571f480600b18102ed3619b894bc2fc0253b620fd441fb56c557"
+      "sha256": "3eaefa5e3c4d027a4710d622b999b4ea3c8db63bbf42574627b72040cf6a8574"
     },
     {
       "path": "sdks/go/builtinweb/policy.gen.go",
@@ -97,19 +97,19 @@
     },
     {
       "path": "sdks/go/builtinweb/wire.schema.json",
-      "sha256": "82dba18497975f2b23326c6b2e92e4d5f5eb3a098a8ba99a98155e27330a416e"
+      "sha256": "5131c9c59434c23d00dd4d1583743c7fb4f07671468a1485ddb86293a7bc68d8"
     },
     {
       "path": "sdks/jsonschema/builtin-web-retrieval.schema.json",
-      "sha256": "82dba18497975f2b23326c6b2e92e4d5f5eb3a098a8ba99a98155e27330a416e"
+      "sha256": "5131c9c59434c23d00dd4d1583743c7fb4f07671468a1485ddb86293a7bc68d8"
     },
     {
       "path": "sdks/jsonschema/builtin-web-retrieval.tools.json",
-      "sha256": "d6ba09caf2f216cb9cb3694979bff184c53c2ceeddf33609aa84ba6b5e2b5227"
+      "sha256": "0f7091f6f4324f12dbe3c12a7702a0b3256703c3eb3465fe0e15a720614b33f2"
     },
     {
       "path": "sdks/rust/builtinweb/source.gen.rs",
-      "sha256": "f64a7e157bc8fb099f555d00528b9f8fad2fe82cc6074f71d668ee64de48b311"
+      "sha256": "49252565e1aad54671eb2b025706e63c98af9a0005640bd403f4a1fe451e6243"
     },
     {
       "path": "sdks/go/builtinweb/validate.gen.go",
@@ -133,7 +133,7 @@
     },
     {
       "path": "sdks/typescript/src/domain/builtin-web.generated.ts",
-      "sha256": "bc8ea984bf682fda518a2dfa73bdf97c501c6adceebce8a440ca8664cb57e3d4"
+      "sha256": "60e03036ad262fcba32c1f4db8bd92140742d61d0b620358b44d56993d38ccd8"
     },
     {
       "path": "sdks/typescript/src/api/generated/builtin-web-error-validator.gen.js",

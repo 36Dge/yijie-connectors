@@ -178,6 +178,159 @@ func (e ControlAckState) Valid() bool {
 	}
 }
 
+// Defines values for DeepSearchReceiptAvailability.
+const (
+	DeepSearchReceiptAvailabilityAvailable   DeepSearchReceiptAvailability = "available"
+	DeepSearchReceiptAvailabilityPending     DeepSearchReceiptAvailability = "pending"
+	DeepSearchReceiptAvailabilityUnavailable DeepSearchReceiptAvailability = "unavailable"
+)
+
+// Valid indicates whether the value is a known member of the DeepSearchReceiptAvailability enum.
+func (e DeepSearchReceiptAvailability) Valid() bool {
+	switch e {
+	case DeepSearchReceiptAvailabilityAvailable:
+		return true
+	case DeepSearchReceiptAvailabilityPending:
+		return true
+	case DeepSearchReceiptAvailabilityUnavailable:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for DeepSearchReceiptDispatch.
+const (
+	DeepSearchReceiptDispatchAttempted     DeepSearchReceiptDispatch = "attempted"
+	DeepSearchReceiptDispatchNotDispatched DeepSearchReceiptDispatch = "not_dispatched"
+	DeepSearchReceiptDispatchResponded     DeepSearchReceiptDispatch = "responded"
+	DeepSearchReceiptDispatchUncertain     DeepSearchReceiptDispatch = "uncertain"
+)
+
+// Valid indicates whether the value is a known member of the DeepSearchReceiptDispatch enum.
+func (e DeepSearchReceiptDispatch) Valid() bool {
+	switch e {
+	case DeepSearchReceiptDispatchAttempted:
+		return true
+	case DeepSearchReceiptDispatchNotDispatched:
+		return true
+	case DeepSearchReceiptDispatchResponded:
+		return true
+	case DeepSearchReceiptDispatchUncertain:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for DeepSearchReceiptErrorCode.
+const (
+	DeepSearchReceiptErrorCodeBusy                DeepSearchReceiptErrorCode = "busy"
+	DeepSearchReceiptErrorCodeCancelled           DeepSearchReceiptErrorCode = "cancelled"
+	DeepSearchReceiptErrorCodeInvalidArguments    DeepSearchReceiptErrorCode = "invalid_arguments"
+	DeepSearchReceiptErrorCodeInvalidResponse     DeepSearchReceiptErrorCode = "invalid_response"
+	DeepSearchReceiptErrorCodeNoContent           DeepSearchReceiptErrorCode = "no_content"
+	DeepSearchReceiptErrorCodeNotEntitled         DeepSearchReceiptErrorCode = "not_entitled"
+	DeepSearchReceiptErrorCodeOperationConflict   DeepSearchReceiptErrorCode = "operation_conflict"
+	DeepSearchReceiptErrorCodeOperationExpired    DeepSearchReceiptErrorCode = "operation_expired"
+	DeepSearchReceiptErrorCodeOutcomeUnknown      DeepSearchReceiptErrorCode = "outcome_unknown"
+	DeepSearchReceiptErrorCodeQuotaExceeded       DeepSearchReceiptErrorCode = "quota_exceeded"
+	DeepSearchReceiptErrorCodeResponseTooLarge    DeepSearchReceiptErrorCode = "response_too_large"
+	DeepSearchReceiptErrorCodeResultUnavailable   DeepSearchReceiptErrorCode = "result_unavailable"
+	DeepSearchReceiptErrorCodeSessionExpired      DeepSearchReceiptErrorCode = "session_expired"
+	DeepSearchReceiptErrorCodeTimeout             DeepSearchReceiptErrorCode = "timeout"
+	DeepSearchReceiptErrorCodeUpstreamUnavailable DeepSearchReceiptErrorCode = "upstream_unavailable"
+)
+
+// Valid indicates whether the value is a known member of the DeepSearchReceiptErrorCode enum.
+func (e DeepSearchReceiptErrorCode) Valid() bool {
+	switch e {
+	case DeepSearchReceiptErrorCodeBusy:
+		return true
+	case DeepSearchReceiptErrorCodeCancelled:
+		return true
+	case DeepSearchReceiptErrorCodeInvalidArguments:
+		return true
+	case DeepSearchReceiptErrorCodeInvalidResponse:
+		return true
+	case DeepSearchReceiptErrorCodeNoContent:
+		return true
+	case DeepSearchReceiptErrorCodeNotEntitled:
+		return true
+	case DeepSearchReceiptErrorCodeOperationConflict:
+		return true
+	case DeepSearchReceiptErrorCodeOperationExpired:
+		return true
+	case DeepSearchReceiptErrorCodeOutcomeUnknown:
+		return true
+	case DeepSearchReceiptErrorCodeQuotaExceeded:
+		return true
+	case DeepSearchReceiptErrorCodeResponseTooLarge:
+		return true
+	case DeepSearchReceiptErrorCodeResultUnavailable:
+		return true
+	case DeepSearchReceiptErrorCodeSessionExpired:
+		return true
+	case DeepSearchReceiptErrorCodeTimeout:
+		return true
+	case DeepSearchReceiptErrorCodeUpstreamUnavailable:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for DeepSearchReceiptOutcome.
+const (
+	DeepSearchReceiptOutcomeEmpty   DeepSearchReceiptOutcome = "empty"
+	DeepSearchReceiptOutcomeFailed  DeepSearchReceiptOutcome = "failed"
+	DeepSearchReceiptOutcomePartial DeepSearchReceiptOutcome = "partial"
+	DeepSearchReceiptOutcomePending DeepSearchReceiptOutcome = "pending"
+	DeepSearchReceiptOutcomeResults DeepSearchReceiptOutcome = "results"
+	DeepSearchReceiptOutcomeUnknown DeepSearchReceiptOutcome = "unknown"
+)
+
+// Valid indicates whether the value is a known member of the DeepSearchReceiptOutcome enum.
+func (e DeepSearchReceiptOutcome) Valid() bool {
+	switch e {
+	case DeepSearchReceiptOutcomeEmpty:
+		return true
+	case DeepSearchReceiptOutcomeFailed:
+		return true
+	case DeepSearchReceiptOutcomePartial:
+		return true
+	case DeepSearchReceiptOutcomePending:
+		return true
+	case DeepSearchReceiptOutcomeResults:
+		return true
+	case DeepSearchReceiptOutcomeUnknown:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for DeepSearchReceiptRelation.
+const (
+	First  DeepSearchReceiptRelation = "first"
+	Joined DeepSearchReceiptRelation = "joined"
+	Reused DeepSearchReceiptRelation = "reused"
+)
+
+// Valid indicates whether the value is a known member of the DeepSearchReceiptRelation enum.
+func (e DeepSearchReceiptRelation) Valid() bool {
+	switch e {
+	case First:
+		return true
+	case Joined:
+		return true
+	case Reused:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for DelegationAudience.
 const (
 	BuiltinWebRetrieval1 DelegationAudience = "builtin-web-retrieval/1"
@@ -484,6 +637,54 @@ func (e WebTurnRevokeMethod) Valid() bool {
 	}
 }
 
+// Defines values for WebWorkerFactsOutcome.
+const (
+	WebWorkerFactsOutcomeEmpty   WebWorkerFactsOutcome = "empty"
+	WebWorkerFactsOutcomeFailed  WebWorkerFactsOutcome = "failed"
+	WebWorkerFactsOutcomePartial WebWorkerFactsOutcome = "partial"
+	WebWorkerFactsOutcomeResults WebWorkerFactsOutcome = "results"
+	WebWorkerFactsOutcomeUnknown WebWorkerFactsOutcome = "unknown"
+)
+
+// Valid indicates whether the value is a known member of the WebWorkerFactsOutcome enum.
+func (e WebWorkerFactsOutcome) Valid() bool {
+	switch e {
+	case WebWorkerFactsOutcomeEmpty:
+		return true
+	case WebWorkerFactsOutcomeFailed:
+		return true
+	case WebWorkerFactsOutcomePartial:
+		return true
+	case WebWorkerFactsOutcomeResults:
+		return true
+	case WebWorkerFactsOutcomeUnknown:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for WebWorkerFactsTransport.
+const (
+	WebWorkerFactsTransportAttempted WebWorkerFactsTransport = "attempted"
+	WebWorkerFactsTransportResponded WebWorkerFactsTransport = "responded"
+	WebWorkerFactsTransportUncertain WebWorkerFactsTransport = "uncertain"
+)
+
+// Valid indicates whether the value is a known member of the WebWorkerFactsTransport enum.
+func (e WebWorkerFactsTransport) Valid() bool {
+	switch e {
+	case WebWorkerFactsTransportAttempted:
+		return true
+	case WebWorkerFactsTransportResponded:
+		return true
+	case WebWorkerFactsTransportUncertain:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for WebWorkerInstallMethod.
 const (
 	WebWorkerInstallMethodWebWorkerInstall WebWorkerInstallMethod = "web_worker_install"
@@ -582,6 +783,12 @@ type ClaimFinish struct {
 // ClaimFinishState defines model for ClaimFinish.State.
 type ClaimFinishState string
 
+// ClaimFinishV2 defines model for ClaimFinishV2.
+type ClaimFinishV2 struct {
+	Facts  WebWorkerFacts `json:"facts"`
+	Finish ClaimFinish    `json:"finish"`
+}
+
 // ClaimReceipt defines model for ClaimReceipt.
 type ClaimReceipt struct {
 	ClaimId          openapi_types.UUID `json:"claim_id"`
@@ -641,6 +848,46 @@ type DateBound1 = string
 
 // DateBound2 defines model for .
 type DateBound2 = openapi_types.Date
+
+// DeepSearchReceipt defines model for DeepSearchReceipt.
+type DeepSearchReceipt struct {
+	Availability DeepSearchReceiptAvailability `json:"availability"`
+	Dispatch     DeepSearchReceiptDispatch     `json:"dispatch"`
+	ErrorCode    *DeepSearchReceiptErrorCode   `json:"error_code,omitempty"`
+	OperationId  *openapi_types.UUID           `json:"operation_id,omitempty"`
+	Outcome      DeepSearchReceiptOutcome      `json:"outcome"`
+	Relation     DeepSearchReceiptRelation     `json:"relation"`
+	Version      int                           `json:"version"`
+}
+
+// DeepSearchReceiptAvailability defines model for DeepSearchReceipt.Availability.
+type DeepSearchReceiptAvailability string
+
+// DeepSearchReceiptDispatch defines model for DeepSearchReceipt.Dispatch.
+type DeepSearchReceiptDispatch string
+
+// DeepSearchReceiptErrorCode defines model for DeepSearchReceipt.ErrorCode.
+type DeepSearchReceiptErrorCode string
+
+// DeepSearchReceiptOutcome defines model for DeepSearchReceipt.Outcome.
+type DeepSearchReceiptOutcome string
+
+// DeepSearchReceiptRelation defines model for DeepSearchReceipt.Relation.
+type DeepSearchReceiptRelation string
+
+// DeepSearchRequest defines model for DeepSearchRequest.
+type DeepSearchRequest struct {
+	DeadlineUnixMs int                `json:"deadline_unix_ms"`
+	Request        ProOperation       `json:"request"`
+	ScopeId        openapi_types.UUID `json:"scope_id"`
+}
+
+// DeepSearchResponse defines model for DeepSearchResponse.
+type DeepSearchResponse struct {
+	CallId  OperationId       `json:"call_id"`
+	Receipt DeepSearchReceipt `json:"receipt"`
+	Result  *ToolOutput       `json:"result,omitempty"`
+}
 
 // Delegation defines model for Delegation.
 type Delegation struct {
@@ -878,6 +1125,15 @@ type WebAdmissionReceipt struct {
 	RootTurnId     NativeId    `json:"root_turn_id"`
 }
 
+// WebAdmissionReceiptV2 defines model for WebAdmissionReceiptV2.
+type WebAdmissionReceiptV2 struct {
+	DeadlineUnixMs int                `json:"deadline_unix_ms"`
+	OperationId    OperationId        `json:"operation_id"`
+	RootThreadId   NativeId           `json:"root_thread_id"`
+	RootTurnId     NativeId           `json:"root_turn_id"`
+	ScopeId        openapi_types.UUID `json:"scope_id"`
+}
+
 // WebAdmissionRequest defines model for WebAdmissionRequest.
 type WebAdmissionRequest struct {
 	BindingEpoch openapi_types.UUID `json:"binding_epoch"`
@@ -957,6 +1213,25 @@ type WebTurnRevoke struct {
 
 // WebTurnRevokeMethod defines model for WebTurnRevoke.Method.
 type WebTurnRevokeMethod string
+
+// WebWorkerEnvelopeV2 defines model for WebWorkerEnvelopeV2.
+type WebWorkerEnvelopeV2 struct {
+	Facts  WebWorkerFacts `json:"facts"`
+	Result ToolOutput     `json:"result"`
+}
+
+// WebWorkerFacts defines model for WebWorkerFacts.
+type WebWorkerFacts struct {
+	ErrorCode *AppErrorCode           `json:"error_code,omitempty"`
+	Outcome   WebWorkerFactsOutcome   `json:"outcome"`
+	Transport WebWorkerFactsTransport `json:"transport"`
+}
+
+// WebWorkerFactsOutcome defines model for WebWorkerFacts.Outcome.
+type WebWorkerFactsOutcome string
+
+// WebWorkerFactsTransport defines model for WebWorkerFacts.Transport.
+type WebWorkerFactsTransport string
 
 // WebWorkerInstall defines model for WebWorkerInstall.
 type WebWorkerInstall struct {

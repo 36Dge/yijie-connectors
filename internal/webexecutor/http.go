@@ -117,7 +117,22 @@ func (h *Handler) execute(w http.ResponseWriter, r *http.Request) {
 		failure(w, "outcome_unknown", true)
 		return
 	}
-	result, executionErr := h.Worker.Execute(ctx, wire.ExecutorWorkerRequest{Execute: q, Receipt: receipt})
+	workerRequest := wire.ExecutorWorkerRequest{Execute: q, Receipt: receipt}
+	v2 := r.Header.Get("X-Yijie-Search-Receipt") == "2"
+	var result []byte
+	var executionErr error
+	facts := wire.WebWorkerFacts{Transport: "uncertain", Outcome: "unknown"}
+	if v2 {
+		if observed, ok := h.Worker.(interface {
+			ExecuteObserved(context.Context, wire.ExecutorWorkerRequest) ([]byte, wire.WebWorkerFacts, error)
+		}); ok {
+			result, facts, executionErr = observed.ExecuteObserved(ctx, workerRequest)
+		} else {
+			executionErr = unavailable
+		}
+	} else {
+		result, executionErr = h.Worker.Execute(ctx, workerRequest)
+	}
 	state, dispatch := "completed", "completed"
 	if executionErr != nil || wire.Validate("ToolOutput", result) != nil {
 		state, dispatch = "unknown", "may_have_dispatched"
@@ -130,7 +145,14 @@ func (h *Handler) execute(w http.ResponseWriter, r *http.Request) {
 	settlement, stop := context.WithTimeout(context.WithoutCancel(ctx), 3*time.Second)
 	defer stop()
 	var status wire.OperationStatus
-	if h.call(settlement, "/internal/v1/web-retrieval/finish", "OperationStatus", wire.ClaimFinish{Receipt: receipt, State: wire.ClaimFinishState(state), Dispatch: wire.DispatchFact(dispatch)}, &status) != nil {
+	finish := wire.ClaimFinish{Receipt: receipt, State: wire.ClaimFinishState(state), Dispatch: wire.DispatchFact(dispatch)}
+	path := "/internal/v1/web-retrieval/finish"
+	var outcome any = finish
+	if v2 {
+		path = "/internal/v2/web-retrieval/finish"
+		outcome = wire.ClaimFinishV2{Finish: finish, Facts: facts}
+	}
+	if h.call(settlement, path, "OperationStatus", outcome, &status) != nil {
 		failure(w, "outcome_unknown", true)
 		return
 	}

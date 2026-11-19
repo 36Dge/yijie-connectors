@@ -1,22 +1,27 @@
 //! Normalization for explicitly opted-in body/Pro results. Legacy stays separate.
 use super::*;
 
-fn string(row: &Value, key: &str) -> Result<String, ErrorCode> {
+fn string(row: &Value, key: &'static str) -> Result<String, &'static str> {
     match row.get(key) {
         None => Ok(String::new()),
         Some(Value::String(s)) => Ok(s.clone()),
-        _ => Err(ErrorCode::InvalidResponse),
+        _ => Err(key),
     }
 }
 
-fn page(row: &Value, pro: bool) -> Result<Value, ErrorCode> {
+fn page(row: &Value, pro: bool) -> Result<Value, &'static str> {
     if !row.is_object() {
-        return Err(ErrorCode::InvalidResponse);
+        return Err("results[]");
     }
     let url = string(row, "url")?;
     if !public_url(&url) {
-        return Err(ErrorCode::InvalidResponse);
+        return Err("url");
     }
+    let url = if crate::builtin_web_executor::validate("PublicUrl", &json!(url)) {
+        url
+    } else {
+        url::Url::parse(&url).map_err(|_| "url")?.to_string()
+    };
     let mut out = json!({"url":url,"title":string(row,"title")?,"snippet":string(row,"snippet")?});
     let available;
     if pro {
@@ -27,19 +32,19 @@ fn page(row: &Value, pro: bool) -> Result<Value, ErrorCode> {
         let chunks = match row.get("chunks") {
             None => &empty,
             Some(Value::Array(items)) => items,
-            _ => return Err(ErrorCode::InvalidResponse),
+            _ => return Err("chunks"),
         };
         let mut normalized = Vec::new();
         for chunk in chunks {
             let text = chunk
                 .get("text")
                 .and_then(Value::as_str)
-                .ok_or(ErrorCode::InvalidResponse)?;
+                .ok_or("chunks[].text")?;
             let score = chunk
                 .get("score")
                 .and_then(Value::as_number)
                 .filter(|s| s.as_f64().is_some_and(f64::is_finite))
-                .ok_or(ErrorCode::InvalidResponse)?;
+                .ok_or("chunks[].score")?;
             normalized.push(json!({"text":text,"score":score}));
         }
         available = normalized
@@ -110,20 +115,50 @@ pub(super) fn normalize(
     value: &Value,
     limit: usize,
     pro: bool,
+    diagnostic: &Diagnostic,
 ) -> Result<CallToolResult, ErrorCode> {
     let source = value
         .get("search_results")
         .and_then(Value::as_array)
-        .ok_or(ErrorCode::InvalidResponse)?;
-    let mut rows: Vec<Value> = source
-        .iter()
-        .filter_map(|r| page(r, pro).ok())
-        .take(limit)
-        .collect();
+        .ok_or_else(|| {
+            diagnostic.validation_issue("web_decode", "result");
+            ErrorCode::InvalidResponse
+        })?;
+    let mut clipped = false;
+    let definition = if pro { "ProResult" } else { "ContentResult" };
+    let mut rows = Vec::new();
+    for raw in source {
+        if rows.len() == limit {
+            break;
+        }
+        let mut row = match page(raw, pro) {
+            Ok(row) => row,
+            Err(field) => {
+                diagnostic.validation_issue("web_normalize", field);
+                continue;
+            }
+        };
+        if !crate::builtin_web_executor::validate("PublicUrl", &row["url"]) {
+            diagnostic.validation_issue("web_normalize", "url");
+            continue;
+        }
+        // Preserve a source with a large, reducible body. Its address must
+        // satisfy the final URI contract in full before content is shortened.
+        while serde_json::to_vec(&row).is_ok_and(|bytes| bytes.len() > wire::MAX_RESULT_BYTES)
+            && shrink_page(&mut row)
+        {
+            clipped = true;
+        }
+        if crate::builtin_web_executor::validate(definition, &row) {
+            rows.push(row);
+        } else {
+            diagnostic.validation_issue("web_normalize", "results[]");
+        }
+    }
     if !source.is_empty() && rows.is_empty() {
         return Err(ErrorCode::InvalidResponse);
     }
-    let mut truncated = rows.len() != source.len();
+    let mut truncated = clipped || rows.len() != source.len();
     loop {
         let output =
             json!({"results":rows,"truncated":truncated,"dropped_results":source.len()-rows.len()});
@@ -133,7 +168,13 @@ pub(super) fn normalize(
             serde_json::from_value::<wire::ContentSuccess>(output.clone()).is_ok()
         };
         let result = CallToolResult::structured(output);
-        if valid && fits(&result) {
+        if valid
+            && if pro {
+                serde_json::to_vec(&result).is_ok_and(|b| b.len() + 512 <= wire::MAX_RESULT_BYTES)
+            } else {
+                fits(&result)
+            }
+        {
             return Ok(result);
         }
         truncated = true;
@@ -182,13 +223,19 @@ mod tests {
         let mut pages = (0..20)
             .map(|i| {
                 json!({
-                    "url":format!("https://example.org/{i}/{}", "文".repeat(4000)),
+                    "url":format!("https://example.org/{i}/{}", "x".repeat(4000)),
                     "title":"ordinary \"quoted\" title", "text":"body"
                 })
             })
             .collect::<Vec<_>>();
         pages.push(json!({"url":"", "title":null}));
-        let result = normalize(&json!({"search_results":pages}), 19, false).unwrap();
+        let result = normalize(
+            &json!({"search_results":pages}),
+            19,
+            false,
+            &Diagnostic::default(),
+        )
+        .unwrap();
         let value = result.structured_content.as_ref().unwrap();
         let kept = value["results"].as_array().unwrap();
         assert!(!kept.is_empty());
@@ -198,7 +245,7 @@ mod tests {
         let text = result.content[0].as_text().unwrap();
         assert_eq!(serde_json::from_str::<Value>(&text.text).unwrap(), *value);
         for row in kept {
-            assert!(row["url"].as_str().unwrap().ends_with(&"文".repeat(4000)));
+            assert!(row["url"].as_str().unwrap().ends_with(&"x".repeat(4000)));
         }
     }
 }

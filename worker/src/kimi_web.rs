@@ -469,17 +469,19 @@ impl Backend {
         }
         let reply = response?;
         status_error(reply.status, matches!(arguments, Arguments::Fetch(_)))?;
-        let value: Value =
-            serde_json::from_slice(&reply.body).map_err(|_| ErrorCode::InvalidResponse)?;
+        let value: Value = serde_json::from_slice(&reply.body).map_err(|_| {
+            diagnostic.validation_issue("web_decode", "result");
+            ErrorCode::InvalidResponse
+        })?;
         if !self.permit.1.safe(&value) {
             return Err(ErrorCode::InvalidResponse);
         }
         let result = match arguments {
             Arguments::Search(args) if args.include_content.unwrap_or(false) => {
-                content::normalize(&value, args.effective_limit() as usize, false)?
+                content::normalize(&value, args.effective_limit() as usize, false, diagnostic)?
             }
             Arguments::Pro(args) => {
-                content::normalize(&value, args.effective_limit() as usize, true)?
+                content::normalize(&value, args.effective_limit() as usize, true, diagnostic)?
             }
             Arguments::Search(args) => normalize_search(&value, args.effective_limit() as usize)?,
             Arguments::Fetch(_) => normalize_fetch(&value)?,

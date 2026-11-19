@@ -124,6 +124,7 @@ pub enum Event {
     UnknownShape,
 }
 struct DiagnosticFile {
+    transport: &'static str,
     sink: DiagnosticSink,
     count: usize,
 }
@@ -139,6 +140,7 @@ impl Diagnostic {
     pub fn service_stderr() -> Self {
         Self(Some(Arc::new(Mutex::new(DiagnosticFile {
             sink: DiagnosticSink::ServiceStderr,
+            transport: "uncertain",
             count: 0,
         }))))
     }
@@ -179,10 +181,20 @@ impl Diagnostic {
                 .ok()?;
             Some(DiagnosticFile {
                 sink: DiagnosticSink::File(file),
+                transport: "uncertain",
                 count: 0,
             })
         };
         Self(create().map(|file| Arc::new(Mutex::new(file))))
+    }
+    pub fn web_transport(&self) -> &'static str {
+        self.0
+            .as_ref()
+            .and_then(|s| s.lock().ok().map(|f| f.transport))
+            .unwrap_or("uncertain")
+    }
+    pub fn validation_issue(&self, stage: &'static str, field: &'static str) {
+        self.append(&serde_json::json!({"schemaVersion":1,"unixMs":SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_millis(),"stage":stage,"event":"invalid_field","field":field,"httpStatus":null,"safeFailure":null}));
     }
     pub fn emit(
         &self,
@@ -191,6 +203,17 @@ impl Diagnostic {
         http_status: Option<u16>,
         failure: Option<Failure>,
     ) {
+        if let Some(file) = &self.0
+            && let Ok(mut d) = file.lock()
+        {
+            match (stage, event) {
+                (Stage::WebHttpSend, Event::Request) => d.transport = "attempted",
+                (Stage::WebHttpResponse, Event::Response) if http_status.is_some() => {
+                    d.transport = "responded"
+                }
+                _ => {}
+            }
+        }
         let record = serde_json::json!({"schemaVersion":1,"unixMs":SystemTime::now().duration_since(UNIX_EPOCH).ok().map(|v|v.as_millis() as u64),"stage":stage,"event":event,"httpStatus":http_status,"safeFailure":failure});
         self.append(&record);
     }
@@ -1842,6 +1865,7 @@ mod tests {
             .unwrap();
         let diagnostic = Diagnostic(Some(Arc::new(Mutex::new(DiagnosticFile {
             sink: DiagnosticSink::File(file),
+            transport: "uncertain",
             count: 0,
         }))));
         for _ in 0..140 {
@@ -1947,6 +1971,7 @@ mod tests {
             Uuid::new_v4()
         ));
         let diagnostic = Diagnostic(Some(Arc::new(Mutex::new(DiagnosticFile {
+            transport: "uncertain",
             sink: DiagnosticSink::File(
                 std::fs::OpenOptions::new()
                     .write(true)

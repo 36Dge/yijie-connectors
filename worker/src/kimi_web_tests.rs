@@ -218,17 +218,18 @@ async fn normal_approved_search_uses_fixed_rest_once_and_closes() {
         .await;
     consistent(&result);
     assert_eq!(result.is_error, Some(false));
-    let requests = http.requests.lock().unwrap();
-    assert_eq!(requests.len(), 1);
-    assert_eq!(requests[0].url, "https://api.moonshot.cn/v1/tools/search");
-    assert_eq!(requests[0].method, "POST");
-    assert!(requests[0].timeout_ms.unwrap() <= 2000);
-    let body: Value = serde_json::from_slice(&requests[0].body.as_ref().unwrap().0).unwrap();
-    assert_eq!(
-        body,
-        json!({"text_query":"public guide","limit":3,"timeout_seconds":10,"include_content":false})
-    );
-    drop(requests);
+    {
+        let requests = http.requests.lock().unwrap();
+        assert_eq!(requests.len(), 1);
+        assert_eq!(requests[0].url, "https://api.moonshot.cn/v1/tools/search");
+        assert_eq!(requests[0].method, "POST");
+        assert!(requests[0].timeout_ms.unwrap() <= 2000);
+        let body: Value = serde_json::from_slice(&requests[0].body.as_ref().unwrap().0).unwrap();
+        assert_eq!(
+            body,
+            json!({"text_query":"public guide","limit":3,"timeout_seconds":10,"include_content":false})
+        );
+    }
     backend.close().await;
     assert!(!backend.available());
 }
@@ -261,13 +262,14 @@ async fn ordinary_fetch_and_user_cancellation_keep_one_request_limit() {
     consistent(&result);
     assert_eq!(result.is_error, Some(false));
     assert_eq!(http.calls.load(Ordering::SeqCst), 1);
-    let requests = http.requests.lock().unwrap();
-    assert_eq!(requests[0].url, "https://api.moonshot.cn/v1/tools/fetch");
-    assert_eq!(
-        serde_json::from_slice::<Value>(&requests[0].body.as_ref().unwrap().0).unwrap(),
-        json!({"url":"https://example.com/guide"})
-    );
-    drop(requests);
+    {
+        let requests = http.requests.lock().unwrap();
+        assert_eq!(requests[0].url, "https://api.moonshot.cn/v1/tools/fetch");
+        assert_eq!(
+            serde_json::from_slice::<Value>(&requests[0].body.as_ref().unwrap().0).unwrap(),
+            json!({"url":"https://example.com/guide"})
+        );
+    }
     backend.close().await;
 }
 
@@ -410,7 +412,7 @@ fn kimi_content_keeps_partial_sources_and_distinguishes_absence_from_clipping() 
         {"title":"Body","url":"https://example.org/body","snippet":"summary","text":"正文".repeat(40000)},
         {"title":"Missing source","url":"","text":"unusable"}
     ]});
-    let result = content::normalize(&source, 5, false).unwrap();
+    let result = content::normalize(&source, 5, false, &Diagnostic::default()).unwrap();
     consistent(&result);
     assert_eq!(value(&result)["dropped_results"], 1);
     assert_eq!(
@@ -422,8 +424,22 @@ fn kimi_content_keeps_partial_sources_and_distinguishes_absence_from_clipping() 
         value(&result)["results"][1]["url"],
         "https://example.org/body"
     );
-    assert!(content::normalize(&json!({"search_results":[{"url":""}]}), 5, true).is_err());
-    let empty = content::normalize(&json!({"search_results":[]}), 5, true).unwrap();
+    assert!(
+        content::normalize(
+            &json!({"search_results":[{"url":""}]}),
+            5,
+            true,
+            &Diagnostic::default()
+        )
+        .is_err()
+    );
+    let empty = content::normalize(
+        &json!({"search_results":[]}),
+        5,
+        true,
+        &Diagnostic::default(),
+    )
+    .unwrap();
     assert_eq!(
         value(&empty),
         &json!({"results":[],"truncated":false,"dropped_results":0})
@@ -445,15 +461,26 @@ fn kimi_pro_constraints_and_mixed_page_types_remain_local() {
     );
     let result = content::normalize(
         &json!({"search_results":[
-            {"url":"https://example.org/","chunks":[{"text":"ordinary content","score":0.5}]},
+            {"url":"https://example.org/杭州?站=东","chunks":[{"text":"ordinary content","score":0.5}]},
             {"url":"https://example.org/null","chunks":null}
         ]}),
         5,
         true,
+        &Diagnostic::default(),
     )
     .unwrap();
     consistent(&result);
     assert_eq!(value(&result)["results"][0]["content_status"], "available");
+    assert_eq!(
+        value(&result)["results"][0]["url"],
+        url::Url::parse("https://example.org/杭州?站=东")
+            .unwrap()
+            .as_str()
+    );
+    assert!(crate::builtin_web_executor::validate(
+        "ProSuccess",
+        value(&result)
+    ));
     assert_eq!(value(&result)["dropped_results"], 1);
     assert_eq!(value(&result)["truncated"], true);
 }
