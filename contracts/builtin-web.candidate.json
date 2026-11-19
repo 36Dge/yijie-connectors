@@ -51,7 +51,7 @@
     },
     {
       "path": "compatibility/runtime-tool-search/source.lock.json",
-      "sha256": "f7da4d129b97a17c743fef3320033171cbcd67b88e1154b2f918de5084e4aafc"
+      "sha256": "7ec9afffa495f20f35a78712162f008acf724e8384fec92394c11953bb11f1a2"
     },
     {
       "path": "scripts/builtin-web-source.mjs",
