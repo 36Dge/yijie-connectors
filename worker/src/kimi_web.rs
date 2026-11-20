@@ -591,7 +591,7 @@ fn normalize_fetch(value: &Value) -> Result<CallToolResult, ErrorCode> {
     if !public_url(&output.url) {
         return Err(ErrorCode::InvalidResponse);
     }
-    if output.markdown.trim().is_empty() {
+    if output.markdown.trim().is_empty() || amazon_continue_shopping_page(&output) {
         return Err(ErrorCode::NoContent);
     }
     loop {
@@ -608,6 +608,24 @@ fn normalize_fetch(value: &Value) -> Result<CallToolResult, ErrorCode> {
             return Err(ErrorCode::ResponseTooLarge);
         }
     }
+}
+
+// Fetch can return HTTP 200 with Amazon's interstitial instead of the requested
+// document. Match the whole notice so an article discussing it stays readable.
+fn amazon_continue_shopping_page(page: &wire::FetchSuccess) -> bool {
+    let mut lines = page
+        .markdown
+        .lines()
+        .map(str::trim)
+        .filter(|line| !line.is_empty());
+    page.title.trim().eq_ignore_ascii_case("Server Busy")
+        && lines.next().is_some_and(|line| {
+            line.trim_end_matches('.')
+                .eq_ignore_ascii_case("Click the button below to continue shopping")
+        })
+        && lines.all(|line| {
+            line.starts_with('©') && line.ends_with("Amazon.com, Inc. or its affiliates")
+        })
 }
 
 #[cfg(test)]

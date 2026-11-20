@@ -159,6 +159,34 @@ fn ordinary_long_markdown_and_snippets_fit_the_entire_mcp_envelope() {
     );
 }
 
+#[tokio::test]
+async fn fetch_distinguishes_recorded_continue_shopping_notice_from_page_content() {
+    let mut page = json!({"url":"https://www.amazon.com.be/","title":"Server Busy",
+        "markdown":"Click the button below to continue shopping\n\n© 1996-2025, Amazon.com, Inc. or its affiliates"});
+    let (backend, http) = setup(page.clone());
+    let result = backend
+        .execute(
+            wire::FETCH_TOOL_NAME,
+            args(json!({"url": page["url"]})),
+            permit(),
+            Diagnostic::default(),
+        )
+        .await;
+    assert_eq!(http.calls.load(Ordering::SeqCst), 1);
+    assert_eq!(result.is_error, Some(true));
+    assert_eq!(value(&result)["error"]["code"], "no_content");
+    consistent(&result);
+    page["markdown"] = json!(
+        "Click the button below to continue shopping\n\nThe suitcase has four spinner wheels."
+    );
+    assert_eq!(
+        value(&normalize_fetch(&page).unwrap())["markdown"],
+        page["markdown"]
+    );
+    page["markdown"] = json!("Customer reviews");
+    assert!(normalize_fetch(&page).is_ok());
+}
+
 #[test]
 fn ordinary_stream_budget_and_status_mapping_do_not_infer_success() {
     let mut bytes = Vec::new();
