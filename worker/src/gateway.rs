@@ -49,8 +49,58 @@ async fn authorize(State(auth): State<Auth>, mut request: Request<Body>, next: N
 struct Gateway {
     broker: BrokerHandle,
 }
-fn mcp_error() -> ErrorData {
-    ErrorData::invalid_request("Market connector admission unavailable", None)
+fn missing_binding() -> ErrorData {
+    ErrorData::invalid_request(
+        "市场工具调用缺少有效的租约、会话或轮次标识，外部请求未发送。请停止本次尝试。",
+        None,
+    )
+}
+fn terminal_lease_error(code: wire::ErrorCode) -> Option<(&'static str, &'static str)> {
+    match code {
+        wire::ErrorCode::LeaseExpired | wire::ErrorCode::ScopeExpired => Some((
+            wire::GATEWAY_ERROR_LEASE_EXPIRED_CODE,
+            wire::GATEWAY_ERROR_LEASE_EXPIRED_MESSAGE,
+        )),
+        wire::ErrorCode::LeaseRevoked | wire::ErrorCode::Stopping => Some((
+            wire::GATEWAY_ERROR_LEASE_REVOKED_CODE,
+            wire::GATEWAY_ERROR_LEASE_REVOKED_MESSAGE,
+        )),
+        _ => None,
+    }
+}
+fn terminal_detail(code: &str) -> serde_json::Value {
+    serde_json::json!({"code":code,"retryable":false,"retryScope":"market_turn","outcome":"not_sent"})
+}
+fn terminal_result(
+    (reason, message): (&str, &str),
+    receipt: Option<wire::GatewayCallReceipt>,
+) -> CallToolResult {
+    let mut result = CallToolResult::error(vec![Content::text(format!("[{reason}] {message}"))]);
+    result.structured_content = Some(terminal_detail(reason));
+    // Attach the trusted stop only after the normal supplier-meta scrub.
+    let mut result = with_call_receipt(result, receipt);
+    result.meta.get_or_insert_with(Default::default).0.insert(
+        wire::GATEWAY_RESULT_TURN_STOP_KEY.to_owned(),
+        serde_json::json!(reason),
+    );
+    result
+}
+fn registration_error(code: wire::ErrorCode) -> ErrorData {
+    let message = match code {
+        wire::ErrorCode::InvalidRequest => "市场工具参数未通过校验，请检查工具定义。",
+        wire::ErrorCode::NotQualified => "当前连接器选集或工具未就绪，外部请求未发送。",
+        wire::ErrorCode::TurnMismatch | wire::ErrorCode::NotFound | wire::ErrorCode::NotBound => {
+            "当前市场调用没有匹配的轮次授权，外部请求未发送。请停止本轮市场工具调用。"
+        }
+        wire::ErrorCode::CapacityExceeded => {
+            "本轮市场连接器调用容量已用尽，外部请求未发送。请停止本轮市场工具调用。"
+        }
+        _ => "本地市场网关无法登记本次调用，外部请求未发送。",
+    };
+    ErrorData::invalid_request(
+        message,
+        Some(serde_json::json!({"code":code,"outcome":"not_sent"})),
+    )
 }
 // This classification is used only after consume_execution failed under the
 // same Broker lock. Consumed or missing facts never prove non-execution.
@@ -59,7 +109,11 @@ fn admission_failure(state: Option<wire::CallState>) -> (&'static str, Event) {
         Some(wire::CallState::Rejected) => {
             (wire::GATEWAY_ERROR_OWNER_REJECTED_MESSAGE, Event::Rejected)
         }
-        Some(wire::CallState::Cancelled | wire::CallState::Revoked | wire::CallState::Expired) => (
+        Some(wire::CallState::Expired) => (
+            wire::GATEWAY_ERROR_APPROVAL_EXPIRED_MESSAGE,
+            Event::PolicyRejected,
+        ),
+        Some(wire::CallState::Cancelled | wire::CallState::Revoked) => (
             wire::GATEWAY_ERROR_ADMISSION_STOPPED_MESSAGE,
             Event::PolicyRejected,
         ),
@@ -73,14 +127,14 @@ fn lease_ref(context: &RequestContext<RoleServer>) -> Result<String, ErrorData> 
     let parts = context
         .extensions
         .get::<axum::http::request::Parts>()
-        .ok_or_else(mcp_error)?;
+        .ok_or_else(missing_binding)?;
     let path = parts.uri.path();
-    let reference = path.strip_prefix("/mcp/").ok_or_else(mcp_error)?;
+    let reference = path.strip_prefix("/mcp/").ok_or_else(missing_binding)?;
     if reference.contains('/')
         || parts.uri.query().is_some()
         || uuid::Uuid::parse_str(reference).is_err()
     {
-        return Err(mcp_error());
+        return Err(missing_binding());
     }
     Ok(reference.into())
 }
@@ -117,12 +171,13 @@ impl ServerHandler for Gateway {
             .state
             .lock()
             .expect("broker lock")
-            .visible_tools(&reference)
-            .map_err(|_| mcp_error())?;
+            .visible_tools(&reference);
         Ok(ListToolsResult {
             tools: match tool {
-                Some(tools) => tools,
-                None => vec![lookup_tool()],
+                Ok(Some(tools)) => tools,
+                Ok(None) => vec![lookup_tool()],
+                Err(code) if terminal_lease_error(code).is_some() => Vec::new(),
+                Err(code) => return Err(registration_error(code)),
             },
             ..Default::default()
         })
@@ -140,13 +195,13 @@ impl ServerHandler for Gateway {
             .0
             .get("threadId")
             .and_then(serde_json::Value::as_str)
-            .ok_or_else(mcp_error)?;
+            .ok_or_else(missing_binding)?;
         let turn = metadata
             .0
             .get("x-codex-turn-metadata")
             .and_then(|v| v.get("turn_id"))
             .and_then(serde_json::Value::as_str)
-            .ok_or_else(mcp_error)?;
+            .ok_or_else(missing_binding)?;
         let call = wait_for_bound_call(
             &self.broker,
             &context.ct,
@@ -155,9 +210,16 @@ impl ServerHandler for Gateway {
             turn,
             &request,
         )
-        .await?;
-        let Some(call) = call else {
-            return Ok(content_budget_expired());
+        .await;
+        let call = match call {
+            Ok(Some(call)) => call,
+            Ok(None) => return Ok(content_budget_expired()),
+            Err(code) => {
+                return match terminal_lease_error(code) {
+                    Some(facts) => Ok(terminal_result(facts, None)),
+                    None => Err(registration_error(code)),
+                };
+            }
         };
         let diagnostic = Diagnostic::for_operation(&call.identity.call_ref);
         diagnostic.emit(Stage::CallApproval, Event::Started, None, None);
@@ -220,19 +282,40 @@ impl ServerHandler for Gateway {
             let result = state.consume_execution(&call.identity.call_ref, accepted, &context.ct);
             let after = state.pending_call_view(&call.identity.call_ref);
             let receipt = state.result_receipt(&call.identity.call_ref);
-            (result.map_err(|_| admission_failure(after)), receipt)
+            let admission = result.map_err(|code| {
+                if matches!(
+                    after,
+                    Some(
+                        wire::CallState::Expired
+                            | wire::CallState::Revoked
+                            | wire::CallState::Cancelled
+                    )
+                ) && let Some(facts) = terminal_lease_error(code)
+                {
+                    return (
+                        terminal_result(facts, receipt.clone()),
+                        Event::PolicyRejected,
+                    );
+                }
+                let (message, event) = admission_failure(after);
+                (
+                    with_call_receipt(
+                        CallToolResult::error(vec![Content::text(message)]),
+                        receipt.clone(),
+                    ),
+                    event,
+                )
+            });
+            (admission, receipt)
         };
         let execution = match admission {
             Ok(execution) => {
                 diagnostic.emit(Stage::CallAdmission, Event::Consumed, None, None);
                 execution
             }
-            Err((message, event)) => {
+            Err((error, event)) => {
                 diagnostic.emit(Stage::CallAdmission, event, None, None);
-                return Ok(with_call_receipt(
-                    CallToolResult::error(vec![Content::text(message)]),
-                    receipt,
-                ));
+                return Ok(error);
             }
         };
         let result = match execution {
@@ -339,14 +422,14 @@ pub(crate) async fn wait_for_bound_call(
     thread: &str,
     turn: &str,
     request: &CallToolRequestParams,
-) -> Result<Option<wire::PendingCall>, ErrorData> {
+) -> Result<Option<wire::PendingCall>, wire::ErrorCode> {
     let wait = async {
         loop {
             let changed = broker.changed.notified();
             let result = {
                 let mut state = broker.state.lock().expect("broker lock");
                 if cancellation.is_cancelled() {
-                    return Err(mcp_error());
+                    return Err(wire::ErrorCode::ApprovalInvalid);
                 }
                 let result = state.register_call(
                     reference,
@@ -359,7 +442,7 @@ pub(crate) async fn wait_for_bound_call(
                     && cancellation.is_cancelled()
                 {
                     let _ = state.consume_execution(&call.identity.call_ref, false, cancellation);
-                    return Err(mcp_error());
+                    return Err(wire::ErrorCode::ApprovalInvalid);
                 }
                 result
             };
@@ -370,16 +453,16 @@ pub(crate) async fn wait_for_bound_call(
                 Err(wire::ErrorCode::CallExpired) => return Ok(None),
                 Err(wire::ErrorCode::NotBound) => tokio::select! {
                     biased;
-                    _ = cancellation.cancelled() => return Err(mcp_error()),
+                    _ = cancellation.cancelled() => return Err(wire::ErrorCode::ApprovalInvalid),
                     _ = changed => {},
                 },
-                Err(_) => return Err(mcp_error()),
+                Err(code) => return Err(code),
             }
         }
     };
     tokio::time::timeout(broker::UNBOUND_WAIT, wait)
         .await
-        .map_err(|_| mcp_error())?
+        .map_err(|_| wire::ErrorCode::NotBound)?
 }
 
 /// Runs only when the binary entrypoint explicitly selects Broker mode. The
@@ -408,8 +491,8 @@ pub fn run(mode: ProviderMode) -> io::Result<()> {
     // Keep the dedicated qualification binary consistent with its existing
     // externalCallsEnabled=false policy. Share the implementation, not the
     // product-only Web route and owner control surface.
-    let web =
-        (matches!(mode, ProviderMode::Product) && !crate::local_acceptance::enabled()).then(crate::builtin_web_gateway::WebGateway::default);
+    let web = (matches!(mode, ProviderMode::Product) && !crate::local_acceptance::enabled())
+        .then(crate::builtin_web_gateway::WebGateway::default);
     let service = StreamableHttpService::new(
         move || Ok(gateway.clone()),
         Arc::new(LocalSessionManager::default()),
@@ -605,16 +688,16 @@ mod outcome_tests {
             admission_failure(Some(wire::CallState::Rejected)).0,
             wire::GATEWAY_ERROR_OWNER_REJECTED_MESSAGE
         );
-        for state in [
-            wire::CallState::Cancelled,
-            wire::CallState::Expired,
-            wire::CallState::Revoked,
-        ] {
+        for state in [wire::CallState::Cancelled, wire::CallState::Revoked] {
             assert_eq!(
                 admission_failure(Some(state)).0,
                 wire::GATEWAY_ERROR_ADMISSION_STOPPED_MESSAGE
             );
         }
+        assert_eq!(
+            admission_failure(Some(wire::CallState::Expired)).0,
+            wire::GATEWAY_ERROR_APPROVAL_EXPIRED_MESSAGE
+        );
         for state in [
             None,
             Some(wire::CallState::Consumed),
@@ -625,6 +708,32 @@ mod outcome_tests {
                 admission_failure(state).0,
                 wire::GATEWAY_ERROR_EXECUTION_UNVERIFIED_MESSAGE
             );
+        }
+    }
+    #[test]
+    fn terminal_market_scope_is_visible_without_a_fabricated_call_receipt() {
+        for code in [wire::ErrorCode::LeaseExpired, wire::ErrorCode::LeaseRevoked] {
+            let facts = terminal_lease_error(code).unwrap();
+            let result = terminal_result(facts, None);
+            assert_eq!(result.is_error, Some(true));
+            assert_eq!(result.structured_content.unwrap()["retryable"], false);
+            let metadata = result.meta.unwrap();
+            assert_eq!(metadata.0.len(), 1);
+            assert_eq!(metadata.0[wire::GATEWAY_RESULT_TURN_STOP_KEY], facts.0);
+            assert!(
+                result.content[0]
+                    .as_text()
+                    .unwrap()
+                    .text
+                    .contains("停止调用所有市场工具")
+            );
+        }
+        for code in [
+            wire::ErrorCode::CallExpired,
+            wire::ErrorCode::ApprovalInvalid,
+            wire::ErrorCode::InvalidRequest,
+        ] {
+            assert!(terminal_lease_error(code).is_none());
         }
     }
 }

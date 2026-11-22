@@ -143,6 +143,18 @@ impl Arguments {
     }
 }
 
+#[derive(Debug, PartialEq, Eq)]
+pub(crate) enum RetrievalFailure {
+    Tool(ErrorCode),
+    UrlBlocked,
+}
+
+impl From<ErrorCode> for RetrievalFailure {
+    fn from(code: ErrorCode) -> Self {
+        Self::Tool(code)
+    }
+}
+
 struct HttpReply {
     status: u16,
     body: Vec<u8>,
@@ -407,28 +419,31 @@ impl Backend {
         &self,
         tool: &str,
         args: Map<String, Value>,
-        mut permit: Permit,
+        permit: Permit,
         diagnostic: Diagnostic,
     ) -> CallToolResult {
-        let result = self
-            .execute_inner(tool, args, &mut permit, &diagnostic)
-            .await;
-        result.unwrap_or_else(error_result)
+        let result = self.retrieve(tool, args, permit, &diagnostic).await;
+        result.unwrap_or_else(|failure| {
+            error_result(match failure {
+                RetrievalFailure::Tool(code) => code,
+                RetrievalFailure::UrlBlocked => ErrorCode::PermissionDenied,
+            })
+        })
     }
-    async fn execute_inner(
+    pub(crate) async fn retrieve(
         &self,
         tool: &str,
         args: Map<String, Value>,
-        permit: &mut Permit,
+        permit: Permit,
         diagnostic: &Diagnostic,
-    ) -> Result<CallToolResult, ErrorCode> {
+    ) -> Result<CallToolResult, RetrievalFailure> {
         let _guard = self.serial.lock().await;
         self.review(tool, &args)?;
         if !self.available() || permit.request.is_cancelled() || permit.lease.is_cancelled() {
-            return Err(ErrorCode::Cancelled);
+            return Err(ErrorCode::Cancelled.into());
         }
         if Instant::now() >= permit.deadline {
-            return Err(ErrorCode::Timeout);
+            return Err(ErrorCode::Timeout.into());
         }
         let arguments = Arguments::parse(tool, &args)?;
         let request = self.request(
@@ -451,30 +466,40 @@ impl Backend {
         );
         if !self.permit.take_call(tool, &reviewed) {
             self.permit.clear();
-            return Err(ErrorCode::Cancelled);
+            return Err(ErrorCode::Cancelled.into());
         }
         // Consume before the sole send. No retries or alternate endpoint follows.
         if arguments.content_mode()
             && permit.deadline.saturating_duration_since(Instant::now())
                 < Duration::from_millis(wire::CONTENT_HTTP_TIMEOUT_MS as u64)
         {
-            return Err(ErrorCode::Timeout);
+            return Err(ErrorCode::Timeout.into());
         }
         let response = self.send(request, permit.deadline, diagnostic).await;
         if !self.available() || permit.request.is_cancelled() || permit.lease.is_cancelled() {
-            return Err(ErrorCode::Cancelled);
+            return Err(ErrorCode::Cancelled.into());
         }
         if Instant::now() >= permit.deadline {
-            return Err(ErrorCode::Timeout);
+            return Err(ErrorCode::Timeout.into());
         }
         let reply = response?;
-        status_error(reply.status, matches!(arguments, Arguments::Fetch(_)))?;
+        let fetch = matches!(arguments, Arguments::Fetch(_));
+        if fetch
+            && reply.status == 403
+            && serde_json::from_slice::<Value>(&reply.body).is_ok_and(|body| {
+                body.pointer("/error/type").and_then(Value::as_str) == Some("security_risk")
+            })
+        {
+            diagnostic.emit(Stage::WebNormalize, Event::UrlBlocked, None, None);
+            return Err(RetrievalFailure::UrlBlocked);
+        }
+        status_error(reply.status, fetch)?;
         let value: Value = serde_json::from_slice(&reply.body).map_err(|_| {
             diagnostic.validation_issue("web_decode", "result");
             ErrorCode::InvalidResponse
         })?;
         if !self.permit.1.safe(&value) {
-            return Err(ErrorCode::InvalidResponse);
+            return Err(ErrorCode::InvalidResponse.into());
         }
         let result = match arguments {
             Arguments::Search(args) if args.include_content.unwrap_or(false) => {
@@ -491,7 +516,7 @@ impl Backend {
             .1
             .safe(&serde_json::to_value(&result).map_err(|_| ErrorCode::InvalidResponse)?)
         {
-            return Err(ErrorCode::InvalidResponse);
+            return Err(ErrorCode::InvalidResponse.into());
         }
         diagnostic.emit(Stage::WebNormalize, Event::Succeeded, None, None);
         Ok(result)

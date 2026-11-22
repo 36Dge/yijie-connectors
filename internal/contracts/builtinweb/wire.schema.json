@@ -851,6 +851,7 @@
         "busy",
         "upstream_unavailable",
         "timeout",
+        "url_blocked",
         "no_content",
         "response_too_large",
         "invalid_response",
@@ -1026,6 +1027,28 @@
             "properties": {
               "message": {
                 "const": "网页检索请求超时，未自动重试。"
+              }
+            },
+            "required": [
+              "message"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "code": {
+                "const": "url_blocked"
+              }
+            },
+            "required": [
+              "code"
+            ]
+          },
+          "then": {
+            "properties": {
+              "message": {
+                "const": "网页读取服务的安全策略拒绝了此网址。"
               }
             },
             "required": [

@@ -27,6 +27,7 @@ const (
 	AppErrorCodeSessionExpired      AppErrorCode = "session_expired"
 	AppErrorCodeTimeout             AppErrorCode = "timeout"
 	AppErrorCodeUpstreamUnavailable AppErrorCode = "upstream_unavailable"
+	AppErrorCodeUrlBlocked          AppErrorCode = "url_blocked"
 )
 
 // Valid indicates whether the value is a known member of the AppErrorCode enum.
@@ -61,6 +62,8 @@ func (e AppErrorCode) Valid() bool {
 	case AppErrorCodeTimeout:
 		return true
 	case AppErrorCodeUpstreamUnavailable:
+		return true
+	case AppErrorCodeUrlBlocked:
 		return true
 	default:
 		return false

@@ -97,28 +97,31 @@ async fn execute(
     let result = tokio::select! {
         biased;
         _ = cancellation.cancelled() => { return error("cancelled") },
-        result = backend.execute(tool, arguments.clone(), permit, diagnostic.clone()) => result,
+        result = backend.retrieve(tool, arguments.clone(), permit, &diagnostic) => result,
     };
-    let Some(mut output) = result.structured_content else {
-        return error("invalid_response");
+    use crate::web_retrieval_generated::ErrorCode;
+    use kimi_web::RetrievalFailure;
+    let output = match result {
+        Ok(result) => result
+            .structured_content
+            .unwrap_or_else(|| error("invalid_response")),
+        Err(failure) => error(match failure {
+            RetrievalFailure::UrlBlocked => "url_blocked",
+            RetrievalFailure::Tool(code) => match code {
+                ErrorCode::InvalidArguments => "invalid_arguments",
+                ErrorCode::Timeout => "timeout",
+                ErrorCode::Cancelled => "cancelled",
+                ErrorCode::NoContent => "no_content",
+                ErrorCode::ResponseTooLarge => "response_too_large",
+                ErrorCode::InvalidResponse => "invalid_response",
+                // Provider authentication/permissions do not describe the product session.
+                ErrorCode::AuthenticationFailed
+                | ErrorCode::PermissionDenied
+                | ErrorCode::RateLimited
+                | ErrorCode::Unavailable => "upstream_unavailable",
+            },
+        }),
     };
-    if output.get("error").is_some() {
-        // Supplier auth is an upstream failure, never a product-session 401.
-        let code = match output
-            .pointer("/error/code")
-            .and_then(Value::as_str)
-            .unwrap_or("")
-        {
-            "invalid_arguments" => "invalid_arguments",
-            "timeout" => "timeout",
-            "cancelled" => "cancelled",
-            "no_content" => "no_content",
-            "response_too_large" => "response_too_large",
-            "invalid_response" => "invalid_response",
-            _ => "upstream_unavailable",
-        };
-        output = error(code);
-    }
     if !validate("ToolOutput", &output) {
         diagnostic.validation_issue("web_contract", "result");
         return error("invalid_response");
@@ -191,12 +194,31 @@ pub fn run(with_facts: bool) -> io::Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    fn worker_request(tool: &str, arguments: Value) -> Value {
+        let deadline = now_ms() + 45_000;
+        let id = "0199aaaa-aaaa-7aaa-8aaa-aaaaaaaaaaaa";
+        let digest = "a".repeat(64);
+        json!({
+            "execute": {
+                "binding_id": "11111111-1111-4111-8111-111111111111",
+                "request": {"operation_id": id, "tool": tool, "arguments": arguments},
+                "parameter_digest": digest,
+                "deadline_unix_ms": deadline
+            },
+            "receipt": {
+                "operation_id": id,
+                "claim_id": "22222222-2222-4222-8222-222222222222",
+                "executor_instance": "33333333-3333-4333-8333-333333333333",
+                "parameter_digest": digest,
+                "deadline_unix_ms": deadline
+            }
+        })
+    }
+
     #[tokio::test]
     async fn server_executor_reuses_the_existing_adapter_once() {
         let (backend, http) = kimi_web::tests::local_backend();
-        let request = json!({"execute":{"binding_id":"11111111-1111-4111-8111-111111111111","request":{"operation_id":"0199aaaa-aaaa-7aaa-8aaa-aaaaaaaaaaaa","tool":"kimi_web_search","arguments":{"query":"public documentation"}},"parameter_digest":"a".repeat(64),"deadline_unix_ms":now_ms()+45000},"receipt":{"operation_id":"0199aaaa-aaaa-7aaa-8aaa-aaaaaaaaaaaa","claim_id":"22222222-2222-4222-8222-222222222222","executor_instance":"33333333-3333-4333-8333-333333333333","parameter_digest":"a".repeat(64),"deadline_unix_ms":0}});
-        let mut request = request;
-        request["receipt"]["deadline_unix_ms"] = request["execute"]["deadline_unix_ms"].clone();
+        let request = worker_request("kimi_web_search", json!({"query":"public documentation"}));
         let result = execute(
             request,
             backend,
@@ -206,5 +228,68 @@ mod tests {
         .await;
         assert!(validate("ToolOutput", &result));
         assert_eq!(http.load(std::sync::atomic::Ordering::SeqCst), 1);
+    }
+
+    #[tokio::test]
+    async fn fetch_url_refusal_requires_the_provider_type_and_status() {
+        use crate::web_retrieval_generated::{FETCH_TOOL_NAME, SEARCH_TOOL_NAME};
+        let url = json!({"url":"https://example.org/article"});
+        let policy_refusal = json!({"error":{"type":"security_risk","message":"provider detail"}});
+        for (tool, args, status, body, expected) in [
+            (
+                FETCH_TOOL_NAME,
+                url.clone(),
+                403,
+                policy_refusal.clone(),
+                "url_blocked",
+            ),
+            (
+                FETCH_TOOL_NAME,
+                url.clone(),
+                403,
+                Value::Null,
+                "upstream_unavailable",
+            ),
+            (
+                FETCH_TOOL_NAME,
+                url.clone(),
+                403,
+                json!({"error":{"type":"permission_denied"}}),
+                "upstream_unavailable",
+            ),
+            (
+                FETCH_TOOL_NAME,
+                url.clone(),
+                502,
+                policy_refusal.clone(),
+                "upstream_unavailable",
+            ),
+            (
+                FETCH_TOOL_NAME,
+                url,
+                404,
+                json!({"error":{"type":"markdown_not_found"}}),
+                "no_content",
+            ),
+            (
+                SEARCH_TOOL_NAME,
+                json!({"query":"public documentation"}),
+                403,
+                policy_refusal,
+                "upstream_unavailable",
+            ),
+        ] {
+            let (backend, calls) = kimi_web::tests::provider_reply(status, body);
+            let result = execute(
+                worker_request(tool, args),
+                backend,
+                CancellationToken::new(),
+                Diagnostic::service_stderr(),
+            )
+            .await;
+            assert_eq!(result, error(expected));
+            assert!(validate("ToolOutput", &result));
+            assert_eq!(calls.load(std::sync::atomic::Ordering::SeqCst), 1);
+        }
     }
 }

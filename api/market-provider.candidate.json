@@ -20,7 +20,7 @@
     },
     {
       "path": "compatibility/market-broker-control/wire.schema.json",
-      "sha256": "8e8cccb5ff5569f308205f01e56abd37a8ae582093652efafc1ad981123c5882"
+      "sha256": "13c913883d274c316c14fe023e9b481801a845c3cbc02f70f07082529cdd23d9"
     },
     {
       "path": "scripts/market-host-source.mjs",

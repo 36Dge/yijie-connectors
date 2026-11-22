@@ -76,7 +76,7 @@ func (w *diagnosticWriter) emit() {
 	case "web_normalize":
 		switch record.Field {
 		case "":
-			valid = record.Event == "succeeded" && record.HTTPStatus == nil
+			valid = (record.Event == "succeeded" || record.Event == "url_blocked") && record.HTTPStatus == nil
 		case "results[]", "url", "title", "snippet", "site_name", "date", "authority", "text", "chunks", "chunks[].text", "chunks[].score":
 			valid = record.Event == "invalid_field" && record.HTTPStatus == nil
 		}

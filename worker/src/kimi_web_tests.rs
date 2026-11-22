@@ -28,15 +28,22 @@ impl Transport for OrdinaryHttp {
     }
 }
 fn setup(response: Value) -> (Arc<Backend>, Arc<OrdinaryHttp>) {
+    setup_with_status(200, response)
+}
+fn setup_with_status(status: u16, response: Value) -> (Arc<Backend>, Arc<OrdinaryHttp>) {
     let http = Arc::new(OrdinaryHttp {
         requests: Default::default(),
         calls: Arc::new(AtomicUsize::new(0)),
-        status: 200,
+        status,
         response,
         cancel_after_send: None,
     });
     let credential = serde_json::from_value(json!({"serviceId": wire::SERVICE_ID, "name":"Authorization", "value":"Bearer ordinary-kimi-test-value"})).unwrap();
     (Backend::new(credential, http.clone()), http)
+}
+pub(crate) fn provider_reply(status: u16, response: Value) -> (Arc<Backend>, Arc<AtomicUsize>) {
+    let (backend, http) = setup_with_status(status, response);
+    (backend, http.calls.clone())
 }
 pub(crate) fn local_backend() -> (Arc<Backend>, Arc<AtomicUsize>) {
     let (backend, http) = setup(

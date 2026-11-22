@@ -8,6 +8,7 @@ use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 use tokio::sync::Notify;
+use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
 
 pub const CAPABILITY_ENV: &str = "YIJIE_MARKET_RUNTIME_CAPABILITY";
@@ -71,6 +72,8 @@ impl ProviderMode {
 }
 struct LeaseRecord {
     view: wire::Lease,
+    authority_expiry_ms: i64,
+    requested_ttl_ms: u64,
     // Owner prepare precedes Runtime submission; this is a conservative lower bound.
     web_mcp_deadline: Option<u64>,
     deadline: u64,
@@ -180,6 +183,7 @@ pub struct Broker {
     worker_id: String,
     gateway_url: String,
     process: Option<wire::ProcessBinding>,
+    last_renewal: Option<wire::RenewScopePayload>,
     stopped: bool,
     leases: HashMap<String, LeaseRecord>,
     calls: HashMap<String, CallRecord>,
@@ -222,6 +226,7 @@ impl Broker {
             worker_id: Uuid::new_v4().to_string(),
             gateway_url,
             process: None,
+            last_renewal: None,
             stopped: false,
             leases: HashMap::new(),
             calls: HashMap::new(),
@@ -235,6 +240,10 @@ impl Broker {
     }
     fn refresh(&mut self) -> Result<u64, wire::ErrorCode> {
         let (_, now) = self.now()?;
+        self.refresh_at(now);
+        Ok(now)
+    }
+    fn refresh_at(&mut self, now: u64) {
         for record in self.leases.values_mut() {
             if now >= record.deadline
                 && matches!(
@@ -262,6 +271,10 @@ impl Broker {
                 let lease = &self.leases[&record.view.identity.binding.capability_ref];
                 let next = if matches!(lease.view.state, wire::LeaseState::Revoked) {
                     Some(wire::CallState::Revoked)
+                } else if record.deadline > lease.deadline {
+                    // A shorter trusted proof cannot leave an outstanding
+                    // decision actionable beyond its newly certified window.
+                    Some(wire::CallState::Cancelled)
                 } else if now >= record.deadline
                     || (record.view.state == wire::CallState::Pending
                         && now >= record.decision_deadline)
@@ -285,7 +298,6 @@ impl Broker {
                 record.arguments = None;
             }
         }
-        Ok(now)
     }
     fn require_running(&self) -> Result<(), wire::ErrorCode> {
         if self.stopped {
@@ -322,16 +334,12 @@ impl Broker {
         binding: &wire::CapabilityBinding,
     ) -> Result<&LeaseRecord, wire::ErrorCode> {
         let record = self.exact_lease(binding)?;
-        if record
-            .providers
-            .iter()
-            .any(|provider| !provider.backend.available())
-        {
-            return Err(wire::ErrorCode::NotQualified);
-        }
         match record.view.state {
             wire::LeaseState::Expired => Err(wire::ErrorCode::LeaseExpired),
             wire::LeaseState::Revoked => Err(wire::ErrorCode::LeaseRevoked),
+            _ if record.providers.iter().any(|p| !p.backend.available()) => {
+                Err(wire::ErrorCode::NotQualified)
+            }
             _ => Ok(record),
         }
     }
@@ -491,6 +499,8 @@ impl Broker {
             reference.clone(),
             LeaseRecord {
                 view: view.clone(),
+                authority_expiry_ms: payload.context.scope.authorization_expires_at_unix_ms,
+                requested_ttl_ms: payload.ttl_ms as u64,
                 web_mcp_deadline: payload
                     .mcp_tool_timeout_ms
                     .map(|timeout| now + timeout as u64),
@@ -508,6 +518,60 @@ impl Broker {
             Some(reference),
         );
         Ok(view)
+    }
+    fn renew_market_scope(
+        &mut self,
+        proof: wire::RenewScopePayload,
+    ) -> Result<wire::RenewScopePayload, wire::ErrorCode> {
+        self.require_running()?;
+        if self.host_instance_id() != Some(proof.host_instance_id.as_str()) {
+            return Err(wire::ErrorCode::BindingMismatch);
+        }
+        let (wall, now) = self.now()?;
+        let remaining = (proof.scope.authorization_expires_at_unix_ms as u64)
+            .checked_sub(wall)
+            .filter(|remaining| *remaining > 0)
+            .ok_or(wire::ErrorCode::ScopeExpired)?;
+        if let Some(last) = &self.last_renewal {
+            if last == &proof {
+                return Ok(proof);
+            }
+            if proof.sequence <= last.sequence {
+                return Err(wire::ErrorCode::RevisionConflict);
+            }
+        }
+        self.refresh_at(now);
+        for lease in self.leases.values_mut() {
+            if !matches!(
+                lease.view.state,
+                wire::LeaseState::Prepared | wire::LeaseState::Bound
+            ) || lease.providers.is_empty()
+                || lease.authority_expiry_ms as u64 <= wall
+                || !same_authority(&lease.view.binding.context.scope, &proof.scope)
+                || lease.providers.iter().any(|p| !p.backend.available())
+                || lease.authority_expiry_ms == proof.scope.authorization_expires_at_unix_ms
+            {
+                continue;
+            }
+            let mut deadline = now
+                + remaining
+                    .min(lease.requested_ttl_ms)
+                    .min(wire::MAX_LEASE_TTL_MS as u64);
+            if proof.scope.authorization_expires_at_unix_ms < lease.authority_expiry_ms {
+                deadline = deadline.min(lease.deadline);
+            }
+            if deadline < lease.deadline {
+                // Dispatched calls own a copy of their original deadline.
+                // Cancel those permits before publishing a shorter window.
+                lease.cancelled.cancel();
+                lease.cancelled = CancellationToken::new();
+            }
+            lease.authority_expiry_ms = proof.scope.authorization_expires_at_unix_ms;
+            lease.deadline = deadline;
+        }
+        self.refresh_at(now);
+        self.last_renewal = Some(proof.clone());
+        Ok(proof)
     }
     fn bind_turn(
         &mut self,
@@ -1197,6 +1261,11 @@ impl Broker {
             Some("initialize") => route!(wire::InitializeRequest, InitializeResponse, initialize),
             Some("prepare") => route!(wire::PrepareRequest, PrepareResponse, prepare),
             Some("bind_turn") => route!(wire::BindTurnRequest, BindTurnResponse, bind_turn),
+            Some("renew_market_scope") => route!(
+                wire::RenewScopeRequest,
+                RenewScopeResponse,
+                renew_market_scope
+            ),
             Some("revoke") => route!(wire::RevokeRequest, RevokeResponse, revoke),
             Some("status") => route!(wire::StatusRequest, StatusResponse, status),
             Some("pending_call") => {
@@ -2184,6 +2253,160 @@ mod tests {
     fn kimi_clock(clock: &TestClock, ms: u64) {
         clock.tick.store(ms, Ordering::SeqCst);
         clock.wall.store(1_800_000_000_000 + ms, Ordering::SeqCst);
+    }
+
+    fn renewal(lease: &wire::Lease, sequence: i64, expiry: i64) -> wire::RenewScopePayload {
+        let context = &lease.binding.context;
+        let mut scope = context.scope.clone();
+        scope.authorization_expires_at_unix_ms = 1_800_000_000_000 + expiry;
+        wire::RenewScopePayload {
+            host_instance_id: context.process.host_instance_id.clone(),
+            scope,
+            sequence,
+        }
+    }
+
+    fn basic_call(
+        broker: &mut Broker,
+        lease: &wire::Lease,
+    ) -> Result<wire::PendingCall, wire::ErrorCode> {
+        broker.register_call(
+            &lease.binding.capability_ref,
+            "native-thread-1",
+            "native-turn-1",
+            crate::web_retrieval_generated::SEARCH_TOOL_NAME,
+            Some(Map::from_iter([(
+                "query".into(),
+                Value::from("public sample"),
+            )])),
+        )
+    }
+
+    #[test]
+    fn market_scope_renewal_spans_forty_minutes_and_preserves_each_approval() {
+        let (mut broker, clock, lease) = kimi_new_lease_with_ttl(false, 114_000, 300_000);
+        kimi_clock(&clock, 80_000);
+        let original = basic_call(&mut broker, &lease).unwrap();
+        assert_eq!(original.remaining_ttl_ms, 34_000);
+        let first = renewal(&lease, 1, 390_000);
+        kimi_clock(&clock, 90_000);
+        broker.renew_market_scope(first.clone()).unwrap();
+        kimi_clock(&clock, 114_000);
+        assert_eq!(
+            broker.pending_call_view(&original.identity.call_ref),
+            Some(wire::CallState::Expired)
+        );
+        let cancellation = CancellationToken::new();
+        assert!(
+            broker
+                .consume_execution(&original.identity.call_ref, true, &cancellation)
+                .is_err()
+        );
+        for sequence in 2..=10 {
+            let now_ms = 90_000 + 270_000 * (sequence - 1);
+            kimi_clock(&clock, now_ms as u64);
+            let proof = renewal(&lease, sequence, now_ms + 300_000);
+            broker.renew_market_scope(proof.clone()).unwrap();
+            // Retrying the same transport proof does not buy more time.
+            kimi_clock(&clock, now_ms as u64 + 5_000);
+            broker.renew_market_scope(proof).unwrap();
+            assert_eq!(
+                broker
+                    .status(wire::StatusPayload {
+                        binding: lease.binding.clone()
+                    })
+                    .unwrap()
+                    .remaining_ttl_ms,
+                295_000
+            );
+        }
+        let unapproved = basic_call(&mut broker, &lease).unwrap();
+        assert!(
+            broker
+                .consume_execution(&unapproved.identity.call_ref, true, &cancellation)
+                .is_err()
+        );
+        let approved = basic_call(&mut broker, &lease).unwrap();
+        assert_eq!(approved.identity.binding, original.identity.binding);
+        assert_ne!(approved.identity.call_ref, original.identity.call_ref);
+        approve(&mut broker, &approved);
+        assert!(
+            broker
+                .consume_execution(&approved.identity.call_ref, true, &cancellation)
+                .is_ok()
+        );
+        assert!(
+            broker
+                .consume_execution(&approved.identity.call_ref, true, &cancellation)
+                .is_err()
+        );
+    }
+
+    #[test]
+    fn market_scope_renewal_cannot_reopen_expired_revoked_or_different_authority() {
+        let (mut b, clock, l) = kimi_new_lease_with_ttl(false, 139_000, 300_000);
+        kimi_clock(&clock, 90_000);
+        let mut other = renewal(&l, 1, 390_000);
+        other.scope.authorization_revision += 1;
+        b.renew_market_scope(other).unwrap();
+        kimi_clock(&clock, 139_000);
+        b.renew_market_scope(renewal(&l, 2, 439_000)).unwrap();
+        assert_eq!(
+            basic_call(&mut b, &l).unwrap_err(),
+            wire::ErrorCode::LeaseExpired
+        );
+        let (mut b, _, l) = kimi_new_lease(false, 139_000);
+        b.revoke(wire::RevokePayload {
+            operation_id: Uuid::new_v4().to_string(),
+            binding: l.binding.clone(),
+            expected_revision: l.revision,
+            reason: wire::RevokeReason::AuthorizationChanged,
+        })
+        .unwrap();
+        b.renew_market_scope(renewal(&l, 1, 300_000)).unwrap();
+        assert_eq!(
+            basic_call(&mut b, &l).unwrap_err(),
+            wire::ErrorCode::LeaseRevoked
+        );
+    }
+
+    #[test]
+    fn market_scope_renewal_shortens_authority_and_rejects_stale_proofs() {
+        let (mut b, clock, l) = kimi_new_lease_with_ttl(false, 139_000, 300_000);
+        kimi_clock(&clock, 90_000);
+        let first = renewal(&l, 1, 390_000);
+        b.renew_market_scope(first.clone()).unwrap();
+        let pending = basic_call(&mut b, &l).unwrap();
+        let dispatched = basic_call(&mut b, &l).unwrap();
+        approve(&mut b, &dispatched);
+        let Execution::Kimi {
+            lease: in_flight, ..
+        } = b
+            .consume_execution(
+                &dispatched.identity.call_ref,
+                true,
+                &CancellationToken::new(),
+            )
+            .unwrap()
+        else {
+            panic!("expected Kimi permit")
+        };
+        b.renew_market_scope(renewal(&l, 2, 115_000)).unwrap();
+        assert!(in_flight.is_cancelled());
+        assert_eq!(
+            b.pending_call_view(&pending.identity.call_ref),
+            Some(wire::CallState::Cancelled)
+        );
+        assert_eq!(
+            b.renew_market_scope(first).unwrap_err(),
+            wire::ErrorCode::RevisionConflict
+        );
+        assert_eq!(basic_call(&mut b, &l).unwrap().remaining_ttl_ms, 25_000);
+        kimi_clock(&clock, 115_000);
+        assert_eq!(
+            basic_call(&mut b, &l).unwrap_err(),
+            wire::ErrorCode::LeaseExpired
+        );
     }
     #[test]
     fn kimi_dual_deadlines_expire_pending_but_keep_approved_execution() {

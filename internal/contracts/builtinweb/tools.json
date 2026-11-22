@@ -413,6 +413,28 @@
               "if": {
                 "properties": {
                   "code": {
+                    "const": "url_blocked"
+                  }
+                },
+                "required": [
+                  "code"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "message": {
+                    "const": "网页读取服务的安全策略拒绝了此网址。"
+                  }
+                },
+                "required": [
+                  "message"
+                ]
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "code": {
                     "const": "no_content"
                   }
                 },
@@ -597,6 +619,7 @@
             "busy",
             "upstream_unavailable",
             "timeout",
+            "url_blocked",
             "no_content",
             "response_too_large",
             "invalid_response",
@@ -1098,6 +1121,28 @@
               "if": {
                 "properties": {
                   "code": {
+                    "const": "url_blocked"
+                  }
+                },
+                "required": [
+                  "code"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "message": {
+                    "const": "网页读取服务的安全策略拒绝了此网址。"
+                  }
+                },
+                "required": [
+                  "message"
+                ]
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "code": {
                     "const": "no_content"
                   }
                 },
@@ -1282,6 +1327,7 @@
             "busy",
             "upstream_unavailable",
             "timeout",
+            "url_blocked",
             "no_content",
             "response_too_large",
             "invalid_response",
@@ -1316,7 +1362,7 @@
   {
     "name": "kimi_web_fetch",
     "title": "读取指定网页",
-    "description": "Built-in read-only web retrieval needs no connector selection. Use returned results to decide follow-up retrieval: continue only for a specific missing part of the requested deliverable, without adding verification goals. Once the requested items or facts are supported, finish within the user's full output limit. Read an explicitly requested public HTTP(S) URL, or a returned research source whose body is still needed after consuming Pro. A URL in a source list or used only as an example is not itself a reading request. This tool accepts only url, with no pagination or adjustable content limit. A successful truncated=true result is usable partial evidence: do not refetch it to obtain a missing tail. Changing only #fragment is not pagination; reuse the returned page body. If required facts remain missing, use a focused Pro query with sites or state the gap. An explicit refresh is a new need for the same page.",
+    "description": "Built-in read-only web retrieval needs no connector selection. Use returned results to decide follow-up retrieval: continue only for a specific missing part of the requested deliverable, without adding verification goals. Once the requested items or facts are supported, finish within the user's full output limit. Read an explicitly requested public HTTP(S) URL, or a returned research source whose body is still needed after consuming Pro. A URL in a source list or used only as an example is not itself a reading request. This tool accepts only url, with no pagination or adjustable content limit. A successful truncated=true result is usable partial evidence: do not refetch it to obtain a missing tail. Changing only #fragment is not pagination; reuse the returned page body. If required facts remain missing, use a focused Pro query with sites or state the gap. An explicit refresh is a new need for the same page. A url_blocked result means the retrieval provider declined this URL under its security policy. Report the refusal for that URL.",
     "inputSchema": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "type": "object",
@@ -1564,6 +1610,28 @@
               "if": {
                 "properties": {
                   "code": {
+                    "const": "url_blocked"
+                  }
+                },
+                "required": [
+                  "code"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "message": {
+                    "const": "网页读取服务的安全策略拒绝了此网址。"
+                  }
+                },
+                "required": [
+                  "message"
+                ]
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "code": {
                     "const": "no_content"
                   }
                 },
@@ -1748,6 +1816,7 @@
             "busy",
             "upstream_unavailable",
             "timeout",
+            "url_blocked",
             "no_content",
             "response_too_large",
             "invalid_response",

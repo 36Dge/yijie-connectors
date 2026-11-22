@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "feature": "FEAT-175",
-  "contract_version": "0.3.0",
+  "contract_version": "0.4.0",
   "mode": "local_worktree_candidate",
   "release": false,
   "base_commit": "2592f5d5b07fcd92de10d25c4dcf73bd1ce03cb5",
@@ -15,19 +15,19 @@
   "sources": [
     {
       "path": "compatibility/builtin-web-retrieval/wire.schema.json",
-      "sha256": "551f6bc735b4d96d4990f69799dec06b81b579adef214e8ece40b40745472ffa"
+      "sha256": "e38045cf51c06e44a6093cc236b5216217d16974f69cfae31d32cadd034fcfed"
     },
     {
       "path": "compatibility/builtin-web-retrieval/policy.json",
-      "sha256": "9340e14adac8a472d15de45aa75b1a3d457ff32dd372ba83af4298d0f2a82bc4"
+      "sha256": "f3c2796a5d383a6b7b2f17adcda18412bf32bad6e6d8272b05ec5fe4357e92b0"
     },
     {
       "path": "openapi/public/web-retrieval.yaml",
-      "sha256": "71985a8725cd3c33d6aab574e87816626d901c7971248dd24928f323e30e2bd9"
+      "sha256": "9908a9a20dd355515d1264864a3df41fe4dfaa5fd089f3f481a92401317707b7"
     },
     {
       "path": "openapi/internal/web-retrieval.yaml",
-      "sha256": "2c6d9288cd7b17220d7b4c8aa2037def26258458fb16a4773a6aeaa5356f1a64"
+      "sha256": "837d906a272e06a9917b0ebb7086ed57357973dfb53670c464230daf5f901c79"
     },
     {
       "path": "openapi/agent-host/builtin-web.yaml",
@@ -35,7 +35,7 @@
     },
     {
       "path": "openapi/local/web-retrieval.yaml",
-      "sha256": "d76df872a1905f664f0533f6820c5cbae4d3f8c2eb77ea561e00f4f2e5fae89e"
+      "sha256": "33da6281aa935f6418eb09b4029bfe58e9e1eccb7037776d094e58883d8238f4"
     },
     {
       "path": "compatibility/web-retrieval/wire.schema.json",
@@ -47,7 +47,7 @@
     },
     {
       "path": "compatibility/market-broker-control/control.json",
-      "sha256": "3fd86dc72cad08932bd9c1e95ea88e96779501d3cee93dcbe45cc9e522e54135"
+      "sha256": "7e613a8cf39d9edf9abdb206bb73f2fa197249916539bf6f1c689fd90a1d9b96"
     },
     {
       "path": "compatibility/runtime-tool-search/source.lock.json",
@@ -85,31 +85,31 @@
     },
     {
       "path": "sdks/go/builtinweb/wire.gen.go",
-      "sha256": "3eaefa5e3c4d027a4710d622b999b4ea3c8db63bbf42574627b72040cf6a8574"
+      "sha256": "13c0816222e0ec804615b0750ecceeb208ca196e90c3e486967889c18c1ce6a0"
     },
     {
       "path": "sdks/go/builtinweb/policy.gen.go",
-      "sha256": "eccf5414f2e5692ef8021006a0455df4fe3db544440e989d493b25b2600be42e"
+      "sha256": "f708ce4615edff1178f7c0a323f952ae0994ea9d2c3e27594b2d3fb650d8e220"
     },
     {
       "path": "sdks/go/builtinweb/tools.json",
-      "sha256": "d6ba09caf2f216cb9cb3694979bff184c53c2ceeddf33609aa84ba6b5e2b5227"
+      "sha256": "0484f159acde4394378195cebf6a40720cda8e65f374f27f3aeb2829494d71cb"
     },
     {
       "path": "sdks/go/builtinweb/wire.schema.json",
-      "sha256": "5131c9c59434c23d00dd4d1583743c7fb4f07671468a1485ddb86293a7bc68d8"
+      "sha256": "4d80dbfe61ca556dbee731342c118dc5847c161da2fc93e521daa94234288789"
     },
     {
       "path": "sdks/jsonschema/builtin-web-retrieval.schema.json",
-      "sha256": "5131c9c59434c23d00dd4d1583743c7fb4f07671468a1485ddb86293a7bc68d8"
+      "sha256": "4d80dbfe61ca556dbee731342c118dc5847c161da2fc93e521daa94234288789"
     },
     {
       "path": "sdks/jsonschema/builtin-web-retrieval.tools.json",
-      "sha256": "0f7091f6f4324f12dbe3c12a7702a0b3256703c3eb3465fe0e15a720614b33f2"
+      "sha256": "7924597cf089c35f7f11ba932fa416c429b7d4a01acc0b305073ca8142ceb5a8"
     },
     {
       "path": "sdks/rust/builtinweb/source.gen.rs",
-      "sha256": "49252565e1aad54671eb2b025706e63c98af9a0005640bd403f4a1fe451e6243"
+      "sha256": "651eef210b29527b9ab7a34741b60332db058d73161327bc25a7c21143e3b32f"
     },
     {
       "path": "sdks/go/builtinweb/validate.gen.go",
@@ -133,11 +133,11 @@
     },
     {
       "path": "sdks/typescript/src/domain/builtin-web.generated.ts",
-      "sha256": "60e03036ad262fcba32c1f4db8bd92140742d61d0b620358b44d56993d38ccd8"
+      "sha256": "3f318a062c504afd769c80f8d8cb96e8e871175447e1e9650ae13ff01a50f169"
     },
     {
       "path": "sdks/typescript/src/api/generated/builtin-web-error-validator.gen.js",
-      "sha256": "b1742085f280bce9a93960d024ff59a228a2d6476beee86cdff6e009cff0ddb5"
+      "sha256": "73a8f5305ae78c144c39d317075d5e17fb1e201b3e907104b44dc9b9b1c1d478"
     },
     {
       "path": "sdks/typescript/src/api/generated/builtin-web-error-validator.gen.d.ts",

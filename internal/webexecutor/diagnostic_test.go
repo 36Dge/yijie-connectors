@@ -36,3 +36,18 @@ func TestWebDiagnosticPreservesTimeoutOriginWithBoundedTypedRecords(t *testing.T
 		}
 	}
 }
+
+func TestWebDiagnosticPreservesFetchPolicyRefusal(t *testing.T) {
+	var output bytes.Buffer
+	id := "019a8811-0000-7000-8000-000000000175"
+	writer := newDiagnosticWriter(id, &output)
+	_, _ = writer.Write([]byte(`{"schemaVersion":1,"unixMs":1794811000000,"stage":"web_normalize","event":"url_blocked","httpStatus":null,"safeFailure":null}` + "\n"))
+	var event struct {
+		Operation string `json:"operation_id"`
+		Stage     string `json:"stage"`
+		Event     string `json:"event"`
+	}
+	if err := json.Unmarshal(output.Bytes(), &event); err != nil || event.Operation != id || event.Stage != "web_normalize" || event.Event != "url_blocked" {
+		t.Fatal("fetch URL refusal was lost from its operation diagnostics")
+	}
+}

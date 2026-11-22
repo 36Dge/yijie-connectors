@@ -96,6 +96,7 @@ pub enum Stage {
 #[derive(Clone, Copy, serde::Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Event {
+    UrlBlocked,
     Started,
     Succeeded,
     Failed,

@@ -2925,6 +2925,183 @@ impl std::fmt::Debug for GatewayCallReceipt {
         f.write_str("GatewayCallReceipt([redacted])")
     }
 }
+#[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", try_from = "RenewScopePayloadWire")]
+pub struct RenewScopePayload {
+    pub host_instance_id: CanonicalId,
+    pub scope: ScopeBinding,
+    pub sequence: Revision,
+}
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct RenewScopePayloadWire {
+    pub host_instance_id: CanonicalId,
+    pub scope: ScopeBinding,
+    pub sequence: Revision,
+}
+impl TryFrom<RenewScopePayloadWire> for RenewScopePayload {
+    type Error = &'static str;
+    fn try_from(w: RenewScopePayloadWire) -> Result<Self, Self::Error> {
+        let v = Self {
+            host_instance_id: w.host_instance_id,
+            scope: w.scope,
+            sequence: w.sequence,
+        };
+        v.validate()?;
+        Ok(v)
+    }
+}
+impl RenewScopePayload {
+    pub fn validate(&self) -> Result<(), &'static str> {
+        {
+            let value_host_instance_id = &self.host_instance_id;
+            if !canonical_id(value_host_instance_id) {
+                return Err("invalid broker UUID");
+            }
+            if value_host_instance_id == "00000000-0000-0000-0000-000000000000" {
+                return Err("invalid broker identity");
+            }
+        }
+        {
+            let value_scope = &self.scope;
+            value_scope.validate()?;
+        }
+        {
+            let value_sequence = &self.sequence;
+            if *value_sequence < 1 {
+                return Err("invalid broker number");
+            }
+            if *value_sequence > 9007199254740991 {
+                return Err("invalid broker number");
+            }
+        }
+        Ok(())
+    }
+}
+impl std::fmt::Debug for RenewScopePayload {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("RenewScopePayload([redacted])")
+    }
+}
+#[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", try_from = "RenewScopeRequestWire")]
+pub struct RenewScopeRequest {
+    pub schema_version: i64,
+    pub request_id: CanonicalId,
+    pub method: String,
+    pub payload: RenewScopePayload,
+}
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct RenewScopeRequestWire {
+    pub schema_version: i64,
+    pub request_id: CanonicalId,
+    pub method: String,
+    pub payload: RenewScopePayload,
+}
+impl TryFrom<RenewScopeRequestWire> for RenewScopeRequest {
+    type Error = &'static str;
+    fn try_from(w: RenewScopeRequestWire) -> Result<Self, Self::Error> {
+        let v = Self {
+            schema_version: w.schema_version,
+            request_id: w.request_id,
+            method: w.method,
+            payload: w.payload,
+        };
+        v.validate()?;
+        Ok(v)
+    }
+}
+impl RenewScopeRequest {
+    pub fn validate(&self) -> Result<(), &'static str> {
+        {
+            let value_schema_version = &self.schema_version;
+            if *value_schema_version != 1 {
+                return Err("invalid broker constant");
+            }
+        }
+        {
+            let value_request_id = &self.request_id;
+            if !canonical_id(value_request_id) {
+                return Err("invalid broker UUID");
+            }
+            if value_request_id == "00000000-0000-0000-0000-000000000000" {
+                return Err("invalid broker identity");
+            }
+        }
+        {
+            let value_method = &self.method;
+            if value_method != "renew_market_scope" {
+                return Err("invalid broker constant");
+            }
+        }
+        {
+            let value_payload = &self.payload;
+            value_payload.validate()?;
+        }
+        Ok(())
+    }
+}
+impl std::fmt::Debug for RenewScopeRequest {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("RenewScopeRequest([redacted])")
+    }
+}
+#[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", try_from = "RenewScopeResponseWire")]
+pub struct RenewScopeResponse {
+    pub schema_version: i64,
+    pub request_id: CanonicalId,
+    pub data: RenewScopePayload,
+}
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct RenewScopeResponseWire {
+    pub schema_version: i64,
+    pub request_id: CanonicalId,
+    pub data: RenewScopePayload,
+}
+impl TryFrom<RenewScopeResponseWire> for RenewScopeResponse {
+    type Error = &'static str;
+    fn try_from(w: RenewScopeResponseWire) -> Result<Self, Self::Error> {
+        let v = Self {
+            schema_version: w.schema_version,
+            request_id: w.request_id,
+            data: w.data,
+        };
+        v.validate()?;
+        Ok(v)
+    }
+}
+impl RenewScopeResponse {
+    pub fn validate(&self) -> Result<(), &'static str> {
+        {
+            let value_schema_version = &self.schema_version;
+            if *value_schema_version != 1 {
+                return Err("invalid broker constant");
+            }
+        }
+        {
+            let value_request_id = &self.request_id;
+            if !canonical_id(value_request_id) {
+                return Err("invalid broker UUID");
+            }
+            if value_request_id == "00000000-0000-0000-0000-000000000000" {
+                return Err("invalid broker identity");
+            }
+        }
+        {
+            let value_data = &self.data;
+            value_data.validate()?;
+        }
+        Ok(())
+    }
+}
+impl std::fmt::Debug for RenewScopeResponse {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("RenewScopeResponse([redacted])")
+    }
+}
 fn canonical_id(s: &str) -> bool {
     let b = s.as_bytes();
     b.len() == 36
@@ -2954,6 +3131,7 @@ pub enum Request {
     Initialize(Box<InitializeRequest>),
     Prepare(Box<PrepareRequest>),
     BindTurn(Box<BindTurnRequest>),
+    RenewScope(Box<RenewScopeRequest>),
     Revoke(Box<RevokeRequest>),
     Status(Box<StatusRequest>),
     PendingCall(Box<PendingCallRequest>),
@@ -2966,6 +3144,7 @@ impl Request {
             Self::Initialize(v) => &v.request_id,
             Self::Prepare(v) => &v.request_id,
             Self::BindTurn(v) => &v.request_id,
+            Self::RenewScope(v) => &v.request_id,
             Self::Revoke(v) => &v.request_id,
             Self::Status(v) => &v.request_id,
             Self::PendingCall(v) => &v.request_id,
@@ -2978,6 +3157,7 @@ pub const GATEWAY_RESULT_KEY: &str = "yijie.market.call";
 pub const GATEWAY_RESULT_DEFINITION: &str = "GatewayCallReceipt";
 pub const GATEWAY_RESULT_MAX_METADATA_BYTES: usize = 4096;
 pub const GATEWAY_RESULT_MAX_RESULT_ENVELOPE_BYTES: usize = 73728;
+pub const GATEWAY_RESULT_TURN_STOP_KEY: &str = "yijie.market.turnStop";
 pub const GENERIC_MAX_TOOLS_PER_SERVICE: usize = 512;
 pub const GENERIC_MAX_TOOLS_PER_SELECTION: usize = 512;
 pub const GENERIC_MAX_SCHEMA_BYTES: usize = 65536;
@@ -3005,6 +3185,16 @@ pub const GATEWAY_ERROR_ADMISSION_STOPPED_MESSAGE: &str =
 pub const GATEWAY_ERROR_EXECUTION_UNVERIFIED_OUTCOME: &str = "unknown";
 pub const GATEWAY_ERROR_EXECUTION_UNVERIFIED_CODE: &str = "temporarily_unavailable";
 pub const GATEWAY_ERROR_EXECUTION_UNVERIFIED_MESSAGE:&str="本次连接器调用未取得可验证的结果，无法确认外部请求是否已发送或完成。不能据此判断没有数据或已执行；不会自动重试。";
+pub const GATEWAY_ERROR_LEASE_EXPIRED_OUTCOME: &str = "not_sent";
+pub const GATEWAY_ERROR_LEASE_EXPIRED_CODE: &str = "lease_expired";
+pub const GATEWAY_ERROR_LEASE_EXPIRED_MESSAGE:&str="本轮市场连接器授权已到期，外部请求未发送。本轮请停止调用所有市场工具，包括更换参数、工具或查询额度。请向用户说明原因，并用已有结果继续。";
+pub const GATEWAY_ERROR_LEASE_REVOKED_OUTCOME: &str = "not_sent";
+pub const GATEWAY_ERROR_LEASE_REVOKED_CODE: &str = "lease_revoked";
+pub const GATEWAY_ERROR_LEASE_REVOKED_MESSAGE:&str="本轮市场连接器授权已撤销，外部请求未发送。本轮请停止调用所有市场工具，包括更换参数、工具或查询额度。请向用户说明原因，并用已有结果继续。";
+pub const GATEWAY_ERROR_APPROVAL_EXPIRED_OUTCOME: &str = "not_sent";
+pub const GATEWAY_ERROR_APPROVAL_EXPIRED_CODE: &str = "call_expired";
+pub const GATEWAY_ERROR_APPROVAL_EXPIRED_MESSAGE: &str =
+    "本次市场工具的单次审批已到期，外部请求未发送。请告知用户，本次操作需重新批准，请勿自行重试。";
 pub const KIMI_MODEL_CREDENTIAL_ENVIRONMENT_KEY: &str = "YIJIE_MARKET_KIMI_MODEL_KEY_FD";
 pub const KIMI_MODEL_CREDENTIAL_DESCRIPTOR: usize = 3;
 pub const KIMI_MODEL_CREDENTIAL_PREAMBLE: &str = "yijie-kimi-model-key-v1\n";

@@ -14,6 +14,8 @@ Broker 使用固定依赖闭包中的官方 `rmcp = 1.8.0` streamable HTTP serve
 
 首次准备把 Host 提供且已验证的 Native scope 到期墙钟夹紧到最多300秒，随后仅使用单调时钟判断失效。重复请求不会延长租期。完整 mutation payload（排除传输 requestId）定义进程内幂等意图；同 operationId 改意图冲突。
 
+在权限仍有效的长任务中，Native 的 `renew_market_scope` 通过 Host 私有管道更新同一轮市场授权的单调时钟截止时间。每个新请求仍要独立批准。单次审批的原截止时间保持有效。权限真正到期或被撤销时，Gateway 返回 `lease_expired` 或 `lease_revoked`，配套 Runtime 在该轮停止市场调用。详见 Contracts 的 `docs/market-broker-control-v1.md`。
+
 原 turn operation 的保留键使用稳定 owner/tenant/Native process epoch/session/turn identity，不使用可续期的 authorization revision 或 expiry。到期/撤销后换 mutation ID、正常续期 scope 都不能重建原 turn。租期/调用只保留在该 worker 内存中，不建立安装或审批业务数据库，也不能从历史恢复可执行授权。
 
 每个 generation 最多保留64个租期、1024个 mutation receipt。当前实现将128个 call 上限保守地用于全部 retained call（包括已消费/拒绝的 tombstone），并非只数活动 pending；不驱逐旧记录后重复接纳。不足时明确 `capacity_exceeded`，必须通过正常结束该 generation 开始新的 owner。这是当前候选容量限制，不能宣称无限长会话会自动释放容量。冻结原始参数在消费/拒绝/取消/到期/撤销后立即释放；非秘密 identity/decision receipt 保留以解释重放。

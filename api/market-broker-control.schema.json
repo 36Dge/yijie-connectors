@@ -1247,6 +1247,74 @@
       ],
       "description": "Gateway-owned result _meta[yijie.market.call], not supplier metadata. Capture the current frozen call and accepted decision atomically with admission. Null decisionReceipt means no accepted owner decision observed, not that no prompt occurred. admissionConsumed is only permission consumption, never HTTP delivery or provider success. Native Item identity/status remain authoritative. No credentialRef, capabilityRef, bearer, raw arguments or authority context."
     },
+    "RenewScopePayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "hostInstanceId",
+        "scope",
+        "sequence"
+      ],
+      "properties": {
+        "hostInstanceId": {
+          "$ref": "#/$defs/CanonicalId"
+        },
+        "scope": {
+          "$ref": "#/$defs/ScopeBinding"
+        },
+        "sequence": {
+          "$ref": "#/$defs/Revision"
+        }
+      },
+      "description": "A freshly revalidated Native task.read/task.create/connector.use scope on the exclusive owner pipe. Sequence increases within the Native process. Only existing live market selections of this exact authority can receive a new bounded deadline. This is not a prepare or a call approval."
+    },
+    "RenewScopeRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "requestId",
+        "method",
+        "payload"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "type": "integer",
+          "const": 1
+        },
+        "requestId": {
+          "$ref": "#/$defs/CanonicalId"
+        },
+        "method": {
+          "type": "string",
+          "const": "renew_market_scope"
+        },
+        "payload": {
+          "$ref": "#/$defs/RenewScopePayload"
+        }
+      }
+    },
+    "RenewScopeResponse": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "schemaVersion",
+        "requestId",
+        "data"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "type": "integer",
+          "const": 1
+        },
+        "requestId": {
+          "$ref": "#/$defs/CanonicalId"
+        },
+        "data": {
+          "$ref": "#/$defs/RenewScopePayload"
+        }
+      }
+    },
     "Selection": {
       "type": "array",
       "maxItems": 58,
