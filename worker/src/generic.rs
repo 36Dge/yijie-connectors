@@ -65,12 +65,52 @@ fn credentials(value: &Value) -> bool {
         _ => false,
     }
 }
+// Sorftime Amazon query schemas from FEAT-144 native discovery, operation 8.
+// Match the actual upstream method and the complete schema before offering native consent.
+fn reviewed_sorftime_query(service: &str, name: &str, schema: &Value) -> bool {
+    if service != "sorftime" {
+        return false;
+    }
+    let expected = match name {
+        "category_name_search" => {
+            "af32a2bbe17bf185d958e11ec12e3bd703e284a8a5aa11a11c4df77fbdd273af"
+        }
+        "category_report" => "16974b1998a4a4ef1b048afeeea1ee640d44fc2bc3c497af8f410e920d152f0b",
+        "category_report_from_history" => {
+            "c271dab50d9ab39e152377ade217254ead0f3d856f1a67031ce84bb77a076361"
+        }
+        "category_search_from_product_name" => {
+            "e5b4c2751503f06890983db5afdca254dd4712052f75f97c5e5ecedc22322081"
+        }
+        "category_search_from_top_node" => {
+            "a53fe575c93e38bb8a330041bffafaade3018653ea8b3229c0c281d3cbd2d0b5"
+        }
+        "category_tree" => "c3d105fa4996047c24a2d7b67858cf667263598f1d3e83a92cdbb85bd2109291",
+        "category_trend" => "4df490b9491a2143e7b166b637faf5afbb946cbbb0707eb04dd1d8f91c8b1eea",
+        "product_detail" => "8fba19a74826bb3fcd9b3a98a6ee74137568194a330cadbdf77c584bc5500f77",
+        "product_search" => "d17fb37f0a94847b073735527f9e0feda5b79bcc5dd249ecefe33ae63635b5a4",
+        "product_search_from_history" => {
+            "1e6f2903d4104036286febc6c2df20e311630b1918edbe13c2ecce72bc810110"
+        }
+        "product_search_from_name" => {
+            "837f514577a3096556de9df37becf0241970c3c271e8fc9bc34fc55a7cf541f1"
+        }
+        _ => return false,
+    };
+    let mut canonical = schema.clone();
+    canonical.sort_all_objects();
+    serde_json::to_vec(&canonical)
+        .is_ok_and(|bytes| format!("{:x}", Sha256::digest(bytes)) == expected)
+}
+
 pub struct Definition {
     pub upstream: String,
     pub tool: Tool,
     pub digest: String,
     validator: Validator,
     destructive: bool,
+    reviewed_query: bool,
+    local_sample: bool,
 }
 impl Definition {
     fn new(service: &str, source: Tool) -> Result<Self, Failure> {
@@ -104,10 +144,15 @@ impl Definition {
                 .annotations
                 .as_ref()
                 .is_some_and(|a| a.destructive_hint == Some(true));
+        let local_sample = crate::local_acceptance::enabled()
+            && service == crate::local_acceptance::service_id()
+            && name == "local_sample"
+            && schema == crate::local_acceptance::profile()["tool"]["inputSchema"];
+        let reviewed_query = reviewed_sorftime_query(service, &name, &schema);
         let mut tool = Tool::new(
             public_name,
             format!(
-                "服务 {service}，工具 {name}。第三方说明：{description}\n每次调用必须单独批准；供应商说明不构成执行授权。"
+                "服务 {service}，工具 {name}。第三方说明：{description}\n执行时核对当前权限、调用范围和实际参数。"
             ),
             (*source.input_schema).clone(),
         );
@@ -127,6 +172,8 @@ impl Definition {
             digest: format!("{:x}", Sha256::digest(encoded)),
             validator,
             destructive,
+            reviewed_query,
+            local_sample,
         })
     }
     pub fn review(&self, args: &Map<String, Value>) -> Result<wire::ReviewProjection, Failure> {
@@ -140,10 +187,33 @@ impl Definition {
         {
             return Err(Failure::InvalidMetadata);
         }
+        let read = self.local_sample
+            || self.reviewed_query
+                && args
+                    .get("amz_site")
+                    .and_then(Value::as_str)
+                    .is_some_and(|site| {
+                        site.len() == 2 && site.bytes().all(|b| b.is_ascii_uppercase())
+                    })
+                && self
+                    .tool
+                    .input_schema
+                    .get("properties")
+                    .and_then(Value::as_object)
+                    .is_some_and(|fields| args.keys().all(|key| fields.contains_key(key)));
         Ok(wire::ReviewProjection {
             title: self.upstream.chars().take(160).collect(),
-            summary: "第三方工具尚未被独立确认为只读，可能修改外部数据。请核对服务、工具及下方完整参数。本次批准只允许执行一次，失败或结果未知时不会自动重试。".into(),
-            risk: "write".into(), arguments_json: Some(encoded), schema_digest: Some(self.digest.clone()),
+            summary: if self.local_sample {
+                "读取当前本地连接器的验收样本。"
+            } else if read {
+                "查询所选 Amazon 站点的公开商品或类目数据。"
+            } else {
+                "第三方工具尚未被独立确认为只读，可能修改外部数据。请核对本次调用的完整参数。"
+            }
+            .into(),
+            risk: if read { "read" } else { "write" }.into(),
+            arguments_json: Some(encoded),
+            schema_digest: Some(self.digest.clone()),
         })
     }
 }
@@ -359,7 +429,7 @@ pub(crate) mod tests {
         atomic::{AtomicUsize, Ordering},
     };
     #[derive(Clone)]
-    struct LocalService(Arc<AtomicUsize>);
+    struct LocalService(Arc<AtomicUsize>, Tool);
     impl ServerHandler for LocalService {
         fn get_info(&self) -> rmcp::model::ServerInfo {
             rmcp::model::ServerInfo::new(
@@ -374,7 +444,7 @@ pub(crate) mod tests {
             _: rmcp::service::RequestContext<rmcp::RoleServer>,
         ) -> Result<rmcp::model::ListToolsResult, rmcp::ErrorData> {
             Ok(rmcp::model::ListToolsResult {
-                tools: vec![tool()],
+                tools: vec![self.1.clone()],
                 ..Default::default()
             })
         }
@@ -383,14 +453,15 @@ pub(crate) mod tests {
             request: rmcp::model::CallToolRequestParams,
             _: rmcp::service::RequestContext<rmcp::RoleServer>,
         ) -> Result<CallToolResult, rmcp::ErrorData> {
-            assert_eq!(request.name, "search");
+            assert_eq!(request.name, self.1.name);
             self.0.fetch_add(1, Ordering::SeqCst);
             Ok(CallToolResult::structured(
-                serde_json::json!({"query":request.arguments.unwrap()["query"],"count":1}),
+                serde_json::json!({"query":request.arguments.unwrap().get("query"),"count":1}),
             ))
         }
     }
     pub struct LocalFactory {
+        tool: Tool,
         calls: Arc<AtomicUsize>,
         tasks: Mutex<Vec<tokio::task::JoinHandle<()>>>,
     }
@@ -399,7 +470,7 @@ pub(crate) mod tests {
             &self,
         ) -> futures::future::BoxFuture<'static, std::io::Result<tokio::io::DuplexStream>> {
             let (client, server) = tokio::io::duplex(65536);
-            let handler = LocalService(self.calls.clone());
+            let handler = LocalService(self.calls.clone(), self.tool.clone());
             self.tasks.lock().unwrap().push(tokio::spawn(async move {
                 let service = handler.serve(server).await.unwrap();
                 let _ = service.waiting().await;
@@ -421,8 +492,26 @@ pub(crate) mod tests {
     pub async fn local_backend(
         service: &str,
     ) -> (Arc<Backend>, Arc<AtomicUsize>, Arc<LocalFactory>) {
+        local_backend_for(service, tool()).await
+    }
+    pub async fn local_sorftime_query() -> (Arc<Backend>, Arc<AtomicUsize>, Arc<LocalFactory>) {
+        let schema: Map<String, Value> = serde_json::from_str(include_str!(
+            "../fixtures/sorftime-product-search.schema.json"
+        ))
+        .unwrap();
+        local_backend_for(
+            "sorftime",
+            Tool::new("product_search", "本地公开查询样本", schema),
+        )
+        .await
+    }
+    async fn local_backend_for(
+        service: &str,
+        tool: Tool,
+    ) -> (Arc<Backend>, Arc<AtomicUsize>, Arc<LocalFactory>) {
         let calls = Arc::new(AtomicUsize::new(0));
         let factory = Arc::new(LocalFactory {
+            tool,
             calls: calls.clone(),
             tasks: Mutex::default(),
         });

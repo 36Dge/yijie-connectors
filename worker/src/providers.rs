@@ -114,6 +114,7 @@ fn deadline(payload: &wire::ProviderPayload) -> Result<Instant, wire::ErrorCode>
 }
 fn initial(payload: &wire::ProviderPayload, kind: Kind) -> wire::ProviderStatus {
     wire::ProviderStatus {
+        native_approval_version: Some(1),
         operation_id: payload.operation_id.clone(),
         host_instance_id: payload.host_instance_id.clone(),
         scope: payload.scope.clone(),

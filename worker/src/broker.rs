@@ -72,6 +72,7 @@ impl ProviderMode {
 }
 struct LeaseRecord {
     view: wire::Lease,
+    native_approval_mode: Option<String>,
     authority_expiry_ms: i64,
     requested_ttl_ms: u64,
     // Owner prepare precedes Runtime submission; this is a conservative lower bound.
@@ -445,6 +446,7 @@ impl Broker {
             self.live_lease(&old.view.binding)?;
             if old.view.snapshot != payload.snapshot
                 || old.view.binding.context != payload.context
+                || old.native_approval_mode != payload.native_approval_mode
                 || old.web_mcp_deadline.is_some() != payload.web_retrieval_version.is_some()
             {
                 return Err(wire::ErrorCode::RequestConflict);
@@ -499,6 +501,7 @@ impl Broker {
             reference.clone(),
             LeaseRecord {
                 view: view.clone(),
+                native_approval_mode: payload.native_approval_mode.clone(),
                 authority_expiry_ms: payload.context.scope.authorization_expires_at_unix_ms,
                 requested_ttl_ms: payload.ttl_ms as u64,
                 web_mcp_deadline: payload
@@ -674,6 +677,24 @@ impl Broker {
         {
             return Err(wire::ErrorCode::TurnMismatch);
         }
+        use wire::Decision::*;
+        let mode = lease.native_approval_mode.as_deref();
+        let call = self
+            .calls
+            .get(&payload.identity.call_ref)
+            .ok_or(wire::ErrorCode::NotFound)?;
+        let qualified = call.view.review.risk == "read";
+        let supported = match payload.decision {
+            ApproveOnce | Reject | Cancel => true,
+            ApproveSession | ApproveAlways | NativeSession | NativeAlways => {
+                qualified && mode == Some("ask")
+            }
+            NativeFull => qualified && mode == Some("full"),
+            NativeAuto | NativeAutoReject => qualified && mode == Some("auto"),
+        };
+        if !supported {
+            return Err(wire::ErrorCode::ApprovalInvalid);
+        }
         let call = self
             .calls
             .get_mut(&payload.identity.call_ref)
@@ -691,8 +712,9 @@ impl Broker {
         call.view.decision = Some(payload.decision);
         call.approval_ref = Some(payload.approval_ref.clone());
         call.view.state = match payload.decision {
-            wire::Decision::ApproveOnce => wire::CallState::Approved,
-            wire::Decision::Reject => wire::CallState::Rejected,
+            ApproveOnce | ApproveSession | ApproveAlways | NativeSession | NativeAlways
+            | NativeAuto | NativeFull => wire::CallState::Approved,
+            Reject | NativeAutoReject => wire::CallState::Rejected,
             wire::Decision::Cancel => wire::CallState::Cancelled,
         };
         call.view.revision += 1;
@@ -909,6 +931,11 @@ impl Broker {
         Ok(!lease.view.snapshot.selection.is_empty()
             && (self.mode.permits(&lease.view.snapshot.selection) || !lease.providers.is_empty()))
     }
+    pub fn native_approval(&self, binding: &wire::CapabilityBinding) -> bool {
+        self.exact_lease(binding)
+            .is_ok_and(|lease| lease.native_approval_mode.is_some())
+    }
+
     pub fn visible_tools(
         &mut self,
         reference: &str,
@@ -974,7 +1001,7 @@ impl Broker {
         let full_budget = is_web
             && crate::kimi_web::requires_full_budget(tool, args)
                 .map_err(|_| wire::ErrorCode::InvalidRequest)?;
-        let (service, selected, review) = if let Some(provider) =
+        let (service, selected, mut review) = if let Some(provider) =
             lease.providers.iter().find(|p| p.backend.contains(tool))
         {
             let review = match &provider.backend {
@@ -1025,6 +1052,13 @@ impl Broker {
             }
             ("market-qualification".into(),lease.view.snapshot.selection[0].clone(),wire::ReviewProjection{title:"Local synthetic lookup".into(),summary:"Read the public value from the in-process qualification service. No external account or provider is contacted.".into(),risk:"read".into(),arguments_json:None,schema_digest:None})
         };
+        if lease.native_approval_mode.is_some()
+            && review.risk == "read"
+            && review.arguments_json.is_none()
+        {
+            review.arguments_json =
+                Some(serde_json::to_string(args).map_err(|_| wire::ErrorCode::InvalidRequest)?);
+        }
         review
             .validate()
             .map_err(|_| wire::ErrorCode::InvalidRequest)?;
@@ -1347,6 +1381,7 @@ mod tests {
         wire::PreparePayload {
             web_retrieval_version: None,
             mcp_tool_timeout_ms: None,
+            native_approval_mode: None,
             operation_id: Uuid::new_v4().to_string(),
             context,
             snapshot: crate::selection_generated::freeze_selection(
@@ -2280,6 +2315,113 @@ mod tests {
                 Value::from("public sample"),
             )])),
         )
+    }
+
+    #[tokio::test]
+    async fn sorftime_native_query_keeps_call_deadlines_across_forty_minute_renewal() {
+        let (backend, count, factory) = crate::generic::tests::local_sorftime_query().await;
+        let (mut broker, clock, mut context) = fixture(ProviderMode::Product);
+        context.scope.authorization_expires_at_unix_ms = 1_800_000_114_000;
+        let mut request = prepare(context.clone(), true);
+        request.ttl_ms = 300_000;
+        request.native_approval_mode = Some("full".into());
+        let reference = request.snapshot.selection[0].clone();
+        assert!(broker.register_provider(
+            crate::provider_generated::ProviderPayload {
+                operation_id: Uuid::new_v4().to_string(),
+                host_instance_id: context.process.host_instance_id.clone(),
+                scope: context.scope,
+                binding: crate::provider_generated::ProviderBinding {
+                    reference,
+                    service_id: "sorftime".into(),
+                    credential_ref: Uuid::new_v4().to_string()
+                }
+            },
+            ProviderBackend::Generic(backend.clone())
+        ));
+        let prepared = broker.prepare(request).unwrap();
+        let lease = bind(&mut broker, &prepared);
+        let name = backend.definitions[0].tool.name.to_string();
+        let register = |b: &mut Broker| {
+            b.register_call(
+                &lease.binding.capability_ref,
+                "native-thread-1",
+                "native-turn-1",
+                &name,
+                Some(
+                    serde_json::json!({"amz_site":"US","search_name":"outdoor"})
+                        .as_object()
+                        .unwrap()
+                        .clone(),
+                ),
+            )
+            .unwrap()
+        };
+        kimi_clock(&clock, 80_000);
+        let old = register(&mut broker);
+        assert_eq!(old.review.risk, "read");
+        for sequence in 1..=10 {
+            let now = 90_000 + (sequence - 1) * 270_000;
+            kimi_clock(&clock, now as u64);
+            broker
+                .renew_market_scope(renewal(&lease, sequence, now + 300_000))
+                .unwrap();
+        }
+        let cancel = CancellationToken::new();
+        assert!(
+            broker
+                .consume_execution(&old.identity.call_ref, true, &cancel)
+                .is_err()
+        );
+        let call = register(&mut broker);
+        assert_ne!(old.identity.call_ref, call.identity.call_ref);
+        let mut decision = wire::DecideCallPayload {
+            operation_id: Uuid::new_v4().to_string(),
+            identity: call.identity.clone(),
+            expected_revision: call.revision,
+            approval_ref: call.identity.call_ref.clone(),
+            decision_id: call.identity.call_ref.clone(),
+            decision: wire::Decision::NativeAuto,
+        };
+        assert!(broker.decide_call(decision.clone()).is_err());
+        decision.decision = wire::Decision::NativeFull;
+        broker.decide_call(decision).unwrap();
+        let Execution::Generic {
+            backend: target,
+            tool,
+            arguments,
+            lease: token,
+            deadline,
+        } = broker
+            .consume_execution(&call.identity.call_ref, true, &cancel)
+            .unwrap()
+        else {
+            panic!("expected generic read")
+        };
+        target
+            .execute(
+                &tool,
+                arguments,
+                crate::daily::Permit {
+                    tool: String::new(),
+                    arguments: Value::Null,
+                    request: cancel.clone(),
+                    lease: token,
+                    deadline,
+                    backend: CancellationToken::new(),
+                },
+                crate::tushare_oauth::Diagnostic::for_operation(&call.identity.call_ref),
+            )
+            .await
+            .unwrap();
+        assert_eq!(count.load(Ordering::SeqCst), 1);
+        assert!(
+            broker
+                .consume_execution(&call.identity.call_ref, true, &cancel)
+                .is_err()
+        );
+        target.close().await;
+        factory.join().await;
     }
 
     #[test]

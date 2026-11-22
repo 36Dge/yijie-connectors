@@ -222,6 +222,11 @@
         },
         "errorCode": {
           "$ref": "#/$defs/ErrorCode"
+        },
+        "nativeApprovalVersion": {
+          "type": "integer",
+          "const": 1,
+          "description": "This Worker supports registered-call native approval in Prepare. Missing means legacy approval for this binding. The Native client also requires the Host/Runtime capability before freezing the selected mode."
         }
       },
       "description": "Readiness is an observation from this worker actor. OAuth success alone is never qualification/enabled status. authorizationUrl appears only while awaiting_user, is an allowlisted provider public authorization URL with transient OAuth state/PKCE values, contains no platform token/userinfo, and must be opened only by Native system browser without logging or persistence. Bound credentials never leave Connectors. For non-OAuth credential setup, authorizationUrl may instead be the worker-owned http://127.0.0.1:<port>/credential/<canonical nonce> page, only while awaiting_user under the same operation/deadline. It accepts credentials directly within the Connectors boundary, never through Native/Host/renderer. Native may open only this exact loopback shape for a catalog credential-setup service. No query, userinfo, fragment, external assets or redirected form submission. It is ephemeral and never persisted."

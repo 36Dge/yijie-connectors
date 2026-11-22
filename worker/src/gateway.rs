@@ -225,7 +225,18 @@ impl ServerHandler for Gateway {
         diagnostic.emit(Stage::CallApproval, Event::Started, None, None);
         let metadata = wire::ElicitationMetadata {
             yijie_market_call_ref: call.identity.call_ref.clone(),
-            yijie_kind: "gateway_call_approval".into(),
+            yijie_kind: if self
+                .broker
+                .state
+                .lock()
+                .expect("broker lock")
+                .native_approval(&call.identity.binding)
+            {
+                "gateway_native_approval_v1"
+            } else {
+                "gateway_call_approval"
+            }
+            .into(),
         };
         let params = CreateElicitationRequestParams::FormElicitationParams {
             meta: Some(Meta(

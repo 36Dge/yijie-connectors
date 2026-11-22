@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "contractId": "market-local-acceptance/1",
-  "contractVersion": "0.1.0",
+  "contractVersion": "0.2.0",
   "release": false,
   "selector": "YIJIE_MARKET_LOCAL_ACCEPTANCE",
   "runLabelPattern": "^[a-z0-9][a-z0-9-]{0,47}$",
@@ -15,7 +15,7 @@
     "displayName": "本地连接器验收",
     "categoryId": "productivity",
     "categoryLabel": "效率工具",
-    "description": "普通本地协议端，返回明确标记的验收样本；每次调用仍需批准。仅在独立验收模式提供。",
+    "description": "通过独立本地协议端读取验收样本，可验证当前任务的审批模式。",
     "iconAssetId": "market-local-verification",
     "transport": "http",
     "authMode": "none",
@@ -67,7 +67,7 @@
   "semantics": {
     "activation": "Only explicit start-ui --market-acceptance RUN_LABEL in local/demo_fast development. Native, Host and worker independently validate the selector and separated data roots. No acceptance selector in ordinary launcher. Existing qualificationOnly worker artifacts remain rejected. Use the canonical product worker with the explicit acceptance argument; never replace or spoof executables.",
     "isolation": "Native uses its own market-local-acceptance/RUN_LABEL child; Host and Runtime use .local/market-local-acceptance/RUN_LABEL/{host-home,codex-home}. No daily data copy, migration, user account, Keyring credential or credential startup pipe in the local connector. Only this catalog/provider is exposed in acceptance. No arbitrary URL override; fixed loopback MCP only, no redirects.",
-    "execution": "Reuse native tool_search/Code Mode/MCP transport, the product generic adapter, Gateway elicitation, private owner decision, one-shot HTTP permit and result _meta. No approval bypass, custom execution loop, Runtime patch, approval database or injected result. Tests record received requests and actual responses; fixture results are marked ordinary-local-sample.",
+    "execution": "The isolated local_sample definition qualifies as a read only when its exact schema matches this profile. Use the current paired Runtime approval policy, Gateway registration, private owner decision and one-shot HTTP permit. A legacy peer uses once-only review. Count received business requests and preserve the actual result metadata.",
     "model": "Default model peer is a plain local Responses protocol service driving benign tool calls. It is not evidence of model quality. An explicitly selected real model may use current owner-authorized credentials and a bounded number of short tasks; local connector requests never go to the supplier.",
     "evidence": "Observe GUI actions, exact original call/approval/decision/thread/turn/Item identities, native SQL47 facts, no-replay normal close/reopen, structured-only/dual/error content and event refresh. Missing evidence remains NOT RUN or FAIL. Diagnostics only in the isolated namespace, bounded, no raw credentials or capability fields.",
     "rollback": "Normal exit then ordinary launcher restores ordinary behavior without touching acceptance records. Never downgrade SQL47 or replay facts. Default product artifact validation, source checks and provider allowlist are unchanged."

@@ -135,8 +135,16 @@
       "enum": [
         "approve_once",
         "reject",
-        "cancel"
-      ]
+        "cancel",
+        "approve_session",
+        "approve_always",
+        "native_full",
+        "native_auto",
+        "native_session",
+        "native_always",
+        "native_auto_reject"
+      ],
+      "description": "Per-call owner decision. approve_* are explicit human choices; native_* record the correlated Codex policy decision and are not renderer actions."
     },
     "RevokeReason": {
       "type": "string",
@@ -571,6 +579,15 @@
         "mcpToolTimeoutMs": {
           "type": "integer",
           "const": 60000
+        },
+        "nativeApprovalMode": {
+          "type": "string",
+          "enum": [
+            "ask",
+            "auto",
+            "full"
+          ],
+          "description": "Paired native approval profile. Omission retains legacy per-call ask."
         }
       },
       "description": "The snapshot is the already accepted immutable Native snapshot. Host verifies current scope, explicit enabled installation authority and complete submitted service bindings first. Broker resolves every exact installation/revision/generation to its unique live provider mapping under the same owner/tenant, Host instance and Native epoch, including the immutable credentialRef and qualified profile. Missing, expired or mismatched mappings fail not_qualified; prepare never probes, registers or restores a backend from receipts/history. CredentialRef changes require generation advancement and old admission revocation. Replaying a live mutation does not extend it; expired/revoked capability never revives. A new mutation UUID cannot re-prepare the same original turn.",
@@ -1118,7 +1135,10 @@
         },
         "yijieKind": {
           "type": "string",
-          "const": "gateway_call_approval"
+          "enum": [
+            "gateway_call_approval",
+            "gateway_native_approval_v1"
+          ]
         }
       },
       "description": "Only the Gateway-owned metadata fragment of fixed-upstream MCP elicitation. Query locator only; no authorization, tool identity or parameters. Host must use actual native thread/turn and trusted pending-call response, never construct a call from metadata."
@@ -1235,7 +1255,15 @@
                     "type": "object",
                     "properties": {
                       "decision": {
-                        "const": "approve_once"
+                        "enum": [
+                          "approve_once",
+                          "approve_session",
+                          "approve_always",
+                          "native_full",
+                          "native_auto",
+                          "native_session",
+                          "native_always"
+                        ]
                       }
                     }
                   }
@@ -1314,6 +1342,56 @@
           "$ref": "#/$defs/RenewScopePayload"
         }
       }
+    },
+    "NativeApprovalEnvelope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "yijieMarketCallRef",
+        "yijieKind",
+        "yijieNativePhase"
+      ],
+      "properties": {
+        "yijieMarketCallRef": {
+          "$ref": "#/$defs/CanonicalId"
+        },
+        "yijieKind": {
+          "type": "string",
+          "const": "gateway_native_approval_v1"
+        },
+        "yijieNativePhase": {
+          "type": "string",
+          "enum": [
+            "inspect",
+            "user",
+            "stored_session",
+            "stored_always",
+            "not_stored",
+            "native_full",
+            "native_auto",
+            "native_auto_reject",
+            "native_session",
+            "native_always"
+          ]
+        },
+        "yijieScope": {
+          "$ref": "#/$defs/ArgsDigest"
+        },
+        "persist": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 2,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "enum": [
+              "session",
+              "always"
+            ]
+          }
+        }
+      },
+      "description": "Paired Runtime-to-owner callback for a live registered call. The worker emits only the initial two-field locator. The native reviewer owns the phase and the offered persist scopes."
     },
     "Selection": {
       "type": "array",

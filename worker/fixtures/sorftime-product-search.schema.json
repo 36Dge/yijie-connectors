@@ -1,0 +1,148 @@
+{
+  "type": "object",
+  "properties": {
+    "seasonal_popular_product": {
+      "description": "Optional: filter products that are in peak season in the specified month. Defaults to Both.",
+      "type": "string",
+      "enum": [
+        "Both",
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December"
+      ],
+      "default": "Both"
+    },
+    "brand": {
+      "description": "Optional: filter products of the specified brand.",
+      "type": "string",
+      "default": ""
+    },
+    "seller_name": {
+      "description": "Optional: filter products of the specified seller.",
+      "type": "string",
+      "default": ""
+    },
+    "search_name": {
+      "description": "Optional: search related products by this name.",
+      "type": "string",
+      "default": ""
+    },
+    "property_name": {
+      "description": "Optional: filter products whose title or attributes contain the specified property.",
+      "type": "string",
+      "default": ""
+    },
+    "price_min": {
+      "description": "Optional: filter products with selling price greater than or equal to this value.",
+      "type": "number",
+      "default": -9999
+    },
+    "price_max": {
+      "description": "Optional: filter products with selling price less than or equal to this value.",
+      "type": "number",
+      "default": -9999
+    },
+    "month_sales_volume_min": {
+      "description": "Optional: filter products with monthly sales volume greater than or equal to this value.",
+      "type": "integer",
+      "default": -9999
+    },
+    "month_sales_volume_max": {
+      "description": "Optional: filter products with monthly sales volume less than or equal to this value.",
+      "type": "integer",
+      "default": -9999
+    },
+    "ratings_min": {
+      "description": "Optional: filter products with star rating greater than or equal to this value.",
+      "type": "number",
+      "default": -9999
+    },
+    "ratings_max": {
+      "description": "Optional: filter products with star rating less than or equal to this value.",
+      "type": "number",
+      "default": -9999
+    },
+    "ratings_count_min": {
+      "description": "Optional: filter products with review count greater than or equal to this value.",
+      "type": "integer",
+      "default": -9999
+    },
+    "ratings_count_max": {
+      "description": "Optional: filter products with review count less than or equal to this value.",
+      "type": "integer",
+      "default": -9999
+    },
+    "subcategory_sales_volume_rank_min": {
+      "description": "Optional: filter products whose sales volume rank in the subcategory is greater than or equal to this value.",
+      "type": "integer",
+      "default": -9999
+    },
+    "subcategory_sales_volume_rank_max": {
+      "description": "Optional: filter products whose sales volume rank in the subcategory is less than or equal to this value.",
+      "type": "integer",
+      "default": -9999
+    },
+    "delivery_type": {
+      "description": "Optional: filter products by fulfillment method. Allowed values: `Both` (default, no filter), `FBM` (seller-fulfilled), `FBA` (any product using Amazon FBA, including seller-shipped and third-party like 1688), `AmzFBA` (third-party seller using Amazon FBA, e.g. 1688).",
+      "type": "string",
+      "enum": [
+        "Both",
+        "FBM",
+        "FBA",
+        "AmzFBA"
+      ],
+      "default": "Both"
+    },
+    "variation_count_min": {
+      "description": "Optional: filter products whose variation (child ASIN) count is greater than or equal to this value.",
+      "type": "integer",
+      "default": -9999
+    },
+    "variation_count_max": {
+      "description": "Optional: filter products whose variation (child ASIN) count is less than or equal to this value.",
+      "type": "integer",
+      "default": -9999
+    },
+    "sortby_potential_index": {
+      "description": "Optional: if true, sort by the product's potential index from high to low.",
+      "type": "boolean",
+      "default": false
+    },
+    "page": {
+      "description": "The page index of the query result. Defaults to page 1. Each page returns 20 records.",
+      "type": "integer",
+      "default": 1
+    },
+    "amz_site": {
+      "description": "Amazon marketplace site. ",
+      "type": "string",
+      "enum": [
+        "Unknow",
+        "US",
+        "GB",
+        "DE",
+        "FR",
+        "IN",
+        "CA",
+        "JP",
+        "ES",
+        "IT",
+        "MX",
+        "AE",
+        "AU",
+        "BR",
+        "SA"
+      ],
+      "default": "Unknow"
+    }
+  }
+}

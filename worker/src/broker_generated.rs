@@ -64,6 +64,20 @@ pub enum Decision {
     Reject,
     #[serde(rename = "cancel")]
     Cancel,
+    #[serde(rename = "approve_session")]
+    ApproveSession,
+    #[serde(rename = "approve_always")]
+    ApproveAlways,
+    #[serde(rename = "native_full")]
+    NativeFull,
+    #[serde(rename = "native_auto")]
+    NativeAuto,
+    #[serde(rename = "native_session")]
+    NativeSession,
+    #[serde(rename = "native_always")]
+    NativeAlways,
+    #[serde(rename = "native_auto_reject")]
+    NativeAutoReject,
 }
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum RevokeReason {
@@ -1207,6 +1221,12 @@ pub struct PreparePayload {
         deserialize_with = "optional_non_null"
     )]
     pub mcp_tool_timeout_ms: Option<i64>,
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "optional_non_null"
+    )]
+    pub native_approval_mode: Option<String>,
 }
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -1227,6 +1247,12 @@ struct PreparePayloadWire {
         deserialize_with = "optional_non_null"
     )]
     pub mcp_tool_timeout_ms: Option<i64>,
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "optional_non_null"
+    )]
+    pub native_approval_mode: Option<String>,
 }
 impl TryFrom<PreparePayloadWire> for PreparePayload {
     type Error = &'static str;
@@ -1238,6 +1264,7 @@ impl TryFrom<PreparePayloadWire> for PreparePayload {
             ttl_ms: w.ttl_ms,
             web_retrieval_version: w.web_retrieval_version,
             mcp_tool_timeout_ms: w.mcp_tool_timeout_ms,
+            native_approval_mode: w.native_approval_mode,
         };
         v.validate()?;
         Ok(v)
@@ -1285,6 +1312,15 @@ impl PreparePayload {
             .map(|value_mcp_tool_timeout_ms| -> Result<(), &'static str> {
                 if *value_mcp_tool_timeout_ms != 60000 {
                     return Err("invalid broker constant");
+                }
+                Ok(())
+            })
+            .transpose()?;
+        self.native_approval_mode
+            .as_ref()
+            .map(|value_native_approval_mode| -> Result<(), &'static str> {
+                if !["ask", "auto", "full"].contains(&value_native_approval_mode.as_str()) {
+                    return Err("invalid broker enum");
                 }
                 Ok(())
             })
@@ -2675,8 +2711,10 @@ impl ElicitationMetadata {
         }
         {
             let value_yijie_kind = &self.yijie_kind;
-            if value_yijie_kind != "gateway_call_approval" {
-                return Err("invalid broker constant");
+            if !["gateway_call_approval", "gateway_native_approval_v1"]
+                .contains(&value_yijie_kind.as_str())
+            {
+                return Err("invalid broker enum");
             }
         }
         Ok(())
@@ -2910,10 +2948,12 @@ impl GatewayCallReceipt {
                 .transpose()?;
         }
         if self.admission_consumed
-            && self
-                .decision_receipt
-                .as_ref()
-                .is_none_or(|r| r.decision != Decision::ApproveOnce)
+            && self.decision_receipt.as_ref().is_none_or(|r| {
+                matches!(
+                    r.decision,
+                    Decision::Reject | Decision::Cancel | Decision::NativeAutoReject
+                )
+            })
         {
             return Err("consumed call requires its one-shot decision");
         }
@@ -3100,6 +3140,137 @@ impl RenewScopeResponse {
 impl std::fmt::Debug for RenewScopeResponse {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str("RenewScopeResponse([redacted])")
+    }
+}
+#[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", try_from = "NativeApprovalEnvelopeWire")]
+pub struct NativeApprovalEnvelope {
+    pub yijie_market_call_ref: CanonicalId,
+    pub yijie_kind: String,
+    pub yijie_native_phase: String,
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "optional_non_null"
+    )]
+    pub yijie_scope: Option<ArgsDigest>,
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "optional_non_null"
+    )]
+    pub persist: Option<Vec<String>>,
+}
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct NativeApprovalEnvelopeWire {
+    pub yijie_market_call_ref: CanonicalId,
+    pub yijie_kind: String,
+    pub yijie_native_phase: String,
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "optional_non_null"
+    )]
+    pub yijie_scope: Option<ArgsDigest>,
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "optional_non_null"
+    )]
+    pub persist: Option<Vec<String>>,
+}
+impl TryFrom<NativeApprovalEnvelopeWire> for NativeApprovalEnvelope {
+    type Error = &'static str;
+    fn try_from(w: NativeApprovalEnvelopeWire) -> Result<Self, Self::Error> {
+        let v = Self {
+            yijie_market_call_ref: w.yijie_market_call_ref,
+            yijie_kind: w.yijie_kind,
+            yijie_native_phase: w.yijie_native_phase,
+            yijie_scope: w.yijie_scope,
+            persist: w.persist,
+        };
+        v.validate()?;
+        Ok(v)
+    }
+}
+impl NativeApprovalEnvelope {
+    pub fn validate(&self) -> Result<(), &'static str> {
+        {
+            let value_yijie_market_call_ref = &self.yijie_market_call_ref;
+            if !canonical_id(value_yijie_market_call_ref) {
+                return Err("invalid broker UUID");
+            }
+            if value_yijie_market_call_ref == "00000000-0000-0000-0000-000000000000" {
+                return Err("invalid broker identity");
+            }
+        }
+        {
+            let value_yijie_kind = &self.yijie_kind;
+            if value_yijie_kind != "gateway_native_approval_v1" {
+                return Err("invalid broker constant");
+            }
+        }
+        {
+            let value_yijie_native_phase = &self.yijie_native_phase;
+            if ![
+                "inspect",
+                "user",
+                "stored_session",
+                "stored_always",
+                "not_stored",
+                "native_full",
+                "native_auto",
+                "native_auto_reject",
+                "native_session",
+                "native_always",
+            ]
+            .contains(&value_yijie_native_phase.as_str())
+            {
+                return Err("invalid broker enum");
+            }
+        }
+        self.yijie_scope
+            .as_ref()
+            .map(|value_yijie_scope| -> Result<(), &'static str> {
+                if value_yijie_scope.len() != 64
+                    || !value_yijie_scope
+                        .bytes()
+                        .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+                {
+                    return Err("invalid broker digest");
+                }
+                Ok(())
+            })
+            .transpose()?;
+        self.persist
+            .as_ref()
+            .map(|value_persist| -> Result<(), &'static str> {
+                if value_persist.is_empty() {
+                    return Err("invalid broker collection");
+                }
+                if value_persist.len() > 2 {
+                    return Err("invalid broker collection");
+                }
+                for item in value_persist.iter() {
+                    if !["session", "always"].contains(&item.as_str()) {
+                        return Err("invalid broker enum");
+                    }
+                }
+                for (i, item) in value_persist.iter().enumerate() {
+                    if value_persist[..i].contains(item) {
+                        return Err("duplicate broker collection item");
+                    }
+                }
+                Ok(())
+            })
+            .transpose()?;
+        Ok(())
+    }
+}
+impl std::fmt::Debug for NativeApprovalEnvelope {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("NativeApprovalEnvelope([redacted])")
     }
 }
 fn canonical_id(s: &str) -> bool {
