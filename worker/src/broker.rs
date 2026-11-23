@@ -73,6 +73,7 @@ impl ProviderMode {
 struct LeaseRecord {
     view: wire::Lease,
     native_approval_mode: Option<String>,
+    native_dispatch: bool,
     authority_expiry_ms: i64,
     requested_ttl_ms: u64,
     // Owner prepare precedes Runtime submission; this is a conservative lower bound.
@@ -168,6 +169,7 @@ struct CallRecord {
     // Existing owner decision identity, retained only for the result receipt.
     // It is never consulted as a new execution authority.
     approval_ref: Option<String>,
+    native_dispatch_ref: Option<String>,
     decision_deadline: u64,
     deadline: u64,
     // This exact parsed snapshot is used after admission; no re-parse/defaults.
@@ -412,6 +414,7 @@ impl Broker {
             process: payload.process.clone(),
             gateway_url: self.gateway_url.clone(),
             external_calls_enabled: matches!(self.mode, ProviderMode::Product),
+            native_dispatch_version: Some(2),
         };
         self.remember(&payload.operation_id, "initialize", &payload, &result, None);
         Ok(result)
@@ -447,6 +450,7 @@ impl Broker {
             if old.view.snapshot != payload.snapshot
                 || old.view.binding.context != payload.context
                 || old.native_approval_mode != payload.native_approval_mode
+                || old.native_dispatch != (payload.native_dispatch_version == Some(2))
                 || old.web_mcp_deadline.is_some() != payload.web_retrieval_version.is_some()
             {
                 return Err(wire::ErrorCode::RequestConflict);
@@ -502,6 +506,7 @@ impl Broker {
             LeaseRecord {
                 view: view.clone(),
                 native_approval_mode: payload.native_approval_mode.clone(),
+                native_dispatch: payload.native_dispatch_version == Some(2),
                 authority_expiry_ms: payload.context.scope.authorization_expires_at_unix_ms,
                 requested_ttl_ms: payload.ttl_ms as u64,
                 web_mcp_deadline: payload
@@ -644,6 +649,97 @@ impl Broker {
         self.refresh()?;
         Ok(self.exact_lease(&payload.binding)?.view.clone())
     }
+    fn register_native_call(
+        &mut self,
+        payload: wire::RegisterNativeCallPayload,
+    ) -> Result<wire::PendingCall, wire::ErrorCode> {
+        if !self.live_lease(&payload.binding)?.native_dispatch {
+            return Err(wire::ErrorCode::NotQualified);
+        }
+        let input = &payload.registration;
+        if let Some(prior) = self.replay(&input.operation_id, "register_native_call", &payload)? {
+            let recorded: wire::PendingCall = serde_json::from_value(prior)
+                .map_err(|_| wire::ErrorCode::TemporarilyUnavailable)?;
+            return self.pending_call(wire::PendingCallPayload {
+                binding: payload.binding,
+                native_thread_id: payload.native_thread_id,
+                native_turn_id: payload.native_turn_id,
+                call_ref: recorded.identity.call_ref,
+            });
+        }
+        if input.arguments_json.len() > wire::MAX_ARGUMENTS_BYTES {
+            return Err(wire::ErrorCode::InvalidRequest);
+        }
+        let args: Option<Map<String, Value>> = serde_json::from_str(&input.arguments_json)
+            .map_err(|_| wire::ErrorCode::InvalidRequest)?;
+        let result = self.register_call(
+            &payload.binding.capability_ref,
+            &payload.native_thread_id,
+            &payload.native_turn_id,
+            &input.tool_name,
+            args,
+        )?;
+        self.remember(
+            &input.operation_id,
+            "register_native_call",
+            &payload,
+            &result,
+            None,
+        );
+        Ok(result)
+    }
+
+    pub fn native_dispatch(&self, reference: &str) -> bool {
+        self.leases
+            .get(reference)
+            .is_some_and(|lease| lease.native_dispatch)
+    }
+
+    pub fn authorized_dispatch(
+        &mut self,
+        reference: &str,
+        native_turn: (&str, &str),
+        tool: &str,
+        arguments: Option<&Map<String, Value>>,
+        call_ref: Option<&str>,
+        proof: Option<&str>,
+    ) -> Result<wire::PendingCall, wire::ErrorCode> {
+        let (thread, turn) = native_turn;
+        self.require_running()?;
+        self.refresh()?;
+        let lease = self
+            .leases
+            .get(reference)
+            .ok_or(wire::ErrorCode::NotFound)?;
+        self.live_lease(&lease.view.binding)?;
+        let call = self
+            .calls
+            .get(call_ref.ok_or(wire::ErrorCode::ApprovalInvalid)?)
+            .ok_or(wire::ErrorCode::NotFound)?;
+        if !lease.native_dispatch
+            || call.view.identity.binding != lease.view.binding
+            || call.view.identity.native_thread_id != thread
+            || call.view.identity.native_turn_id != turn
+            || call.view.identity.tool_name != tool
+            || call
+                .arguments
+                .as_ref()
+                .is_none_or(|frozen| match arguments {
+                    Some(actual) => actual != frozen,
+                    None => !frozen.is_empty(),
+                })
+        {
+            return Err(wire::ErrorCode::BindingMismatch);
+        }
+        if call.view.state != wire::CallState::Approved
+            || proof.is_none()
+            || call.native_dispatch_ref.as_deref() != proof
+        {
+            return Err(wire::ErrorCode::ApprovalInvalid);
+        }
+        Ok(call.view.clone())
+    }
+
     fn pending_call(
         &mut self,
         payload: wire::PendingCallPayload,
@@ -679,20 +775,24 @@ impl Broker {
         }
         use wire::Decision::*;
         let mode = lease.native_approval_mode.as_deref();
-        let call = self
-            .calls
-            .get(&payload.identity.call_ref)
-            .ok_or(wire::ErrorCode::NotFound)?;
-        let qualified = call.view.review.risk == "read";
+        let native_dispatch = lease.native_dispatch;
         let supported = match payload.decision {
             ApproveOnce | Reject | Cancel => true,
             ApproveSession | ApproveAlways | NativeSession | NativeAlways => {
-                qualified && mode == Some("ask")
+                native_dispatch || mode == Some("ask")
             }
-            NativeFull => qualified && mode == Some("full"),
-            NativeAuto | NativeAutoReject => qualified && mode == Some("auto"),
+            NativeRuntime | NativeRuntimeReject => native_dispatch,
+            NativeFull => mode == Some("full"),
+            NativeAuto | NativeAutoReject => native_dispatch || mode == Some("auto"),
         };
-        if !supported {
+        if !supported
+            || (payload.native_dispatch_ref.is_some()
+                && (!native_dispatch
+                    || matches!(
+                        payload.decision,
+                        Reject | Cancel | NativeAutoReject | NativeRuntimeReject
+                    )))
+        {
             return Err(wire::ErrorCode::ApprovalInvalid);
         }
         let call = self
@@ -705,16 +805,38 @@ impl Broker {
         if call.view.revision != payload.expected_revision {
             return Err(wire::ErrorCode::RevisionConflict);
         }
+        // A human answer may already have its own truthful receipt. Only the
+        // subsequent authenticated native continuation seals it for dispatch.
+        if native_dispatch
+            && call.view.state == wire::CallState::Approved
+            && payload.native_dispatch_ref.is_some()
+            && call.approval_ref.as_ref() == Some(&payload.approval_ref)
+            && call.view.decision_id.as_ref() == Some(&payload.decision_id)
+            && call.view.decision == Some(payload.decision)
+            && call.native_dispatch_ref.is_none()
+        {
+            call.native_dispatch_ref = payload.native_dispatch_ref.clone();
+            let result = call.view.clone();
+            self.remember(
+                &payload.operation_id,
+                "decide_call",
+                &payload,
+                &result,
+                None,
+            );
+            return Ok(result);
+        }
         if !matches!(call.view.state, wire::CallState::Pending) {
             return Err(wire::ErrorCode::CallConsumed);
         }
         call.view.decision_id = Some(payload.decision_id.clone());
         call.view.decision = Some(payload.decision);
         call.approval_ref = Some(payload.approval_ref.clone());
+        call.native_dispatch_ref = payload.native_dispatch_ref.clone();
         call.view.state = match payload.decision {
             ApproveOnce | ApproveSession | ApproveAlways | NativeSession | NativeAlways
-            | NativeAuto | NativeFull => wire::CallState::Approved,
-            Reject | NativeAutoReject => wire::CallState::Rejected,
+            | NativeAuto | NativeFull | NativeRuntime => wire::CallState::Approved,
+            Reject | NativeAutoReject | NativeRuntimeReject => wire::CallState::Rejected,
             wire::Decision::Cancel => wire::CallState::Cancelled,
         };
         call.view.revision += 1;
@@ -986,7 +1108,9 @@ impl Broker {
         {
             return Err(wire::ErrorCode::TurnMismatch);
         }
-        let args = arguments.as_ref().ok_or(wire::ErrorCode::InvalidRequest)?;
+        // MCP permits omitting arguments for tools with an empty input schema.
+        let arguments = arguments.unwrap_or_default();
+        let args = &arguments;
         let is_web = lease
             .providers
             .iter()
@@ -1052,10 +1176,7 @@ impl Broker {
             }
             ("market-qualification".into(),lease.view.snapshot.selection[0].clone(),wire::ReviewProjection{title:"Local synthetic lookup".into(),summary:"Read the public value from the in-process qualification service. No external account or provider is contacted.".into(),risk:"read".into(),arguments_json:None,schema_digest:None})
         };
-        if lease.native_approval_mode.is_some()
-            && review.risk == "read"
-            && review.arguments_json.is_none()
-        {
+        if lease.native_approval_mode.is_some() && review.arguments_json.is_none() {
             review.arguments_json =
                 Some(serde_json::to_string(args).map_err(|_| wire::ErrorCode::InvalidRequest)?);
         }
@@ -1125,9 +1246,10 @@ impl Broker {
             CallRecord {
                 view: call.clone(),
                 approval_ref: None,
+                native_dispatch_ref: None,
                 decision_deadline,
                 deadline,
-                arguments,
+                arguments: Some(arguments),
             },
         );
         Ok(call)
@@ -1147,7 +1269,10 @@ impl Broker {
         self.require_running()?;
         let now = self.refresh()?;
         let call = self.calls.get(call_ref).ok_or(wire::ErrorCode::NotFound)?;
-        self.live_lease(&call.view.identity.binding)?;
+        let lease = self.live_lease(&call.view.identity.binding)?;
+        if lease.native_dispatch && call.native_dispatch_ref.is_none() {
+            return Err(wire::ErrorCode::ApprovalInvalid);
+        }
         if !native_accepted
             || cancellation.is_cancelled()
             || !matches!(call.view.state, wire::CallState::Approved)
@@ -1302,6 +1427,11 @@ impl Broker {
             ),
             Some("revoke") => route!(wire::RevokeRequest, RevokeResponse, revoke),
             Some("status") => route!(wire::StatusRequest, StatusResponse, status),
+            Some("register_native_call") => route!(
+                wire::RegisterNativeCallRequest,
+                RegisterNativeCallResponse,
+                register_native_call
+            ),
             Some("pending_call") => {
                 route!(wire::PendingCallRequest, PendingCallResponse, pending_call)
             }
@@ -1382,6 +1512,7 @@ mod tests {
             web_retrieval_version: None,
             mcp_tool_timeout_ms: None,
             native_approval_mode: None,
+            native_dispatch_version: None,
             operation_id: Uuid::new_v4().to_string(),
             context,
             snapshot: crate::selection_generated::freeze_selection(
@@ -1523,6 +1654,7 @@ mod tests {
             .unwrap();
         broker
             .decide_call(wire::DecideCallPayload {
+                native_dispatch_ref: None,
                 operation_id: Uuid::new_v4().to_string(),
                 identity: rejected.identity.clone(),
                 expected_revision: 1,
@@ -1556,6 +1688,7 @@ mod tests {
             .unwrap();
         broker
             .decide_call(wire::DecideCallPayload {
+                native_dispatch_ref: None,
                 operation_id: Uuid::new_v4().to_string(),
                 identity: call.identity.clone(),
                 expected_revision: 1,
@@ -1683,6 +1816,7 @@ mod tests {
             assert!(call.review.summary.contains("按次计费"));
             broker
                 .decide_call(wire::DecideCallPayload {
+                    native_dispatch_ref: None,
                     operation_id: Uuid::new_v4().to_string(),
                     identity: call.identity.clone(),
                     expected_revision: 1,
@@ -1738,6 +1872,119 @@ mod tests {
     #[tokio::test]
     async fn sorftime_market_call_binds_exact_ref_and_requires_a_fresh_decision() {
         generic_market_call_requires_fresh_decision("sorftime").await;
+    }
+    #[tokio::test]
+    async fn native_dispatch_seals_the_original_arguments_once() {
+        let service = "lingxing";
+        let (backend, calls, _factory) = crate::generic::tests::local_backend(service).await;
+        let tool = backend.definitions[0].tool.name.to_string();
+        let (mut broker, _, context) = fixture(ProviderMode::Product);
+        let mut request = prepare(context.clone(), true);
+        request.native_approval_mode = Some("full".into());
+        request.native_dispatch_version = Some(2);
+        let binding = crate::provider_generated::ProviderBinding {
+            reference: request.snapshot.selection[0].clone(),
+            service_id: service.into(),
+            credential_ref: Uuid::new_v4().to_string(),
+        };
+        assert!(broker.register_provider(
+            crate::provider_generated::ProviderPayload {
+                operation_id: Uuid::new_v4().to_string(),
+                host_instance_id: context.process.host_instance_id,
+                scope: context.scope,
+                binding
+            },
+            ProviderBackend::Generic(backend)
+        ));
+        let prepared = broker.prepare(request).unwrap();
+        let lease = bind(&mut broker, &prepared);
+        let reference = &lease.binding.capability_ref;
+        let (thread, turn) = ("native-thread-1", "native-turn-1");
+        let args = serde_json::json!({"query":"ordinary local sample"});
+        let reg = wire::RegisterNativeCallPayload {
+            binding: lease.binding.clone(),
+            native_thread_id: thread.into(),
+            native_turn_id: turn.into(),
+            registration: wire::NativeCallRegistration {
+                yijie_kind: "native_market_register_v2".into(),
+                operation_id: Uuid::new_v4().to_string(),
+                tool_name: tool.clone(),
+                arguments_json: args.to_string(),
+            },
+        };
+        let call = broker.register_native_call(reg.clone()).unwrap();
+        assert_eq!(
+            broker.register_native_call(reg).unwrap().identity,
+            call.identity
+        );
+        assert_eq!(call.review.risk, "write");
+        let id = &call.identity.call_ref;
+        assert!(
+            broker
+                .authorized_dispatch(
+                    reference,
+                    (thread, turn),
+                    &tool,
+                    args.as_object(),
+                    Some(id),
+                    None
+                )
+                .is_err()
+        );
+        let proof = Uuid::new_v4().to_string();
+        let decided = broker
+            .decide_call(wire::DecideCallPayload {
+                operation_id: Uuid::new_v4().to_string(),
+                identity: call.identity.clone(),
+                expected_revision: call.revision,
+                approval_ref: id.clone(),
+                decision_id: id.clone(),
+                decision: wire::Decision::NativeFull,
+                native_dispatch_ref: Some(proof.clone()),
+            })
+            .unwrap();
+        assert_eq!(decided.state, wire::CallState::Approved);
+        assert!(
+            broker
+                .authorized_dispatch(
+                    reference,
+                    (thread, turn),
+                    &tool,
+                    serde_json::json!({"query":"second sample"}).as_object(),
+                    Some(id),
+                    Some(&proof)
+                )
+                .is_err()
+        );
+        assert!(
+            broker
+                .authorized_dispatch(
+                    reference,
+                    (thread, turn),
+                    &tool,
+                    args.as_object(),
+                    Some(id),
+                    None
+                )
+                .is_err()
+        );
+        assert!(
+            broker
+                .authorized_dispatch(
+                    reference,
+                    (thread, turn),
+                    &tool,
+                    args.as_object(),
+                    Some(id),
+                    Some(&proof)
+                )
+                .is_ok()
+        );
+        let token = tokio_util::sync::CancellationToken::new();
+        assert!(broker.consume_execution(id, true, &token).is_ok());
+        assert!(broker.consume_execution(id, true, &token).is_err());
+        assert!(broker.result_receipt(id).unwrap().admission_consumed);
+        assert_eq!(calls.load(Ordering::SeqCst), 0);
     }
     #[tokio::test]
     async fn linkfox_market_call_binds_exact_ref_and_requires_a_fresh_decision() {
@@ -1830,6 +2077,7 @@ mod tests {
             let decision_id = Uuid::new_v4().to_string();
             broker
                 .decide_call(wire::DecideCallPayload {
+                    native_dispatch_ref: None,
                     operation_id: Uuid::new_v4().to_string(),
                     identity: call.identity.clone(),
                     expected_revision: 1,
@@ -2012,6 +2260,7 @@ mod tests {
     }
     fn approve(broker: &mut Broker, call: &wire::PendingCall) -> wire::DecideCallPayload {
         let payload = wire::DecideCallPayload {
+            native_dispatch_ref: None,
             operation_id: Uuid::new_v4().to_string(),
             identity: call.identity.clone(),
             expected_revision: call.revision,
@@ -2376,6 +2625,7 @@ mod tests {
         let call = register(&mut broker);
         assert_ne!(old.identity.call_ref, call.identity.call_ref);
         let mut decision = wire::DecideCallPayload {
+            native_dispatch_ref: None,
             operation_id: Uuid::new_v4().to_string(),
             identity: call.identity.clone(),
             expected_revision: call.revision,
@@ -2565,6 +2815,7 @@ mod tests {
         assert_eq!(call.execution_expires_at_unix_ms, Some(1_800_000_060_000));
         kimi_clock(&clock, 22999);
         b.decide_call(wire::DecideCallPayload {
+            native_dispatch_ref: None,
             operation_id: Uuid::new_v4().to_string(),
             identity: call.identity.clone(),
             expected_revision: call.revision,

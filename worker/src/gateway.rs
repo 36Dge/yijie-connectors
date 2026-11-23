@@ -202,15 +202,44 @@ impl ServerHandler for Gateway {
             .and_then(|v| v.get("turn_id"))
             .and_then(serde_json::Value::as_str)
             .ok_or_else(missing_binding)?;
-        let call = wait_for_bound_call(
-            &self.broker,
-            &context.ct,
-            &reference,
-            thread,
-            turn,
-            &request,
-        )
-        .await;
+        let native_dispatch = self
+            .broker
+            .state
+            .lock()
+            .expect("broker lock")
+            .native_dispatch(&reference);
+        let call = if native_dispatch {
+            let call_ref = metadata
+                .0
+                .get("yijieMarketCallRef")
+                .and_then(serde_json::Value::as_str);
+            self.broker
+                .state
+                .lock()
+                .expect("broker lock")
+                .authorized_dispatch(
+                    &reference,
+                    (thread, turn),
+                    &request.name,
+                    request.arguments.as_ref(),
+                    call_ref,
+                    metadata
+                        .0
+                        .get("yijieMarketDispatch")
+                        .and_then(serde_json::Value::as_str),
+                )
+                .map(Some)
+        } else {
+            wait_for_bound_call(
+                &self.broker,
+                &context.ct,
+                &reference,
+                thread,
+                turn,
+                &request,
+            )
+            .await
+        };
         let call = match call {
             Ok(Some(call)) => call,
             Ok(None) => return Ok(content_budget_expired()),
@@ -221,71 +250,79 @@ impl ServerHandler for Gateway {
                 };
             }
         };
-        let diagnostic = Diagnostic::for_operation(&call.identity.call_ref);
+        let diagnostic = Diagnostic::for_provider(
+            &call.identity.call_ref,
+            &call.identity.service_id,
+            crate::tushare_oauth::ProviderTrace::Call,
+        );
         diagnostic.emit(Stage::CallApproval, Event::Started, None, None);
-        let metadata = wire::ElicitationMetadata {
-            yijie_market_call_ref: call.identity.call_ref.clone(),
-            yijie_kind: if self
-                .broker
-                .state
-                .lock()
-                .expect("broker lock")
-                .native_approval(&call.identity.binding)
-            {
-                "gateway_native_approval_v1"
-            } else {
-                "gateway_call_approval"
-            }
-            .into(),
-        };
-        let params = CreateElicitationRequestParams::FormElicitationParams {
-            meta: Some(Meta(
-                serde_json::to_value(metadata)
-                    .expect("generated metadata")
-                    .as_object()
-                    .expect("metadata object")
-                    .clone(),
-            )),
-            message: call.review.summary.clone(),
-            requested_schema: serde_json::from_value(
-                serde_json::json!({"type":"object","properties":{}}),
-            )
-            .expect("fixed elicitation schema"),
-        };
-        let callback = context.peer.create_elicitation(params);
-        tokio::pin!(callback);
-        let lease_end = tokio::time::sleep(Duration::from_millis(call.remaining_ttl_ms as u64));
-        tokio::pin!(lease_end);
-        let accepted = loop {
-            let changed = self.broker.changed.notified();
-            let current = self
-                .broker
-                .state
-                .lock()
-                .expect("broker lock")
-                .pending_call_view(&call.identity.call_ref);
-            if current.is_none_or(|state| {
-                matches!(
-                    state,
-                    wire::CallState::Revoked
-                        | wire::CallState::Expired
-                        | wire::CallState::Cancelled
-                        | wire::CallState::Rejected
+        let accepted = if native_dispatch {
+            true
+        } else {
+            let metadata = wire::ElicitationMetadata {
+                yijie_market_call_ref: call.identity.call_ref.clone(),
+                yijie_kind: if self
+                    .broker
+                    .state
+                    .lock()
+                    .expect("broker lock")
+                    .native_approval(&call.identity.binding)
+                {
+                    "gateway_native_approval_v1"
+                } else {
+                    "gateway_call_approval"
+                }
+                .into(),
+            };
+            let params = CreateElicitationRequestParams::FormElicitationParams {
+                meta: Some(Meta(
+                    serde_json::to_value(metadata)
+                        .expect("generated metadata")
+                        .as_object()
+                        .expect("metadata object")
+                        .clone(),
+                )),
+                message: call.review.summary.clone(),
+                requested_schema: serde_json::from_value(
+                    serde_json::json!({"type":"object","properties":{}}),
                 )
-            }) {
-                break false;
-            }
-            tokio::select! {
-                biased;
-                _=context.ct.cancelled()=>break false,
-                _=&mut lease_end=>break false,
-                response=&mut callback=>{
-                    match response {
-                        Ok(value) => {break value.action == ElicitationAction::Accept;},
-                        Err(_) => break false,
-                    }
-                },
-                _=changed=>{},
+                .expect("fixed elicitation schema"),
+            };
+            let callback = context.peer.create_elicitation(params);
+            tokio::pin!(callback);
+            let lease_end = tokio::time::sleep(Duration::from_millis(call.remaining_ttl_ms as u64));
+            tokio::pin!(lease_end);
+            loop {
+                let changed = self.broker.changed.notified();
+                let current = self
+                    .broker
+                    .state
+                    .lock()
+                    .expect("broker lock")
+                    .pending_call_view(&call.identity.call_ref);
+                if current.is_none_or(|state| {
+                    matches!(
+                        state,
+                        wire::CallState::Revoked
+                            | wire::CallState::Expired
+                            | wire::CallState::Cancelled
+                            | wire::CallState::Rejected
+                    )
+                }) {
+                    break false;
+                }
+                tokio::select! {
+                    biased;
+                    _=context.ct.cancelled()=>break false,
+                    _=&mut lease_end=>break false,
+                    response=&mut callback=>{
+                        match response {
+                            Ok(value) => {break value.action == ElicitationAction::Accept;},
+                            Err(_) => break false,
+                        }
+                    },
+                    _=changed=>{},
+                }
             }
         };
         let (admission, receipt) = {

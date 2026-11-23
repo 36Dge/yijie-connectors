@@ -223,7 +223,9 @@ impl Providers {
         if !self.enabled {
             return Err(wire::ErrorCode::UnsupportedAuth);
         }
-        if crate::local_acceptance::enabled() && payload.binding.service_id != crate::local_acceptance::service_id() {
+        if crate::local_acceptance::enabled()
+            && payload.binding.service_id != crate::local_acceptance::service_id()
+        {
             return Err(wire::ErrorCode::UnsupportedAuth);
         }
         if crate::provider_registry::oauth(&payload.binding.service_id).is_none()
@@ -699,8 +701,10 @@ async fn run_auth(
         .binding
         .service_id
         .clone();
-    let diagnostic = tushare_oauth::Diagnostic::for_operation(
+    let diagnostic = tushare_oauth::Diagnostic::for_provider(
         &status.lock().expect("provider operation").operation_id,
+        &service,
+        tushare_oauth::ProviderTrace::Authorization,
     );
     if service == crate::web_retrieval_generated::SERVICE_ID {
         diagnostic.emit(
@@ -821,9 +825,14 @@ async fn run_probe(
     cancelled: CancellationToken,
     activation: Activation,
 ) {
-    let diagnostic = tushare_oauth::Diagnostic::for_operation(
-        &status.lock().expect("provider operation").operation_id,
-    );
+    let diagnostic = {
+        let state = status.lock().expect("provider operation");
+        tushare_oauth::Diagnostic::for_provider(
+            &state.operation_id,
+            &state.binding.service_id,
+            tushare_oauth::ProviderTrace::Probe,
+        )
+    };
     run_probe_with_diagnostic(alias, end, status, cancelled, diagnostic, Some(activation)).await;
 }
 async fn run_probe_with_diagnostic(
@@ -907,7 +916,17 @@ async fn run_probe_with_diagnostic(
             .as_ref()
             .ok()
             .filter(|tools| {
-                serde_json::to_value(&tools.tools).is_ok_and(|value| permit.1.safe(&value))
+                let safe =
+                    serde_json::to_value(&tools.tools).is_ok_and(|value| permit.1.safe(&value));
+                if !safe {
+                    diagnostic.emit(
+                        tushare_oauth::Stage::MetadataCatalogPolicy,
+                        tushare_oauth::Event::Rejected,
+                        None,
+                        None,
+                    );
+                }
+                safe
             })
             .and_then(|tools| {
                 let tools = if service == crate::google_calendar::SERVICE {
@@ -918,7 +937,15 @@ async fn run_probe_with_diagnostic(
                 } else {
                     tools.tools.clone()
                 };
-                crate::generic::definitions(&service, tools).ok()
+                let count = tools.len();
+                crate::generic::definitions(&service, tools)
+                    .inspect(|valid| diagnostic.catalog_validated(valid.len()))
+                    .inspect_err(|issues| {
+                        for issue in issues {
+                            diagnostic.catalog_issue(issue, count);
+                        }
+                    })
+                    .ok()
             })
     } else {
         None
@@ -1016,7 +1043,19 @@ async fn run_probe_with_diagnostic(
                 {
                     state.qualification = wire::Qualification::Qualified;
                     state.execution_available = true;
+                    diagnostic.emit(
+                        tushare_oauth::Stage::MetadataRegistration,
+                        tushare_oauth::Event::Succeeded,
+                        None,
+                        None,
+                    );
                 } else {
+                    diagnostic.emit(
+                        tushare_oauth::Stage::MetadataRegistration,
+                        tushare_oauth::Event::Rejected,
+                        None,
+                        None,
+                    );
                     backend.revoke();
                 }
             }

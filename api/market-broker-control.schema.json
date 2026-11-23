@@ -142,7 +142,9 @@
         "native_auto",
         "native_session",
         "native_always",
-        "native_auto_reject"
+        "native_auto_reject",
+        "native_runtime",
+        "native_runtime_reject"
       ],
       "description": "Per-call owner decision. approve_* are explicit human choices; native_* record the correlated Codex policy decision and are not renderer actions."
     },
@@ -524,6 +526,10 @@
         "externalCallsEnabled": {
           "type": "boolean",
           "description": "Assembly capability for managed external provider network operations only. Tushare product profile=true, qualification/legacy=false. Does not establish authorization, connection, installation enablement, tool qualification or business execution permission."
+        },
+        "nativeDispatchVersion": {
+          "type": "integer",
+          "const": 2
         }
       },
       "description": "Loopback MCP data endpoint without auth material. Runtime-generation capability comes only from dedicated launch environment and is never echoed. Unreleased contract 0.2.0 explicitly reports external provider network assembly; user/account/tool readiness remains separate."
@@ -588,6 +594,10 @@
             "full"
           ],
           "description": "Paired native approval profile. Omission retains legacy per-call ask."
+        },
+        "nativeDispatchVersion": {
+          "type": "integer",
+          "const": 2
         }
       },
       "description": "The snapshot is the already accepted immutable Native snapshot. Host verifies current scope, explicit enabled installation authority and complete submitted service bindings first. Broker resolves every exact installation/revision/generation to its unique live provider mapping under the same owner/tenant, Host instance and Native epoch, including the immutable credentialRef and qualified profile. Missing, expired or mismatched mappings fail not_qualified; prepare never probes, registers or restores a backend from receipts/history. CredentialRef changes require generation advancement and old admission revocation. Replaying a live mutation does not extend it; expired/revoked capability never revives. A new mutation UUID cannot re-prepare the same original turn.",
@@ -597,6 +607,9 @@
         ],
         "mcpToolTimeoutMs": [
           "webRetrievalVersion"
+        ],
+        "nativeDispatchVersion": [
+          "nativeApprovalMode"
         ]
       }
     },
@@ -954,6 +967,9 @@
         },
         "decision": {
           "$ref": "#/$defs/Decision"
+        },
+        "nativeDispatchRef": {
+          "$ref": "#/$defs/CanonicalId"
         }
       },
       "description": "Host must verify approvalRef/decisionId against its existing authoritative approval lifecycle and safe review projection, not merely UUID syntax. Only the owner pipe accepts a decision. Worker must compare the complete existing call identity/revision and require an active same-Turn lease. Exact replay only reads the original decision receipt; it never spends approval again or sends tools/call again."
@@ -1371,7 +1387,9 @@
             "native_auto",
             "native_auto_reject",
             "native_session",
-            "native_always"
+            "native_always",
+            "native_runtime",
+            "native_runtime_reject"
           ]
         },
         "yijieScope": {
@@ -1389,9 +1407,111 @@
               "always"
             ]
           }
+        },
+        "dispatchRef": {
+          "$ref": "#/$defs/CanonicalId"
         }
       },
       "description": "Paired Runtime-to-owner callback for a live registered call. The worker emits only the initial two-field locator. The native reviewer owns the phase and the offered persist scopes."
+    },
+    "NativeCallRegistration": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "yijieKind",
+        "operationId",
+        "toolName",
+        "argumentsJson"
+      ],
+      "properties": {
+        "yijieKind": {
+          "type": "string",
+          "const": "native_market_register_v2"
+        },
+        "operationId": {
+          "$ref": "#/$defs/CanonicalId"
+        },
+        "toolName": {
+          "$ref": "#/$defs/ToolName"
+        },
+        "argumentsJson": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 32768
+        }
+      },
+      "description": "Trusted Runtime request to bind its exact native MCP invocation on the owner channel. Registration alone permits no external operation."
+    },
+    "RegisterNativeCallPayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "binding",
+        "nativeThreadId",
+        "nativeTurnId",
+        "registration"
+      ],
+      "properties": {
+        "binding": {
+          "$ref": "#/$defs/CapabilityBinding"
+        },
+        "nativeThreadId": {
+          "$ref": "#/$defs/NativeId"
+        },
+        "nativeTurnId": {
+          "$ref": "#/$defs/NativeId"
+        },
+        "registration": {
+          "$ref": "#/$defs/NativeCallRegistration"
+        }
+      }
+    },
+    "RegisterNativeCallRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "requestId",
+        "method",
+        "payload"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "type": "integer",
+          "const": 1
+        },
+        "requestId": {
+          "$ref": "#/$defs/CanonicalId"
+        },
+        "method": {
+          "type": "string",
+          "const": "register_native_call"
+        },
+        "payload": {
+          "$ref": "#/$defs/RegisterNativeCallPayload"
+        }
+      }
+    },
+    "RegisterNativeCallResponse": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "schemaVersion",
+        "requestId",
+        "data"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "type": "integer",
+          "const": 1
+        },
+        "requestId": {
+          "$ref": "#/$defs/CanonicalId"
+        },
+        "data": {
+          "$ref": "#/$defs/PendingCall"
+        }
+      }
     },
     "Selection": {
       "type": "array",

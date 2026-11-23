@@ -7,7 +7,7 @@ use crate::{
 };
 use codex_rmcp_client::RmcpClient;
 use jsonschema::{Retrieve, Uri, Validator};
-use rmcp::model::{CallToolResult, Content, Tool, ToolAnnotations};
+use rmcp::model::{CallToolResult, Content, Tool};
 use serde_json::{Map, Value};
 use sha2::{Digest, Sha256};
 use std::{
@@ -23,13 +23,15 @@ impl Retrieve for LocalReferences {
         Err("only bundled local schema references are supported".into())
     }
 }
-fn bounded(value: &Value, depth: usize) -> bool {
-    if depth > wire::GENERIC_MAX_DEPTH {
-        return false;
-    }
+fn bounded(value: &Value, remaining_depth: usize) -> bool {
+    let child_fits = |child: &Value| {
+        remaining_depth
+            .checked_sub(1)
+            .is_some_and(|budget| bounded(child, budget))
+    };
     match value {
-        Value::Object(map) => map.len() <= 256 && map.values().all(|v| bounded(v, depth + 1)),
-        Value::Array(items) => items.len() <= 1024 && items.iter().all(|v| bounded(v, depth + 1)),
+        Value::Object(map) => map.len() <= 256 && map.values().all(child_fits),
+        Value::Array(items) => items.len() <= 1024 && items.iter().all(child_fits),
         _ => true,
     }
 }
@@ -113,21 +115,23 @@ pub struct Definition {
     local_sample: bool,
 }
 impl Definition {
-    fn new(service: &str, source: Tool) -> Result<Self, Failure> {
+    fn new(service: &str, source: &Tool, encoded: &[u8]) -> Result<Self, &'static str> {
         let name = source.name.to_string();
         if name.is_empty() || name.len() > 128 || name.chars().any(char::is_control) {
-            return Err(Failure::InvalidMetadata);
+            return Err("tool_name");
         }
         let schema = Value::Object((*source.input_schema).clone());
-        let encoded = serde_json::to_vec(&schema).map_err(|_| Failure::InvalidMetadata)?;
-        if encoded.len() > wire::GENERIC_MAX_SCHEMA_BYTES || !bounded(&schema, 0) {
-            return Err(Failure::InvalidMetadata);
+        if encoded.len() > wire::GENERIC_MAX_SCHEMA_BYTES {
+            return Err("schema_bytes");
+        }
+        if !bounded(&schema, wire::GENERIC_MAX_SCHEMA_DEPTH) {
+            return Err("schema_structure");
         }
         let validator = jsonschema::options()
             .with_retriever(LocalReferences)
             .with_pattern_options(jsonschema::PatternOptions::fancy_regex().backtrack_limit(10_000))
             .build(&schema)
-            .map_err(|_| Failure::InvalidMetadata)?;
+            .map_err(|_| "schema_compile")?;
         let id = format!("{:x}", Sha256::digest(format!("{service}\n{name}")));
         // The full digest makes names stable and unambiguous without assuming
         // provider names are safe identifiers or unique across services.
@@ -156,15 +160,9 @@ impl Definition {
             ),
             (*source.input_schema).clone(),
         );
-        // Preserve full input schema, but never advertise unreviewed provider
-        // risk hints as trusted read/idempotency facts to the Runtime.
-        tool.annotations = Some(
-            ToolAnnotations::new()
-                .read_only(false)
-                .destructive(true)
-                .idempotent(false)
-                .open_world(true),
-        );
+        // Native MCP policy consumes the provider's original optional hints.
+        // A missing hint stays missing. They are never an execution grant.
+        tool.annotations = source.annotations.clone();
         tool.title = Some(format!("{service} · {name}"));
         Ok(Self {
             upstream: name,
@@ -179,15 +177,14 @@ impl Definition {
     pub fn review(&self, args: &Map<String, Value>) -> Result<wire::ReviewProjection, Failure> {
         let value = Value::Object(args.clone());
         let encoded = serde_json::to_string(&value).map_err(|_| Failure::InvalidMetadata)?;
-        if self.destructive
-            || encoded.len() > wire::GENERIC_MAX_REVIEW_ARGUMENTS_BYTES
-            || !bounded(&value, 0)
+        if encoded.len() > wire::GENERIC_MAX_REVIEW_ARGUMENTS_BYTES
+            || !bounded(&value, wire::GENERIC_MAX_DEPTH)
             || credentials(&value)
             || !self.validator.is_valid(&value)
         {
             return Err(Failure::InvalidMetadata);
         }
-        let read = self.local_sample
+        let reviewed_read = self.local_sample
             || self.reviewed_query
                 && args
                     .get("amz_site")
@@ -201,14 +198,25 @@ impl Definition {
                     .get("properties")
                     .and_then(Value::as_object)
                     .is_some_and(|fields| args.keys().all(|key| fields.contains_key(key)));
+        let read = !self.destructive
+            && (reviewed_read
+                || self
+                    .tool
+                    .annotations
+                    .as_ref()
+                    .is_some_and(|a| a.read_only_hint == Some(true)));
         Ok(wire::ReviewProjection {
             title: self.upstream.chars().take(160).collect(),
             summary: if self.local_sample {
                 "读取当前本地连接器的验收样本。"
-            } else if read {
+            } else if reviewed_read {
                 "查询所选 Amazon 站点的公开商品或类目数据。"
+            } else if read {
+                "服务将此工具标为只读。"
+            } else if self.destructive {
+                "服务将此工具标为可能造成不可逆更改。"
             } else {
-                "第三方工具尚未被独立确认为只读，可能修改外部数据。请核对本次调用的完整参数。"
+                "此工具可能修改外部数据。"
             }
             .into(),
             risk: if read { "read" } else { "write" }.into(),
@@ -217,26 +225,81 @@ impl Definition {
         })
     }
 }
-pub fn definitions(service: &str, tools: Vec<Tool>) -> Result<Vec<Definition>, Failure> {
+#[derive(Debug, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CatalogIssue {
+    reason: &'static str,
+    tool_index: Option<usize>,
+    tool_name_sha256: Option<String>,
+    schema_bytes: usize,
+    schema_depth: usize,
+}
+
+fn schema_depth(value: &Value) -> usize {
+    let children = match value {
+        Value::Object(fields) => fields.values().map(schema_depth).max(),
+        Value::Array(items) => items.iter().map(schema_depth).max(),
+        _ => None,
+    };
+    children.map_or(0, |depth| depth + 1)
+}
+
+pub fn definitions(service: &str, tools: Vec<Tool>) -> Result<Vec<Definition>, Vec<CatalogIssue>> {
     if tools.is_empty() || tools.len() > wire::GENERIC_MAX_TOOLS_PER_SERVICE {
-        return Err(Failure::InvalidMetadata);
+        return Err(vec![CatalogIssue {
+            reason: "tool_count",
+            tool_index: None,
+            tool_name_sha256: None,
+            schema_bytes: 0,
+            schema_depth: 0,
+        }]);
     }
     let mut names = HashSet::new();
     let mut bytes = 0;
     let mut result = Vec::new();
-    for tool in tools {
+    let mut issues = Vec::new();
+    for (index, tool) in tools.iter().enumerate() {
+        let issue = |reason, schema_bytes| {
+            let depth = tool
+                .input_schema
+                .values()
+                .map(schema_depth)
+                .max()
+                .map_or(0, |d| d + 1);
+            let reason = match reason {
+                "schema_structure" if depth > wire::GENERIC_MAX_SCHEMA_DEPTH => "schema_depth",
+                "schema_structure" => "schema_width",
+                other => other,
+            };
+            CatalogIssue {
+                reason,
+                tool_index: Some(index),
+                tool_name_sha256: Some(format!("{:x}", Sha256::digest(tool.name.as_bytes()))),
+                schema_bytes,
+                schema_depth: depth,
+            }
+        };
         if !names.insert(tool.name.to_string()) {
-            return Err(Failure::InvalidMetadata);
+            issues.push(issue("duplicate_tool_name", 0));
+            continue;
         }
-        bytes += serde_json::to_vec(&tool.input_schema)
-            .map_err(|_| Failure::InvalidMetadata)?
-            .len();
+        let encoded = serde_json::to_vec(&tool.input_schema)
+            .map_err(|_| vec![issue("schema_encoding", 0)])?;
+        bytes += encoded.len();
         if bytes > wire::GENERIC_MAX_SCHEMAS_BYTES {
-            return Err(Failure::InvalidMetadata);
+            issues.push(issue("catalog_bytes", encoded.len()));
+            break;
         }
-        result.push(Definition::new(service, tool)?);
+        match Definition::new(service, tool, &encoded) {
+            Ok(definition) => result.push(definition),
+            Err(reason) => issues.push(issue(reason, encoded.len())),
+        }
     }
-    Ok(result)
+    if issues.is_empty() {
+        Ok(result)
+    } else {
+        Err(issues)
+    }
 }
 pub struct Backend {
     pub service: String,
@@ -358,7 +421,7 @@ impl Backend {
 }
 fn safe_result(result: CallToolResult) -> Result<CallToolResult, Failure> {
     let encoded = serde_json::to_value(&result).map_err(|_| Failure::InvalidMetadata)?;
-    if !bounded(&encoded, 0)
+    if !bounded(&encoded, wire::GENERIC_MAX_DEPTH)
         || serde_json::to_vec(&encoded)
             .map_err(|_| Failure::InvalidMetadata)?
             .len()
@@ -390,9 +453,74 @@ fn safe_result(result: CallToolResult) -> Result<CallToolResult, Failure> {
 #[cfg(test)]
 pub(crate) mod tests {
     use super::*;
+    use rmcp::model::ToolAnnotations;
     fn tool() -> Tool {
         Tool::new("search", "普通合成工具", serde_json::json!({"type":"object","properties":{"query":{"type":"string","minLength":1}},"required":["query"],"additionalProperties":false}).as_object().unwrap().clone())
     }
+    #[test]
+    fn catalog_diagnostics_identify_the_definition_without_exporting_supplier_text() {
+        let issues = definitions("ordinary-service", vec![tool(), tool()])
+            .err()
+            .expect("two entries share the same upstream name");
+        assert_eq!(issues.len(), 1);
+        let issue = &issues[0];
+        assert_eq!(issue.reason, "duplicate_tool_name");
+        assert_eq!(issue.tool_index, Some(1));
+        assert_eq!(
+            issue.tool_name_sha256,
+            Some(format!("{:x}", Sha256::digest("search")))
+        );
+        let report = serde_json::to_string(&issue).unwrap();
+        assert!(!report.contains("search"));
+        assert!(!report.contains("普通合成工具"));
+    }
+    #[test]
+    fn nested_template_schema_qualifies_without_relaxing_call_data_limits() {
+        // Each 'properties' in a JSON Schema adds syntax that is absent from
+        // the actual payload. This ordinary 9-field path has a depth-20 schema.
+        let mut schema = serde_json::json!({"enum":["draft"]});
+        let mut value = serde_json::json!("draft");
+        for field in [
+            "label", "option", "question", "section", "page", "form", "model", "state", "template",
+        ] {
+            schema = serde_json::json!({"type":"object","properties":{(field):schema},
+                "required":[field],"additionalProperties":false});
+            value = serde_json::json!({(field):value});
+        }
+        assert_eq!(schema_depth(&schema), 20);
+        let edit = Tool::new(
+            "template_preview",
+            "Preview template changes",
+            schema.as_object().unwrap().clone(),
+        );
+        let catalog = definitions("template-service", vec![tool(), edit]).unwrap();
+        assert_eq!(catalog.len(), 2);
+        assert_eq!(
+            catalog[1].tool.input_schema.as_ref(),
+            schema.as_object().unwrap()
+        );
+        assert!(catalog[1].review(value.as_object().unwrap()).is_ok());
+        assert!(catalog[1].review(&Map::new()).is_err());
+
+        // A wide-open input schema still cannot waive the invocation data limit.
+        let open = Tool::new(
+            "summarize",
+            "Summarize a hierarchy",
+            serde_json::json!({"type":"object"})
+                .as_object()
+                .unwrap()
+                .clone(),
+        );
+        let catalog = definitions("another-service", vec![open]).unwrap();
+        let mut tree = serde_json::json!("leaf");
+        for _ in 0..wire::GENERIC_MAX_DEPTH {
+            tree = serde_json::json!({"child":tree});
+        }
+        assert!(catalog[0].review(tree.as_object().unwrap()).is_ok());
+        tree = serde_json::json!({"child":tree});
+        assert!(catalog[0].review(tree.as_object().unwrap()).is_err());
+    }
+
     #[test]
     fn cross_border_large_catalog_remains_complete_and_bounded() {
         let catalog = |count: usize| {
@@ -571,14 +699,18 @@ pub(crate) mod tests {
         assert!(a[0].review(&Map::new()).is_err());
     }
     #[test]
-    fn explicitly_destructive_tool_waits_for_a_dedicated_policy() {
-        let tool = tool().with_annotations(ToolAnnotations::new().destructive(true));
-        let definitions = definitions("service-a", vec![tool]).unwrap();
-        assert!(
-            definitions[0]
-                .review(serde_json::json!({"query":"ordinary"}).as_object().unwrap())
-                .is_err()
-        );
+    fn provider_annotations_and_review_are_available_to_native_policy() {
+        let annotation = ToolAnnotations::new().destructive(true);
+        let definitions = definitions(
+            "service-a",
+            vec![tool().with_annotations(annotation.clone())],
+        )
+        .unwrap();
+        assert_eq!(definitions[0].tool.annotations.as_ref(), Some(&annotation));
+        let review = definitions[0]
+            .review(serde_json::json!({"query":"ordinary"}).as_object().unwrap())
+            .unwrap();
+        assert_eq!(review.risk, "write");
     }
     #[test]
     fn inert_results_keep_provider_error_and_structured_values() {

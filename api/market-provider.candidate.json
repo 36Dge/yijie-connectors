@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "contract_version": "0.7.0",
+  "contract_version": "0.8.0",
   "feature": "FEAT-157",
   "mode": "local_worktree_candidate",
   "release": false,
@@ -12,7 +12,7 @@
     },
     {
       "path": "compatibility/market-provider/transport.json",
-      "sha256": "d0da229c21859b0944437c22250bc0c2aa66e878c68271bd061b9ed84abb8749"
+      "sha256": "f5cf6a55b97d3f037a96e088251fe22836d2865c3e5f596366b5f9793b81776c"
     },
     {
       "path": "openapi/market-connectors/market-connectors.yaml",
@@ -20,11 +20,11 @@
     },
     {
       "path": "compatibility/market-broker-control/wire.schema.json",
-      "sha256": "febc685e951a5b66d3aee4c461ec4055006eab7d15d52e40ac5e98ee2310a76d"
+      "sha256": "a3dded4b1b0378b0a0f87e3f3c3e16ceb77109f9f3294e3c40a00297fb523cc3"
     },
     {
       "path": "scripts/market-host-source.mjs",
-      "sha256": "e1497a80f3a7d3c90c7bb036c67ab7b4d0283edad38a5e1c8d421026cfb73fc8"
+      "sha256": "26307d7ccf08dbf7d858bc6524eeac3c46d8e304854ce1e08386bb8bfc4a9886"
     },
     {
       "path": "scripts/generate-market-provider.mjs",

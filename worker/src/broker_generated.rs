@@ -78,6 +78,10 @@ pub enum Decision {
     NativeAlways,
     #[serde(rename = "native_auto_reject")]
     NativeAutoReject,
+    #[serde(rename = "native_runtime")]
+    NativeRuntime,
+    #[serde(rename = "native_runtime_reject")]
+    NativeRuntimeReject,
 }
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum RevokeReason {
@@ -1090,6 +1094,12 @@ pub struct InitializeResult {
     pub process: ProcessBinding,
     pub gateway_url: GatewayUrl,
     pub external_calls_enabled: bool,
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "optional_non_null"
+    )]
+    pub native_dispatch_version: Option<i64>,
 }
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -1098,6 +1108,12 @@ struct InitializeResultWire {
     pub process: ProcessBinding,
     pub gateway_url: GatewayUrl,
     pub external_calls_enabled: bool,
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "optional_non_null"
+    )]
+    pub native_dispatch_version: Option<i64>,
 }
 impl TryFrom<InitializeResultWire> for InitializeResult {
     type Error = &'static str;
@@ -1107,6 +1123,7 @@ impl TryFrom<InitializeResultWire> for InitializeResult {
             process: w.process,
             gateway_url: w.gateway_url,
             external_calls_enabled: w.external_calls_enabled,
+            native_dispatch_version: w.native_dispatch_version,
         };
         v.validate()?;
         Ok(v)
@@ -1139,6 +1156,17 @@ impl InitializeResult {
                 return Err("invalid broker gateway URL");
             }
         }
+        self.native_dispatch_version
+            .as_ref()
+            .map(
+                |value_native_dispatch_version| -> Result<(), &'static str> {
+                    if *value_native_dispatch_version != 2 {
+                        return Err("invalid broker constant");
+                    }
+                    Ok(())
+                },
+            )
+            .transpose()?;
         Ok(())
     }
 }
@@ -1227,6 +1255,12 @@ pub struct PreparePayload {
         deserialize_with = "optional_non_null"
     )]
     pub native_approval_mode: Option<String>,
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "optional_non_null"
+    )]
+    pub native_dispatch_version: Option<i64>,
 }
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -1253,6 +1287,12 @@ struct PreparePayloadWire {
         deserialize_with = "optional_non_null"
     )]
     pub native_approval_mode: Option<String>,
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "optional_non_null"
+    )]
+    pub native_dispatch_version: Option<i64>,
 }
 impl TryFrom<PreparePayloadWire> for PreparePayload {
     type Error = &'static str;
@@ -1265,6 +1305,7 @@ impl TryFrom<PreparePayloadWire> for PreparePayload {
             web_retrieval_version: w.web_retrieval_version,
             mcp_tool_timeout_ms: w.mcp_tool_timeout_ms,
             native_approval_mode: w.native_approval_mode,
+            native_dispatch_version: w.native_dispatch_version,
         };
         v.validate()?;
         Ok(v)
@@ -1325,8 +1366,22 @@ impl PreparePayload {
                 Ok(())
             })
             .transpose()?;
+        self.native_dispatch_version
+            .as_ref()
+            .map(
+                |value_native_dispatch_version| -> Result<(), &'static str> {
+                    if *value_native_dispatch_version != 2 {
+                        return Err("invalid broker constant");
+                    }
+                    Ok(())
+                },
+            )
+            .transpose()?;
         if self.web_retrieval_version.is_some() != self.mcp_tool_timeout_ms.is_some() {
             return Err("incomplete web execution profile");
+        }
+        if self.native_dispatch_version.is_some() && self.native_approval_mode.is_none() {
+            return Err("native dispatch requires a permission mode");
         }
         Ok(())
     }
@@ -2185,6 +2240,12 @@ pub struct DecideCallPayload {
     pub approval_ref: CanonicalId,
     pub decision_id: CanonicalId,
     pub decision: Decision,
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "optional_non_null"
+    )]
+    pub native_dispatch_ref: Option<CanonicalId>,
 }
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -2195,6 +2256,12 @@ struct DecideCallPayloadWire {
     pub approval_ref: CanonicalId,
     pub decision_id: CanonicalId,
     pub decision: Decision,
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "optional_non_null"
+    )]
+    pub native_dispatch_ref: Option<CanonicalId>,
 }
 impl TryFrom<DecideCallPayloadWire> for DecideCallPayload {
     type Error = &'static str;
@@ -2206,6 +2273,7 @@ impl TryFrom<DecideCallPayloadWire> for DecideCallPayload {
             approval_ref: w.approval_ref,
             decision_id: w.decision_id,
             decision: w.decision,
+            native_dispatch_ref: w.native_dispatch_ref,
         };
         v.validate()?;
         Ok(v)
@@ -2253,6 +2321,18 @@ impl DecideCallPayload {
                 return Err("invalid broker identity");
             }
         }
+        self.native_dispatch_ref
+            .as_ref()
+            .map(|value_native_dispatch_ref| -> Result<(), &'static str> {
+                if !canonical_id(value_native_dispatch_ref) {
+                    return Err("invalid broker UUID");
+                }
+                if value_native_dispatch_ref == "00000000-0000-0000-0000-000000000000" {
+                    return Err("invalid broker identity");
+                }
+                Ok(())
+            })
+            .transpose()?;
         Ok(())
     }
 }
@@ -2951,7 +3031,10 @@ impl GatewayCallReceipt {
             && self.decision_receipt.as_ref().is_none_or(|r| {
                 matches!(
                     r.decision,
-                    Decision::Reject | Decision::Cancel | Decision::NativeAutoReject
+                    Decision::Reject
+                        | Decision::Cancel
+                        | Decision::NativeAutoReject
+                        | Decision::NativeRuntimeReject
                 )
             })
         {
@@ -3160,6 +3243,12 @@ pub struct NativeApprovalEnvelope {
         deserialize_with = "optional_non_null"
     )]
     pub persist: Option<Vec<String>>,
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "optional_non_null"
+    )]
+    pub dispatch_ref: Option<CanonicalId>,
 }
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -3179,6 +3268,12 @@ struct NativeApprovalEnvelopeWire {
         deserialize_with = "optional_non_null"
     )]
     pub persist: Option<Vec<String>>,
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "optional_non_null"
+    )]
+    pub dispatch_ref: Option<CanonicalId>,
 }
 impl TryFrom<NativeApprovalEnvelopeWire> for NativeApprovalEnvelope {
     type Error = &'static str;
@@ -3189,6 +3284,7 @@ impl TryFrom<NativeApprovalEnvelopeWire> for NativeApprovalEnvelope {
             yijie_native_phase: w.yijie_native_phase,
             yijie_scope: w.yijie_scope,
             persist: w.persist,
+            dispatch_ref: w.dispatch_ref,
         };
         v.validate()?;
         Ok(v)
@@ -3224,6 +3320,8 @@ impl NativeApprovalEnvelope {
                 "native_auto_reject",
                 "native_session",
                 "native_always",
+                "native_runtime",
+                "native_runtime_reject",
             ]
             .contains(&value_yijie_native_phase.as_str())
             {
@@ -3265,12 +3363,280 @@ impl NativeApprovalEnvelope {
                 Ok(())
             })
             .transpose()?;
+        self.dispatch_ref
+            .as_ref()
+            .map(|value_dispatch_ref| -> Result<(), &'static str> {
+                if !canonical_id(value_dispatch_ref) {
+                    return Err("invalid broker UUID");
+                }
+                if value_dispatch_ref == "00000000-0000-0000-0000-000000000000" {
+                    return Err("invalid broker identity");
+                }
+                Ok(())
+            })
+            .transpose()?;
         Ok(())
     }
 }
 impl std::fmt::Debug for NativeApprovalEnvelope {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str("NativeApprovalEnvelope([redacted])")
+    }
+}
+#[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", try_from = "NativeCallRegistrationWire")]
+pub struct NativeCallRegistration {
+    pub yijie_kind: String,
+    pub operation_id: CanonicalId,
+    pub tool_name: ToolName,
+    pub arguments_json: String,
+}
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct NativeCallRegistrationWire {
+    pub yijie_kind: String,
+    pub operation_id: CanonicalId,
+    pub tool_name: ToolName,
+    pub arguments_json: String,
+}
+impl TryFrom<NativeCallRegistrationWire> for NativeCallRegistration {
+    type Error = &'static str;
+    fn try_from(w: NativeCallRegistrationWire) -> Result<Self, Self::Error> {
+        let v = Self {
+            yijie_kind: w.yijie_kind,
+            operation_id: w.operation_id,
+            tool_name: w.tool_name,
+            arguments_json: w.arguments_json,
+        };
+        v.validate()?;
+        Ok(v)
+    }
+}
+impl NativeCallRegistration {
+    pub fn validate(&self) -> Result<(), &'static str> {
+        {
+            let value_yijie_kind = &self.yijie_kind;
+            if value_yijie_kind != "native_market_register_v2" {
+                return Err("invalid broker constant");
+            }
+        }
+        {
+            let value_operation_id = &self.operation_id;
+            if !canonical_id(value_operation_id) {
+                return Err("invalid broker UUID");
+            }
+            if value_operation_id == "00000000-0000-0000-0000-000000000000" {
+                return Err("invalid broker identity");
+            }
+        }
+        {
+            let value_tool_name = &self.tool_name;
+            if value_tool_name.chars().count() < 1 {
+                return Err("invalid broker text");
+            }
+            if value_tool_name.chars().count() > 128 {
+                return Err("invalid broker text");
+            }
+        }
+        {
+            let value_arguments_json = &self.arguments_json;
+            if value_arguments_json.chars().count() < 2 {
+                return Err("invalid broker text");
+            }
+            if value_arguments_json.chars().count() > 32768 {
+                return Err("invalid broker text");
+            }
+        }
+        Ok(())
+    }
+}
+impl std::fmt::Debug for NativeCallRegistration {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("NativeCallRegistration([redacted])")
+    }
+}
+#[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", try_from = "RegisterNativeCallPayloadWire")]
+pub struct RegisterNativeCallPayload {
+    pub binding: CapabilityBinding,
+    pub native_thread_id: NativeId,
+    pub native_turn_id: NativeId,
+    pub registration: NativeCallRegistration,
+}
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct RegisterNativeCallPayloadWire {
+    pub binding: CapabilityBinding,
+    pub native_thread_id: NativeId,
+    pub native_turn_id: NativeId,
+    pub registration: NativeCallRegistration,
+}
+impl TryFrom<RegisterNativeCallPayloadWire> for RegisterNativeCallPayload {
+    type Error = &'static str;
+    fn try_from(w: RegisterNativeCallPayloadWire) -> Result<Self, Self::Error> {
+        let v = Self {
+            binding: w.binding,
+            native_thread_id: w.native_thread_id,
+            native_turn_id: w.native_turn_id,
+            registration: w.registration,
+        };
+        v.validate()?;
+        Ok(v)
+    }
+}
+impl RegisterNativeCallPayload {
+    pub fn validate(&self) -> Result<(), &'static str> {
+        {
+            let value_binding = &self.binding;
+            value_binding.validate()?;
+        }
+        {
+            let value_native_thread_id = &self.native_thread_id;
+            if value_native_thread_id.chars().count() < 1 {
+                return Err("invalid broker text");
+            }
+            if value_native_thread_id.chars().count() > 256 {
+                return Err("invalid broker text");
+            }
+        }
+        {
+            let value_native_turn_id = &self.native_turn_id;
+            if value_native_turn_id.chars().count() < 1 {
+                return Err("invalid broker text");
+            }
+            if value_native_turn_id.chars().count() > 256 {
+                return Err("invalid broker text");
+            }
+        }
+        {
+            let value_registration = &self.registration;
+            value_registration.validate()?;
+        }
+        Ok(())
+    }
+}
+impl std::fmt::Debug for RegisterNativeCallPayload {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("RegisterNativeCallPayload([redacted])")
+    }
+}
+#[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", try_from = "RegisterNativeCallRequestWire")]
+pub struct RegisterNativeCallRequest {
+    pub schema_version: i64,
+    pub request_id: CanonicalId,
+    pub method: String,
+    pub payload: RegisterNativeCallPayload,
+}
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct RegisterNativeCallRequestWire {
+    pub schema_version: i64,
+    pub request_id: CanonicalId,
+    pub method: String,
+    pub payload: RegisterNativeCallPayload,
+}
+impl TryFrom<RegisterNativeCallRequestWire> for RegisterNativeCallRequest {
+    type Error = &'static str;
+    fn try_from(w: RegisterNativeCallRequestWire) -> Result<Self, Self::Error> {
+        let v = Self {
+            schema_version: w.schema_version,
+            request_id: w.request_id,
+            method: w.method,
+            payload: w.payload,
+        };
+        v.validate()?;
+        Ok(v)
+    }
+}
+impl RegisterNativeCallRequest {
+    pub fn validate(&self) -> Result<(), &'static str> {
+        {
+            let value_schema_version = &self.schema_version;
+            if *value_schema_version != 1 {
+                return Err("invalid broker constant");
+            }
+        }
+        {
+            let value_request_id = &self.request_id;
+            if !canonical_id(value_request_id) {
+                return Err("invalid broker UUID");
+            }
+            if value_request_id == "00000000-0000-0000-0000-000000000000" {
+                return Err("invalid broker identity");
+            }
+        }
+        {
+            let value_method = &self.method;
+            if value_method != "register_native_call" {
+                return Err("invalid broker constant");
+            }
+        }
+        {
+            let value_payload = &self.payload;
+            value_payload.validate()?;
+        }
+        Ok(())
+    }
+}
+impl std::fmt::Debug for RegisterNativeCallRequest {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("RegisterNativeCallRequest([redacted])")
+    }
+}
+#[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", try_from = "RegisterNativeCallResponseWire")]
+pub struct RegisterNativeCallResponse {
+    pub schema_version: i64,
+    pub request_id: CanonicalId,
+    pub data: PendingCall,
+}
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct RegisterNativeCallResponseWire {
+    pub schema_version: i64,
+    pub request_id: CanonicalId,
+    pub data: PendingCall,
+}
+impl TryFrom<RegisterNativeCallResponseWire> for RegisterNativeCallResponse {
+    type Error = &'static str;
+    fn try_from(w: RegisterNativeCallResponseWire) -> Result<Self, Self::Error> {
+        let v = Self {
+            schema_version: w.schema_version,
+            request_id: w.request_id,
+            data: w.data,
+        };
+        v.validate()?;
+        Ok(v)
+    }
+}
+impl RegisterNativeCallResponse {
+    pub fn validate(&self) -> Result<(), &'static str> {
+        {
+            let value_schema_version = &self.schema_version;
+            if *value_schema_version != 1 {
+                return Err("invalid broker constant");
+            }
+        }
+        {
+            let value_request_id = &self.request_id;
+            if !canonical_id(value_request_id) {
+                return Err("invalid broker UUID");
+            }
+            if value_request_id == "00000000-0000-0000-0000-000000000000" {
+                return Err("invalid broker identity");
+            }
+        }
+        {
+            let value_data = &self.data;
+            value_data.validate()?;
+        }
+        Ok(())
+    }
+}
+impl std::fmt::Debug for RegisterNativeCallResponse {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("RegisterNativeCallResponse([redacted])")
     }
 }
 fn canonical_id(s: &str) -> bool {
@@ -3305,6 +3671,7 @@ pub enum Request {
     RenewScope(Box<RenewScopeRequest>),
     Revoke(Box<RevokeRequest>),
     Status(Box<StatusRequest>),
+    RegisterNativeCall(Box<RegisterNativeCallRequest>),
     PendingCall(Box<PendingCallRequest>),
     DecideCall(Box<DecideCallRequest>),
     Shutdown(Box<ShutdownRequest>),
@@ -3318,6 +3685,7 @@ impl Request {
             Self::RenewScope(v) => &v.request_id,
             Self::Revoke(v) => &v.request_id,
             Self::Status(v) => &v.request_id,
+            Self::RegisterNativeCall(v) => &v.request_id,
             Self::PendingCall(v) => &v.request_id,
             Self::DecideCall(v) => &v.request_id,
             Self::Shutdown(v) => &v.request_id,
@@ -3336,6 +3704,7 @@ pub const GENERIC_MAX_SCHEMAS_BYTES: usize = 2097152;
 pub const GENERIC_MAX_REVIEW_ARGUMENTS_BYTES: usize = 16384;
 pub const GENERIC_MAX_RESULT_BYTES: usize = 65536;
 pub const GENERIC_MAX_DEPTH: usize = 16;
+pub const GENERIC_MAX_SCHEMA_DEPTH: usize = 64;
 pub const MAX_FRAME_BYTES: usize = 65536;
 pub const MAX_LEASE_TTL_MS: usize = 300000;
 pub const MAX_UNBOUND_WAIT_MS: usize = 5000;

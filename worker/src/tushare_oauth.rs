@@ -76,6 +76,8 @@ pub enum Stage {
     ShopifyMetadataHttpShape,
     ShopifyInitializedAck,
     MetadataToolsList,
+    MetadataCatalogPolicy,
+    MetadataRegistration,
     MetadataArtifact,
     Cleanup,
     UnrecognizedEndpoint,
@@ -132,6 +134,11 @@ struct DiagnosticFile {
 enum DiagnosticSink {
     File(std::fs::File),
     ServiceStderr,
+}
+pub enum ProviderTrace {
+    Authorization,
+    Probe,
+    Call,
 }
 #[derive(Clone, Default)]
 pub struct Diagnostic(Option<Arc<Mutex<DiagnosticFile>>>);
@@ -193,6 +200,63 @@ impl Diagnostic {
             .as_ref()
             .and_then(|s| s.lock().ok().map(|f| f.transport))
             .unwrap_or("uncertain")
+    }
+    pub fn for_provider(operation: &str, service: &str, kind: ProviderTrace) -> Self {
+        let archived = Self::for_operation(operation);
+        if archived.0.is_some() {
+            return archived;
+        }
+        let directory = match kind {
+            ProviderTrace::Authorization => "latest-auth",
+            ProviderTrace::Probe => "latest-probe",
+            ProviderTrace::Call => "latest-call",
+        };
+        let recent = validate_library_home().ok().and_then(|home| {
+            Self::latest_file(
+                &home.join("diagnostics").join(directory),
+                operation,
+                service,
+            )
+        });
+        Self(recent.map(|file| Arc::new(Mutex::new(file))))
+    }
+    // The history has a fixed capacity. An atomic file per registered service
+    // and operation kind keeps the latest trace visible when the archive is full.
+    fn latest_file(directory: &Path, operation: &str, service: &str) -> Option<DiagnosticFile> {
+        use std::io::Write;
+        let id = Uuid::parse_str(operation).ok()?;
+        let service = &crate::provider_registry::get(service)?.service_id;
+        if id.is_nil()
+            || id.to_string() != operation
+            || Path::new(service).file_name()?.to_str()? != service
+        {
+            return None;
+        }
+        std::fs::create_dir_all(directory).ok()?;
+        if !std::fs::symlink_metadata(directory).ok()?.is_dir() {
+            return None;
+        }
+        let mut next = tempfile::NamedTempFile::new_in(directory).ok()?;
+        writeln!(
+            next,
+            "{}",
+            serde_json::json!({"schemaVersion":1,"operationId":id})
+        )
+        .ok()?;
+        let file = next
+            .persist(directory.join(format!("{service}.jsonl")))
+            .ok()?;
+        Some(DiagnosticFile {
+            transport: "uncertain",
+            sink: DiagnosticSink::File(file),
+            count: 1,
+        })
+    }
+    pub fn catalog_validated(&self, count: usize) {
+        self.append(&serde_json::json!({"schemaVersion":1,"stage":"metadata_definitions","event":"succeeded","toolCount":count}));
+    }
+    pub fn catalog_issue(&self, issue: &crate::generic::CatalogIssue, count: usize) {
+        self.append(&serde_json::json!({"schemaVersion":1,"unixMs":SystemTime::now().duration_since(UNIX_EPOCH).ok().map(|v|v.as_millis() as u64),"stage":"metadata_definitions","event":"failed","toolCount":count,"issue":issue}));
     }
     pub fn validation_issue(&self, stage: &'static str, field: &'static str) {
         self.append(&serde_json::json!({"schemaVersion":1,"unixMs":SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_millis(),"stage":stage,"event":"invalid_field","field":field,"httpStatus":null,"safeFailure":null}));
@@ -521,6 +585,50 @@ impl Target {
         }
         Ok(())
     }
+}
+
+// Reuse the login discovery observer on reconnect. The fixed rmcp client reads
+// OAuth metadata through a streaming transport, which otherwise never sees the
+// parsed resource/issuer documents needed to admit a separate token server.
+async fn configured_oauth_manager(
+    target: &Target,
+    http: Arc<dyn HttpClient>,
+    cancelled: &CancellationToken,
+    diagnostic: &Diagnostic,
+) -> Result<Option<AuthorizationManager>, Failure> {
+    use rmcp::transport::auth::AuthError;
+    let oauth_http = Arc::new(OAuthHttp {
+        target: target.clone(),
+        http,
+        cancellation: cancelled.clone(),
+        diagnostic: diagnostic.clone(),
+    });
+    diagnostic.emit(Stage::ManagerNew, Event::Started, None, None);
+    let mut manager = diagnostic.result(
+        Stage::ManagerNew,
+        AuthorizationManager::new_with_oauth_http_client(&target.resource, oauth_http)
+            .await
+            .map_err(|_| Failure::Unavailable),
+    )?;
+    diagnostic.emit(Stage::Discovery, Event::Started, None, None);
+    let metadata = if target.resource == crate::google_calendar::RESOURCE {
+        crate::google_calendar::metadata()
+    } else {
+        match manager.discover_metadata().await {
+            Ok(metadata) => diagnostic.result(Stage::Discovery, Ok(metadata))?,
+            Err(AuthError::NoAuthorizationSupport) => {
+                diagnostic.emit(Stage::Discovery, Event::Unverified, None, None);
+                return Ok(None);
+            }
+            Err(_) => return diagnostic.result(Stage::Discovery, Err(Failure::Unavailable)),
+        }
+    };
+    diagnostic.result(
+        Stage::MetadataValidation,
+        target.validate_metadata(&metadata),
+    )?;
+    manager.set_metadata(metadata);
+    Ok(Some(manager))
 }
 
 /// A narrow OAuth HTTP adapter. Protocol/PKCE/token exchange remain rmcp-owned.
@@ -1064,7 +1172,19 @@ pub async fn connect_for_service_with_diagnostic(
             crate::google_calendar::load(alias)?.ok_or(Failure::NotAuthorized)?,
         ));
     }
-    if !keyring_readiness_for(alias, service).await? {
+    metadata_diagnostic.emit(Stage::KeyringPreflight, Event::Started, None, None);
+    let ready = keyring_readiness_for(alias, service).await;
+    metadata_diagnostic.emit(
+        Stage::KeyringPreflight,
+        if matches!(ready, Ok(true)) {
+            Event::Succeeded
+        } else {
+            Event::Failed
+        },
+        None,
+        ready.as_ref().err().copied(),
+    );
+    if !ready? {
         return Err(Failure::NotAuthorized);
     }
     let credential = if crate::credentials::supports(service) {
@@ -1072,6 +1192,17 @@ pub async fn connect_for_service_with_diagnostic(
     } else {
         None
     };
+    if target.policy.is_some() && service != crate::google_calendar::SERVICE {
+        // No registration or credentials are used here. Keep rmcp's existing
+        // stored-bearer fallback for services without authorization metadata.
+        configured_oauth_manager(
+            &target,
+            Arc::new(ReqwestHttpClient),
+            &CancellationToken::new(),
+            &metadata_diagnostic,
+        )
+        .await?;
+    }
     let headers = credential
         .as_ref()
         .filter(|credential| credential.query_name().is_none())
@@ -1520,36 +1651,9 @@ async fn run_flow(
             .await
     });
     let flow = async {
-        let oauth_http = Arc::new(OAuthHttp {
-            target: target.clone(),
-            http,
-            cancellation: cancelled.clone(),
-            diagnostic: diagnostic.clone(),
-        });
-        diagnostic.emit(Stage::ManagerNew, Event::Started, None, None);
-        let mut manager = diagnostic.result(
-            Stage::ManagerNew,
-            AuthorizationManager::new_with_oauth_http_client(&target.resource, oauth_http)
-                .await
-                .map_err(|_| Failure::Unavailable),
-        )?;
-        diagnostic.emit(Stage::Discovery, Event::Started, None, None);
-        let metadata = if google {
-            crate::google_calendar::metadata()
-        } else {
-            diagnostic.result(
-                Stage::Discovery,
-                manager
-                    .discover_metadata()
-                    .await
-                    .map_err(|_| Failure::Unavailable),
-            )?
-        };
-        diagnostic.result(
-            Stage::MetadataValidation,
-            target.validate_metadata(&metadata),
-        )?;
-        manager.set_metadata(metadata);
+        let manager = configured_oauth_manager(&target, http, cancelled, diagnostic)
+            .await?
+            .ok_or(Failure::Unavailable)?;
         diagnostic.emit(Stage::Registration, Event::Started, None, None);
         let session = if google {
             let config = target
@@ -1691,6 +1795,31 @@ mod shopify_ack_tests;
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn newest_probe_keeps_concurrent_operation_records_separate() {
+        let directory = tempfile::tempdir().unwrap();
+        let first = Uuid::new_v4().to_string();
+        let second = Uuid::new_v4().to_string();
+        let writer = |id: &str| {
+            Diagnostic(Some(Arc::new(Mutex::new(
+                Diagnostic::latest_file(directory.path(), id, "caoliao").unwrap(),
+            ))))
+        };
+        let older = writer(&first);
+        let current = writer(&second);
+        older.emit(Stage::MetadataRegistration, Event::Failed, None, None);
+        current.emit(Stage::MetadataRegistration, Event::Succeeded, None, None);
+        let contents = std::fs::read_to_string(directory.path().join("caoliao.jsonl")).unwrap();
+        let records: Vec<serde_json::Value> = contents
+            .lines()
+            .map(|line| serde_json::from_str(line).unwrap())
+            .collect();
+        assert_eq!(records.len(), 2);
+        assert_eq!(records[0]["operationId"], second);
+        assert_eq!(records[1]["event"], "succeeded");
+        assert_eq!(std::fs::read_dir(directory.path()).unwrap().count(), 1);
+    }
+
     fn feat158_normal_metadata_request(url: &str, method: &str) -> HttpRequestParams {
         HttpRequestParams {
             method: "POST".into(),
@@ -2254,6 +2383,23 @@ mod tests {
         .await
         .expect("normal OAuth phase should finish")
     }
+    #[tokio::test]
+    async fn reconnect_discovers_streamed_metadata_without_registering_or_exchanging_credentials() {
+        let (provider, target, stop, task) = local_provider().await;
+        let manager = configured_oauth_manager(
+            &target,
+            Arc::new(ReqwestHttpClient),
+            &CancellationToken::new(),
+            &Diagnostic::default(),
+        )
+        .await
+        .unwrap();
+        assert!(manager.is_some());
+        assert_eq!(provider.registrations.load(Ordering::SeqCst), 0);
+        assert_eq!(provider.exchanges.load(Ordering::SeqCst), 0);
+        provider_close(stop, task).await;
+    }
+
     async fn provider_close(stop: CancellationToken, task: JoinHandle<std::io::Result<()>>) {
         stop.cancel();
         tokio::time::timeout(Duration::from_secs(5), task)
