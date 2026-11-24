@@ -1069,6 +1069,25 @@ type PublicUrl = string
 // Revision defines model for Revision.
 type Revision = int
 
+// ScopedFetchRequest defines model for ScopedFetchRequest.
+type ScopedFetchRequest struct {
+	DeadlineUnixMs int                `json:"deadline_unix_ms"`
+	Request        FetchOperation     `json:"request"`
+	ScopeId        openapi_types.UUID `json:"scope_id"`
+}
+
+// ScopedFetchResponse defines model for ScopedFetchResponse.
+type ScopedFetchResponse struct {
+	CallId  OperationId                 `json:"call_id"`
+	Receipt DeepSearchReceipt           `json:"receipt"`
+	Result  *ScopedFetchResponse_Result `json:"result,omitempty"`
+}
+
+// ScopedFetchResponse_Result defines model for ScopedFetchResponse.Result.
+type ScopedFetchResponse_Result struct {
+	union json.RawMessage
+}
+
 // SearchArguments defines model for SearchArguments.
 type SearchArguments struct {
 	IncludeContent *bool  `json:"include_content,omitempty"`
@@ -1548,6 +1567,68 @@ func (t ProOutput) MarshalJSON() ([]byte, error) {
 }
 
 func (t *ProOutput) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsFetchSuccess returns the union data inside the ScopedFetchResponse_Result as a FetchSuccess
+func (t ScopedFetchResponse_Result) AsFetchSuccess() (FetchSuccess, error) {
+	var body FetchSuccess
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromFetchSuccess overwrites any union data inside the ScopedFetchResponse_Result as the provided FetchSuccess
+func (t *ScopedFetchResponse_Result) FromFetchSuccess(v FetchSuccess) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeFetchSuccess performs a merge with any union data inside the ScopedFetchResponse_Result, using the provided FetchSuccess
+func (t *ScopedFetchResponse_Result) MergeFetchSuccess(v FetchSuccess) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsAppErrorOutput returns the union data inside the ScopedFetchResponse_Result as a AppErrorOutput
+func (t ScopedFetchResponse_Result) AsAppErrorOutput() (AppErrorOutput, error) {
+	var body AppErrorOutput
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromAppErrorOutput overwrites any union data inside the ScopedFetchResponse_Result as the provided AppErrorOutput
+func (t *ScopedFetchResponse_Result) FromAppErrorOutput(v AppErrorOutput) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeAppErrorOutput performs a merge with any union data inside the ScopedFetchResponse_Result, using the provided AppErrorOutput
+func (t *ScopedFetchResponse_Result) MergeAppErrorOutput(v AppErrorOutput) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t ScopedFetchResponse_Result) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *ScopedFetchResponse_Result) UnmarshalJSON(b []byte) error {
 	err := t.union.UnmarshalJSON(b)
 	return err
 }

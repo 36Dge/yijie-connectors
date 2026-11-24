@@ -2307,6 +2307,55 @@
         "result",
         "facts"
       ]
+    },
+    "ScopedFetchRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "scope_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "deadline_unix_ms": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "request": {
+          "$ref": "#/$defs/FetchOperation"
+        }
+      },
+      "required": [
+        "scope_id",
+        "deadline_unix_ms",
+        "request"
+      ]
+    },
+    "ScopedFetchResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "call_id": {
+          "$ref": "#/$defs/OperationId"
+        },
+        "receipt": {
+          "$ref": "#/$defs/DeepSearchReceipt"
+        },
+        "result": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/FetchSuccess"
+            },
+            {
+              "$ref": "#/$defs/AppErrorOutput"
+            }
+          ]
+        }
+      },
+      "required": [
+        "call_id",
+        "receipt"
+      ]
     }
   }
 }

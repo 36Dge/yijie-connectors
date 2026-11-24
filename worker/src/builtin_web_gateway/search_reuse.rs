@@ -16,6 +16,7 @@ pub(super) struct Key {
     binding_epoch: String,
     binding: String,
     authorization_revision: u64,
+    tool: String,
     arguments: [u8; 32],
 }
 
@@ -24,6 +25,7 @@ impl Key {
         install: &Value,
         caller: (&str, &str),
         receipt: &Value,
+        tool: &str,
         arguments: &Value,
     ) -> Self {
         let mut sorted = arguments.clone();
@@ -38,6 +40,7 @@ impl Key {
             binding_epoch: install["control"]["binding_epoch"].as_str().unwrap().into(),
             binding: grant["binding_id"].as_str().unwrap().into(),
             authorization_revision: grant["authorization_revision"].as_u64().unwrap(),
+            tool: tool.to_owned(),
             arguments: Sha256::digest(sorted.to_string().as_bytes()).into(),
         }
     }
@@ -147,7 +150,15 @@ mod tests {
         let install = json!({"control":{"binding_epoch":"epoch","delegation":{"binding_id":"binding","authorization_revision":1}}});
         gateway.0.lock().unwrap().install = Some(install.clone());
         let receipt = json!({"root_thread_id":"root","root_turn_id":"turn"});
-        let key = |turn, args: Value| Key::new(&install, ("root", turn), &receipt, &args);
+        let key = |turn, args: Value| {
+            Key::new(
+                &install,
+                ("root", turn),
+                &receipt,
+                "kimi_web_search_pro",
+                &args,
+            )
+        };
         let args = json!({"query":"西湖游船","limit":5,"sites":["a.example","b.example"]});
         let same = json!({"sites":["a.example","b.example"],"limit":5,"query":"西湖游船"});
         let Search::First(first) = gateway

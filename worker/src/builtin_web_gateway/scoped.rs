@@ -90,8 +90,13 @@ impl Reply {
             fact,
         }
     }
-    fn accepts(wire: &Value, call: &str, reference: Option<&str>) -> bool {
-        if !validate("DeepSearchResponse", wire) || wire["call_id"] != call {
+    fn accepts(wire: &Value, call: &str, reference: Option<&str>, fetch: bool) -> bool {
+        let schema = if fetch {
+            "ScopedFetchResponse"
+        } else {
+            "DeepSearchResponse"
+        };
+        if !validate(schema, wire) || wire["call_id"] != call {
             return false;
         }
         let fact = &wire["receipt"];
@@ -109,16 +114,19 @@ impl Reply {
                 fact["availability"] == "available" && validate("AppErrorOutput", body)
             }
             Some(body) => {
-                if fact["availability"] != "available" || !validate("ProSuccess", body) {
+                if fact["availability"] != "available"
+                    || !validate(if fetch { "FetchSuccess" } else { "ProSuccess" }, body)
+                {
                     return false;
                 }
-                let outcome = if body["truncated"] == true || body["dropped_results"] != 0 {
-                    "partial"
-                } else if body["results"].as_array().is_some_and(Vec::is_empty) {
-                    "empty"
-                } else {
-                    "results"
-                };
+                let outcome =
+                    if body["truncated"] == true || (!fetch && body["dropped_results"] != 0) {
+                        "partial"
+                    } else if body["results"].as_array().is_some_and(Vec::is_empty) {
+                        "empty"
+                    } else {
+                        "results"
+                    };
                 fact["outcome"] == outcome
             }
         }
@@ -191,13 +199,15 @@ impl Request {
             if cancel.is_cancelled() || self.remaining().is_zero() {
                 return Reply::failure("cancelled", "uncertain", Some(id));
             }
+            let fetch = self.operation["tool"] == "kimi_web_fetch";
+            let collection = if fetch { "fetches" } else { "searches" };
             let req=match reference {
-                Some(op)=>self.client.get(format!("{}/v2/web-retrieval/searches/{}/{}",self.origin(),self.scope(),op)).bearer_auth(token),
-                None=>self.client.post(format!("{}/v2/web-retrieval/searches",self.origin())).bearer_auth(token)
+                Some(op)=>self.client.get(format!("{}/v2/web-retrieval/{collection}/{}/{}",self.origin(),self.scope(),op)).bearer_auth(token),
+                None=>self.client.post(format!("{}/v2/web-retrieval/{collection}",self.origin())).bearer_auth(token)
                     .header("content-type","application/json").body(json!({"scope_id":self.scope(),"request":self.operation,"deadline_unix_ms":self.deadline()}).to_string())
             };
             match exchange(req, cancel, self.remaining()).await {
-                Ok((200, result)) if Reply::accepts(&result, id, reference) => {
+                Ok((200, result)) if Reply::accepts(&result, id, reference, fetch) => {
                     return Reply::from_wire(result);
                 }
                 Ok((status, problem)) if validate("APIError", &problem) => {

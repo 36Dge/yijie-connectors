@@ -19,6 +19,7 @@ mod search_reuse;
 #[derive(Default)]
 struct Feedback {
     legacy_reused: bool,
+    fetch: bool,
     fact: Option<Value>,
 }
 use search_reuse::{Key, Search, Searches};
@@ -329,11 +330,18 @@ impl WebGateway {
         };
         let probe = json!({"process_epoch":install["control"]["process_epoch"],"binding_epoch":install["control"]["binding_epoch"],"operation_id":id,"thread_id":thread,"turn_id":turn});
         let deep = operation["tool"] == "kimi_web_search_pro";
+        let fetch = operation["tool"] == "kimi_web_fetch";
+        if fetch
+            && let Some(page) = operation["arguments"]["url"].as_str()
+            && let Some((document, _)) = page.split_once('#')
+        {
+            operation["arguments"]["url"] = json!(document);
+        }
         let admission = admit(
             &client,
             install,
             &probe,
-            deep,
+            deep || fetch,
             cancel,
             Duration::from_secs(5),
         )
@@ -341,7 +349,10 @@ impl WebGateway {
         let Ok((200, receipt)) = admission else {
             return error("not_entitled");
         };
-        let scoped = deep && validate("WebAdmissionReceiptV2", &receipt);
+        let scoped = (deep || fetch) && validate("WebAdmissionReceiptV2", &receipt);
+        if fetch && !scoped {
+            return error("upstream_unavailable");
+        }
         if (!scoped && !validate("WebAdmissionReceipt", &receipt)) || receipt["operation_id"] != id
         {
             return error("not_entitled");
@@ -363,7 +374,13 @@ impl WebGateway {
         }
         let deadline = receipt["deadline_unix_ms"].as_u64().unwrap_or(0);
         if scoped {
-            let key = Key::new(install, caller, &receipt, &operation["arguments"]);
+            let key = Key::new(
+                install,
+                caller,
+                &receipt,
+                operation["tool"].as_str().expect("validated tool"),
+                &operation["arguments"],
+            );
             let r = self
                 .scoped_search(
                     key,
@@ -377,13 +394,20 @@ impl WebGateway {
                     cancel,
                 )
                 .await;
+            feedback.fetch = fetch;
             feedback.fact = Some(r.fact);
             return r.body;
         }
         let mut leader = None;
         let mut replay = false;
         if operation["tool"] == "kimi_web_search_pro" {
-            let key = Key::new(install, caller, &receipt, &operation["arguments"]);
+            let key = Key::new(
+                install,
+                caller,
+                &receipt,
+                operation["tool"].as_str().expect("validated tool"),
+                &operation["arguments"],
+            );
             match self.begin_search(key, id) {
                 Err(failure) => return failure,
                 Ok(Search::First(first)) => leader = Some(first),
@@ -635,14 +659,16 @@ fn gateway_receipt(body: Value, feedback: Feedback) -> CallToolResult {
         if matches!(fact["relation"].as_str(), Some("joined" | "reused")) {
             meta.insert("yijie/search-reused".into(), true.into());
         }
-        meta.insert("ai.yijie/deep-search-receipt".into(), fact);
+        let receipt_key = if feedback.fetch {
+            "ai.yijie/fetch-receipt"
+        } else {
+            "ai.yijie/deep-search-receipt"
+        };
+        meta.insert(receipt_key.into(), fact);
         receipt.meta = Some(meta);
         if serde_json::to_vec(&receipt).map_or(true, |v| v.len() > 65536) {
             let mut meta = receipt.meta.take();
-            if let Some(fact) = meta
-                .as_mut()
-                .and_then(|m| m.get_mut("ai.yijie/deep-search-receipt"))
-            {
+            if let Some(fact) = meta.as_mut().and_then(|m| m.get_mut(receipt_key)) {
                 fact["availability"] = json!("unavailable");
             }
             receipt = result(error("response_too_large"));
