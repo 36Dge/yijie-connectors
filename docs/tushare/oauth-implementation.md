@@ -20,6 +20,12 @@ HTTP目的地固定 Tushare resource/issuer/OAuth端点，重定向关闭，超�
 
 Native SQL33 只存非secret payload、脱敏 observation 与一次性 browserOpened；不存 authorizationURL。授权URL只经固定域/路径/PKCE/scope/resource/loopback callback 检查后交给现有系统浏览器 API。管理动作持久幂等，等待后重新检查 Native权限。Disable/Uninstall在 Native admission gate 内先撤销 Host authority（失败则正常关闭管道），再禁用和推进 revision；worker 撤销/取消受管 client，等待正常调用/refresh owner 完成才删除自己 Keyring alias，确认后清 cref 并推进 generation。失败保留清理状态，无假成功、强杀或晚回调重新启用。
 
+### 浏览器授权结果与返回应用
+
+共用 OAuth 回调的连接器使用目录中的服务名称。浏览器收到凭据交换和钥匙串提交的最终结果后显示弹窗。首次回调的 HTTP 200 仍表示收到了重定向，已消费的回调在监听期间返回 410。用户点击“返回易界应用”时，macOS 打开固定链接 `yijie://connectors/return` 并恢复主窗口。该链接只用于窗口激活，不携带授权参数。
+
+`contract-impact = semantic`。变化限于 worker 面向浏览器的结果呈现及其返回时机，以及 macOS 窗口唤起。公共 provider IPC、OAuth redirect URI、凭据存储和工具启用语义沿用既有约定。可先更新桌面端，再更新 worker。混用版本或回退任一端时，用户均可从程序坞返回易界。
+
 ## 下一步真实只读资格
 
 OAuth成功后自动在同一provider auth operation内复用metadata probe，仅 initialize/tools/list，再正常shutdown；不创建Enable意图。固定私有目录 `qualification/tushare/<operationId>.json` 留存工具数量、schema/catalog摘要、精确 daily 候选字段结构；不保存上游描述/示例/默认值/自由文本或金融数据。该文件不是资格决定。

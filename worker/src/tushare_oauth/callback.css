@@ -1,0 +1,134 @@
+* { box-sizing: border-box; }
+body {
+  min-height: 100vh;
+  min-height: 100svh;
+  margin: 0;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  isolation: isolate;
+  color: var(--yj-color-text-primary);
+  background: var(--yj-color-bg-page);
+  font: var(--yj-font-size-body)/var(--yj-line-height-body) var(--yj-font-family-sans);
+  -webkit-font-smoothing: antialiased;
+}
+.art-source { position: absolute; width: 0; height: 0; overflow: hidden; }
+.backdrop {
+  position: fixed;
+  z-index: -1;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  background: linear-gradient(135deg, var(--yj-color-bg-page), var(--yj-color-control-hover) 72%);
+}
+.backdrop svg {
+  position: absolute;
+  width: clamp(30rem, 57vw, 60rem);
+  bottom: -23%;
+  right: -16%;
+  opacity: .035;
+  filter: grayscale(1);
+}
+header {
+  display: flex;
+  align-items: center;
+  gap: var(--yj-space-4);
+  padding: var(--yj-space-6) clamp(1.25rem, 4vw, 3.5rem);
+}
+.wordmark {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--yj-space-2);
+  font-size: var(--yj-font-size-section-title);
+  font-weight: var(--yj-font-weight-semibold);
+}
+.wordmark svg { width: 28px; height: 28px; }
+.context {
+  padding-inline-start: var(--yj-space-4);
+  border-inline-start: 1px solid var(--yj-color-border-default);
+  color: var(--yj-color-text-secondary);
+  font-size: var(--yj-font-size-caption);
+  line-height: var(--yj-line-height-caption);
+}
+main {
+  display: grid;
+  place-items: center;
+  min-width: 0;
+  padding: var(--yj-space-6) var(--yj-space-4) clamp(3rem, 12vh, 7rem);
+}
+dialog {
+  position: static;
+  width: min(100%, 27rem);
+  max-width: none;
+  margin: 0;
+  padding: clamp(1.5rem, 4vw, 2.5rem);
+  border: 1px solid var(--yj-color-border-default);
+  border-radius: var(--yj-radius-xl);
+  color: inherit;
+  background: var(--yj-color-bg-elevated);
+  box-shadow: var(--yj-shadow-modal);
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+.mark {
+  width: 52px;
+  height: 52px;
+  display: grid;
+  place-items: center;
+  margin: 0 auto var(--yj-space-5);
+  border-radius: 50%;
+  background: var(--yj-color-control-hover);
+  color: var(--yj-color-text-secondary);
+}
+.mark svg { width: 26px; height: 26px; }
+.mark[data-tone="success"] { background: var(--yj-color-success-soft); color: var(--yj-color-semantic-success-ink); }
+.mark[data-tone="attention"] { background: var(--yj-color-warning-soft); color: var(--yj-color-semantic-warning-ink); }
+h1 {
+  margin: 0;
+  font-size: var(--yj-font-size-page-title);
+  font-weight: var(--yj-font-weight-semibold);
+  line-height: var(--yj-line-height-page-title);
+}
+#result-detail {
+  margin: var(--yj-space-3) 0 var(--yj-space-8);
+  color: var(--yj-color-text-secondary);
+  text-wrap: balance;
+}
+#result-detail strong {
+  display: inline-block;
+  max-width: 100%;
+  margin-inline-start: .18em;
+  color: var(--yj-color-text-body);
+  font-weight: var(--yj-font-weight-semibold);
+}
+.return {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--yj-space-2);
+  min-height: 44px;
+  padding: var(--yj-space-2) var(--yj-space-4);
+  border: 1px solid transparent;
+  border-radius: var(--yj-radius-md);
+  background: var(--yj-color-brand-primary);
+  color: var(--yj-color-on-brand);
+  font-weight: var(--yj-font-weight-semibold);
+  text-decoration: none;
+}
+.return svg { width: 16px; height: 16px; }
+.return:hover { background: var(--yj-color-brand-hover); }
+.return:active { background: var(--yj-color-brand-active); }
+.return:focus-visible { outline: var(--yj-focus-ring-width) solid var(--yj-color-focus-ring); outline-offset: 3px; }
+.hint {
+  margin: var(--yj-space-3) 0 0;
+  color: var(--yj-color-text-tertiary);
+  font-size: var(--yj-font-size-caption);
+  line-height: var(--yj-line-height-caption);
+}
+@media (prefers-color-scheme: dark) {
+  #brand-art path[fill="#25282B"] { fill: white; }
+  .backdrop svg { opacity: .028; }
+}
+@media (forced-colors: active) {
+  .backdrop { display: none; }
+  .return { border-color: LinkText; }
+}

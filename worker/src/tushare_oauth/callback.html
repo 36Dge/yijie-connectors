@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>{title} · 易界</title>
+  <link rel="icon" href="data:,">
+  <style nonce="{nonce}">{tokens}{style}</style>
+</head>
+<body>
+  <svg class="art-source" aria-hidden="true" focusable="false">
+    <defs><g id="brand-art">{brand}</g></defs>
+  </svg>
+  <div class="backdrop" aria-hidden="true">
+    <svg viewBox="0 0 400 400" focusable="false"><use href="#brand-art"/></svg>
+  </div>
+  <header>
+    <span class="wordmark">
+      <svg viewBox="0 0 400 400" aria-hidden="true" focusable="false"><use href="#brand-art"/></svg>
+      易界
+    </span>
+    <span class="context">连接器授权</span>
+  </header>
+  <main>
+    <dialog open aria-labelledby="result-title" aria-describedby="result-detail">
+      <div class="mark" data-tone="{tone}" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="{icon}"/></svg>
+      </div>
+      <h1 id="result-title">{title}</h1>
+      <p id="result-detail">{detail}</p>
+      <a class="return" id="return-app" href="yijie://connectors/return" rel="noreferrer">
+        返回易界应用
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17 17 7M7 7h10v10"/></svg>
+      </a>
+      <p class="hint" id="return-hint" role="status">返回应用后，可以关闭此页。</p>
+    </dialog>
+  </main>
+  <script nonce="{nonce}">
+    if (location.search || location.hash) history.replaceState(null, "", location.pathname);
+    document.getElementById("return-app").addEventListener("click", () => {{
+      document.getElementById("return-hint").textContent = "若应用未打开，可从程序坞切回易界。";
+    }});
+  </script>
+</body>
+</html>

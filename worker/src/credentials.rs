@@ -166,7 +166,7 @@ fn save(alias: &str, value: &HeaderCredential) -> Result<(), Failure> {
         .save(STORE, alias, &encoded)
         .map_err(|_| Failure::VaultUnavailable)
 }
-fn escape(value: &str) -> String {
+pub(crate) fn escape(value: &str) -> String {
     value
         .replace('&', "&amp;")
         .replace('<', "&lt;")

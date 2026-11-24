@@ -1,10 +1,12 @@
 //! Tushare OAuth uses the fixed official rmcp authorization state machine and
 //! Codex's Keyring-only storage. We own only the callback/cancellation lifetime.
 //! No platform credential is serialized onto the owner control channel.
+#[cfg(test)]
+use axum::http::StatusCode;
 use axum::{
     Router,
     extract::{Query, State},
-    http::StatusCode,
+    response::Response,
     routing::get,
 };
 use codex_config::types::{AuthKeyringBackendKind, OAuthCredentialsStoreMode};
@@ -30,6 +32,8 @@ use tokio::{sync::oneshot, task::JoinHandle};
 use tokio_util::sync::CancellationToken;
 use url::Url;
 use uuid::Uuid;
+
+mod callback_page;
 
 pub const TUSHARE_RESOURCE: &str = "https://api.tushare.pro/mcp/";
 pub const TUSHARE_ISSUER: &str = "https://tushare.pro";
@@ -398,6 +402,7 @@ impl Observation {
 /// Pure internal target, never deserialized from control/renderer input.
 #[derive(Clone)]
 struct Target {
+    service_id: &'static str,
     resource: String,
     issuer: String,
     policy: Option<Arc<crate::oauth_policy::DiscoveryPolicy>>,
@@ -413,6 +418,7 @@ impl Target {
     }
     fn official() -> Self {
         Self {
+            service_id: "tushareMcp",
             resource: TUSHARE_RESOURCE.into(),
             issuer: TUSHARE_ISSUER.into(),
             policy: None,
@@ -425,6 +431,7 @@ impl Target {
         }
         if service == crate::google_calendar::SERVICE {
             return Ok(Self {
+                service_id: crate::google_calendar::SERVICE,
                 resource: crate::google_calendar::RESOURCE.into(),
                 issuer: crate::google_calendar::ISSUER.into(),
                 policy: Some(Arc::new(
@@ -442,6 +449,7 @@ impl Target {
             .ok_or(Failure::InvalidMetadata)?;
         let resource = spec.resource.clone().ok_or(Failure::InvalidMetadata)?;
         Ok(Self {
+            service_id: &spec.service_id,
             policy: if spec.auth_mode == "oauth" {
                 Some(Arc::new(crate::oauth_policy::DiscoveryPolicy::new(
                     resource.clone(),
@@ -1373,16 +1381,27 @@ struct Callback {
     state: String,
     issuer: Option<String>,
 }
-type CallbackReply = oneshot::Sender<Result<Callback, Failure>>;
+struct CallbackExchange {
+    submit: oneshot::Sender<Result<Callback, Failure>>,
+    outcome: oneshot::Receiver<Result<(), Failure>>,
+}
 #[derive(Clone)]
-struct CallbackSender(Arc<Mutex<Option<CallbackReply>>>);
+struct CallbackState {
+    display_name: &'static str,
+    exchange: Arc<Mutex<Option<CallbackExchange>>>,
+}
 async fn callback(
-    State(sender): State<CallbackSender>,
+    State(state): State<CallbackState>,
     Query(values): Query<HashMap<String, String>>,
-) -> (StatusCode, &'static str) {
+) -> Response {
+    let exchange = state.exchange.lock().expect("callback owner").take();
+    let Some(exchange) = exchange else {
+        return callback_page::already_handled(state.display_name);
+    };
     let decoded = match (values.get("code"), values.get("state")) {
         (Some(code), Some(state))
-            if !code.is_empty()
+            if !values.contains_key("error")
+                && !code.is_empty()
                 && code.len() <= 4096
                 && !state.is_empty()
                 && state.len() <= 1024 =>
@@ -1395,20 +1414,9 @@ async fn callback(
         }
         _ => Err(Failure::NotAuthorized),
     };
-    let sent = sender
-        .0
-        .lock()
-        .expect("callback owner")
-        .take()
-        .is_some_and(|sender| sender.send(decoded).is_ok());
-    if sent {
-        (
-            StatusCode::OK,
-            "Authorization response received. You can return to Yijie.",
-        )
-    } else {
-        (StatusCode::GONE, "Authorization is no longer pending.")
-    }
+    let _ = exchange.submit.send(decoded);
+    let outcome = exchange.outcome.await.unwrap_or(Err(Failure::Unavailable));
+    callback_page::result(state.display_name, outcome)
 }
 
 #[derive(Clone)]
@@ -1640,11 +1648,19 @@ async fn run_flow(
         callback_path
     );
     let (tx, rx) = oneshot::channel();
+    let (finish, outcome) = oneshot::channel();
+    let service = crate::provider_registry::get(target.service_id);
     let server_stop = CancellationToken::new();
     let stop = server_stop.clone();
     let router = Router::new()
         .route(&callback_path, get(callback))
-        .with_state(CallbackSender(Arc::new(Mutex::new(Some(tx)))));
+        .with_state(CallbackState {
+            display_name: service.map_or("此连接器", |spec| spec.display_name.as_str()),
+            exchange: Arc::new(Mutex::new(Some(CallbackExchange {
+                submit: tx,
+                outcome,
+            }))),
+        });
     let mut server = tokio::spawn(async move {
         axum::serve(listener, router)
             .with_graceful_shutdown(stop.cancelled_owned())
@@ -1667,9 +1683,7 @@ async fn run_flow(
                 AuthorizationSession::new(
                     manager,
                     &if target.policy.is_some() {
-                        crate::provider_registry::services()
-                            .iter()
-                            .find(|spec| spec.resource.as_deref() == Some(target.resource.as_str()))
+                        service
                             .map(|spec| spec.oauth_scopes.iter().map(String::as_str).collect())
                             .unwrap_or_default()
                     } else {
@@ -1762,6 +1776,9 @@ async fn run_flow(
         Ok(())
     };
     let result = tokio::select! {biased;_=cancelled.cancelled()=>Err(Failure::Cancelled),_=tokio::time::sleep_until(deadline.into())=>Err(Failure::Expired),result=flow=>result};
+    // Release the browser response before joining its listener. The OAuth flow
+    // owns the commit and still completes if the user has already closed the tab.
+    let _ = finish.send(result);
     diagnostic.emit(
         Stage::Cleanup,
         Event::Started,
@@ -2127,6 +2144,7 @@ mod tests {
             AuthKeyringBackendKind::Direct,
             Arc::new(TushareHttpClient {
                 target: Target {
+                    service_id: "sorftime",
                     resource: resource.clone(),
                     issuer: String::new(),
                     policy: None,
@@ -2356,6 +2374,7 @@ mod tests {
         (
             provider,
             Target {
+                service_id: "tushareMcp",
                 resource: format!("{base}/mcp/"),
                 issuer: base,
                 policy: None,
@@ -2451,6 +2470,35 @@ mod tests {
             .await
             .unwrap();
         assert_eq!(response.status, 200);
+        let page = std::str::from_utf8(&response.body.0).unwrap();
+        assert!(page.contains("<h1 id=\"result-title\">授权成功</h1>"));
+        assert!(
+            page.contains(
+                &crate::provider_registry::get("tushareMcp")
+                    .unwrap()
+                    .display_name
+            )
+        );
+        assert!(page.contains(r#"href="yijie://connectors/return""#));
+        for private_value in [
+            "ordinary-local-code",
+            "ordinary-local-access",
+            &pairs["state"],
+        ] {
+            assert!(!page.contains(private_value));
+        }
+        for (name, value) in [
+            ("content-type", "text/html; charset=utf-8"),
+            ("cache-control", "no-store"),
+            ("referrer-policy", "no-referrer"),
+        ] {
+            assert!(
+                response
+                    .headers
+                    .iter()
+                    .any(|h| h.name.eq_ignore_ascii_case(name) && h.value == value)
+            );
+        }
         let completed = wait_phase(&run, Phase::Succeeded).await;
         assert!(completed.authorization_url.is_none());
         assert_eq!(vault.writes.load(Ordering::SeqCst), 1);
@@ -2465,6 +2513,64 @@ mod tests {
         run.close().await.unwrap();
         provider_close(stop, task).await;
     }
+    #[tokio::test]
+    async fn ordinary_oauth_denial_shows_the_result_without_exchanging_or_saving() {
+        let (provider, target, stop, task) = local_provider().await;
+        let vault = Arc::new(MemoryVault::default());
+        let mut run = AuthRun::start_with(
+            "ordinary-local-namespace".into(),
+            Duration::from_secs(30),
+            target,
+            Arc::new(ReqwestHttpClient),
+            vault.clone(),
+            Diagnostic::default(),
+        )
+        .unwrap();
+        let ready = wait_phase(&run, Phase::AwaitingUser).await;
+        let authorize = Url::parse(ready.authorization_url.as_ref().unwrap()).unwrap();
+        let pairs: HashMap<_, _> = authorize.query_pairs().collect();
+        let mut redirect = Url::parse(&pairs["redirect_uri"]).unwrap();
+        redirect
+            .query_pairs_mut()
+            .append_pair("error", "access_denied")
+            .append_pair("state", &pairs["state"]);
+        let response = reqwest::get(redirect).await.unwrap();
+        assert_eq!(response.status(), StatusCode::OK);
+        let page = response.text().await.unwrap();
+        assert!(page.contains("<h1 id=\"result-title\">授权未完成</h1>"));
+        assert!(!page.contains("授权成功"));
+        run.close().await.unwrap();
+        assert_eq!(vault.writes.load(Ordering::SeqCst), 0);
+        assert_eq!(provider.exchanges.load(Ordering::SeqCst), 0);
+        provider_close(stop, task).await;
+    }
+
+    #[tokio::test]
+    async fn ordinary_oauth_callback_waits_for_commit_and_handles_a_second_navigation() {
+        let (submit, received) = oneshot::channel();
+        let (finish, outcome) = oneshot::channel();
+        let state = CallbackState {
+            display_name: "草料二维码",
+            exchange: Arc::new(Mutex::new(Some(CallbackExchange { submit, outcome }))),
+        };
+        let query = HashMap::from([
+            ("code".to_owned(), "ordinary-local-code".to_owned()),
+            ("state".to_owned(), "ordinary-local-state".to_owned()),
+        ]);
+        let first = tokio::spawn(callback(State(state.clone()), Query(query.clone())));
+        assert!(received.await.unwrap().is_ok());
+        assert!(!first.is_finished());
+        let duplicate = callback(State(state), Query(query)).await;
+        assert_eq!(duplicate.status(), StatusCode::GONE);
+        finish.send(Err(Failure::Cancelled)).unwrap();
+        let page = axum::body::to_bytes(first.await.unwrap().into_body(), 64 * 1024)
+            .await
+            .unwrap();
+        let page = std::str::from_utf8(&page).unwrap();
+        assert!(page.contains("<h1 id=\"result-title\">授权已取消</h1>"));
+        assert!(!page.contains("授权成功"));
+    }
+
     #[tokio::test]
     async fn ordinary_cancel_stops_callback_and_never_commits_tokens() {
         let (provider, target, stop, task) = local_provider().await;

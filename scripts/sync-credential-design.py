@@ -19,7 +19,8 @@ source = (desktop / "src/styles/variables.css").read_text()
 light, dark = source.split('[data-theme="dark"] {', 1)
 declarations = lambda text: dict(re.findall(r"(--yj-[\w-]+):\s*([^;]+);", text))
 light, dark = declarations(light), declarations(dark)
-used = set(re.findall(r"var\((--yj-[\w-]+)\)", (page / "page.css").read_text()))
+styles = [page / "page.css", page.parent / "tushare_oauth/callback.css"]
+used = {name for sheet in styles for name in re.findall(r"var\((--yj-[\w-]+)\)", sheet.read_text())}
 while True:
     nested = set()
     for name in used:
