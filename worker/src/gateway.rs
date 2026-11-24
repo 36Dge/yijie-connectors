@@ -418,7 +418,11 @@ impl ServerHandler for Gateway {
                 wire::GATEWAY_ERROR_EXECUTION_UNVERIFIED_MESSAGE,
             )]),
         };
-        Ok(with_call_receipt(result, receipt))
+        Ok(with_method_receipt(
+            result,
+            receipt,
+            Some(&call.review.title),
+        ))
     }
 }
 
@@ -426,33 +430,62 @@ impl ServerHandler for Gateway {
 /// a receipt. Native status/result remain authoritative and no-result paths do
 /// not invent an Item. Code Mode may expose this non-secret metadata.
 fn with_call_receipt(
+    result: CallToolResult,
+    receipt: Option<wire::GatewayCallReceipt>,
+) -> CallToolResult {
+    with_method_receipt(result, receipt, None)
+}
+
+fn with_method_receipt(
     mut result: CallToolResult,
     receipt: Option<wire::GatewayCallReceipt>,
+    method: Option<&str>,
 ) -> CallToolResult {
     result.meta = None;
     if let Some(receipt) = receipt.filter(|value| value.validate().is_ok())
         && let Ok(bytes) = serde_json::to_vec(&receipt)
         && bytes.len() <= wire::GATEWAY_RESULT_MAX_METADATA_BYTES
-        && let Ok(value) = serde_json::to_value(receipt)
+        && let Ok(value) = serde_json::to_value(&receipt)
     {
-        result.meta = Some(Meta(serde_json::Map::from_iter([(
-            wire::GATEWAY_RESULT_KEY.into(),
-            value,
-        )])));
+        let mut meta = serde_json::Map::from_iter([(wire::GATEWAY_RESULT_KEY.into(), value)]);
+        if let Some(name) = method
+            && receipt.tool_name.starts_with("m_")
+            && name
+                .bytes()
+                .all(|b| b.is_ascii_alphanumeric() || b"_.-".contains(&b))
+            && crate::generic::marketplace_tool_name(&receipt.service_id, name) == receipt.tool_name
+        {
+            meta.insert(wire::GATEWAY_RESULT_METHOD_KEY.into(), name.into());
+            if serde_json::to_vec(&meta).map_or(true, |bytes| {
+                bytes.len() > wire::GATEWAY_RESULT_MAX_METADATA_BYTES
+            }) {
+                meta.remove(wire::GATEWAY_RESULT_METHOD_KEY);
+            }
+        }
+        result.meta = Some(Meta(meta));
     }
-    if serde_json::to_vec(&result)
-        .is_ok_and(|bytes| bytes.len() <= wire::GATEWAY_RESULT_MAX_RESULT_ENVELOPE_BYTES)
+    let fits = |result: &CallToolResult| {
+        serde_json::to_vec(result)
+            .is_ok_and(|bytes| bytes.len() <= wire::GATEWAY_RESULT_MAX_RESULT_ENVELOPE_BYTES)
+    };
+    if fits(&result) {
+        return result;
+    }
+    // Optional presentation must not displace a valid result or change its status.
+    if result
+        .meta
+        .as_mut()
+        .and_then(|meta| meta.0.remove(wire::GATEWAY_RESULT_METHOD_KEY))
+        .is_some()
+        && fits(&result)
     {
-        result
-    } else {
-        // Preserve the small receipt even if a future adapter exceeds its
-        // declared output budget; never turn an unknown outcome into success.
-        let mut bounded = CallToolResult::error(vec![Content::text(
-            wire::GATEWAY_ERROR_EXECUTION_UNVERIFIED_MESSAGE,
-        )]);
-        bounded.meta = result.meta;
-        bounded
+        return result;
     }
+    let mut bounded = CallToolResult::error(vec![Content::text(
+        wire::GATEWAY_ERROR_EXECUTION_UNVERIFIED_MESSAGE,
+    )]);
+    bounded.meta = result.meta;
+    bounded
 }
 
 // A request may arrive before turn/start's response. Cancellation must end
@@ -656,6 +689,52 @@ mod outcome_tests {
             }),
             admission_consumed: true,
         }
+    }
+    #[test]
+    fn result_method_matches_the_generic_service_and_alias() {
+        let mut stored = receipt();
+        stored.tool_name =
+            crate::generic::marketplace_tool_name(&stored.service_id, "stock_lookup");
+        let result = with_method_receipt(
+            CallToolResult::success(vec![]),
+            Some(stored.clone()),
+            Some("stock_lookup"),
+        );
+        assert_eq!(
+            result.meta.unwrap().0["yijie.market.method"],
+            "stock_lookup"
+        );
+        let other = with_method_receipt(
+            CallToolResult::success(vec![]),
+            Some(stored),
+            Some("daily_price"),
+        );
+        assert!(!other.meta.unwrap().0.contains_key("yijie.market.method"));
+    }
+    #[test]
+    fn result_with_full_content_budget_keeps_success_before_method_metadata() {
+        let mut stored = receipt();
+        stored.tool_name =
+            crate::generic::marketplace_tool_name(&stored.service_id, "stock_lookup");
+        let empty = CallToolResult::success(vec![Content::text("")]);
+        let overhead = serde_json::to_vec(&with_call_receipt(empty, Some(stored.clone())))
+            .unwrap()
+            .len();
+        let body = "a".repeat(wire::GATEWAY_RESULT_MAX_RESULT_ENVELOPE_BYTES - overhead);
+        let result = with_method_receipt(
+            CallToolResult::success(vec![Content::text(body.clone())]),
+            Some(stored),
+            Some("stock_lookup"),
+        );
+        assert_ne!(result.is_error, Some(true));
+        assert_eq!(result.content[0].as_text().unwrap().text, body);
+        assert!(
+            !result
+                .meta
+                .unwrap()
+                .0
+                .contains_key(wire::GATEWAY_RESULT_METHOD_KEY)
+        );
     }
     #[test]
     fn result_receipt_preserves_native_outcome_and_only_owned_metadata() {

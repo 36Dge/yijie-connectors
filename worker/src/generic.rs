@@ -114,6 +114,12 @@ pub struct Definition {
     reviewed_query: bool,
     local_sample: bool,
 }
+
+pub(super) fn marketplace_tool_name(service: &str, method: &str) -> String {
+    let digest = format!("{:x}", Sha256::digest(format!("{service}\n{method}")));
+    format!("m_{}", &digest[..60])
+}
+
 impl Definition {
     fn new(service: &str, source: &Tool, encoded: &[u8]) -> Result<Self, &'static str> {
         let name = source.name.to_string();
@@ -132,10 +138,9 @@ impl Definition {
             .with_pattern_options(jsonschema::PatternOptions::fancy_regex().backtrack_limit(10_000))
             .build(&schema)
             .map_err(|_| "schema_compile")?;
-        let id = format!("{:x}", Sha256::digest(format!("{service}\n{name}")));
         // The full digest makes names stable and unambiguous without assuming
         // provider names are safe identifiers or unique across services.
-        let public_name = format!("m_{}", &id[..60]);
+        let public_name = marketplace_tool_name(service, &name);
         let description = source.description.as_deref().unwrap_or("第三方 MCP 工具");
         let description: String = description
             .chars()

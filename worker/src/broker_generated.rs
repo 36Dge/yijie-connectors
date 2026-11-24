@@ -3693,6 +3693,7 @@ impl Request {
     }
 }
 pub const GATEWAY_RESULT_KEY: &str = "yijie.market.call";
+pub const GATEWAY_RESULT_METHOD_KEY: &str = "yijie.market.method";
 pub const GATEWAY_RESULT_DEFINITION: &str = "GatewayCallReceipt";
 pub const GATEWAY_RESULT_MAX_METADATA_BYTES: usize = 4096;
 pub const GATEWAY_RESULT_MAX_RESULT_ENVELOPE_BYTES: usize = 73728;

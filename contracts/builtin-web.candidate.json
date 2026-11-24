@@ -47,7 +47,7 @@
     },
     {
       "path": "compatibility/market-broker-control/control.json",
-      "sha256": "168f131e216b89bdf355b29cf673cc0c7e3d7773db193f757cb19c2f4c4ffc5f"
+      "sha256": "8844f26ca8eb3fd40a147a11e0d2ae6f37b7476d34fb8906db8936a6668cab0b"
     },
     {
       "path": "compatibility/runtime-tool-search/source.lock.json",

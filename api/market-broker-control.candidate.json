@@ -12,7 +12,7 @@
     },
     {
       "path": "compatibility/market-broker-control/control.json",
-      "sha256": "168f131e216b89bdf355b29cf673cc0c7e3d7773db193f757cb19c2f4c4ffc5f"
+      "sha256": "8844f26ca8eb3fd40a147a11e0d2ae6f37b7476d34fb8906db8936a6668cab0b"
     },
     {
       "path": "openapi/market-connectors/market-connectors.yaml",
@@ -36,7 +36,7 @@
     },
     {
       "path": "scripts/market-broker-source.mjs",
-      "sha256": "edb9dbdc764d1cf75cc5480d504c1d42948bd6d01240cfd08f6dcd5aafbfe6f0"
+      "sha256": "9f66aca11422814365af5d1624188f65e93179957b52c7006f17c54725fed10a"
     },
     {
       "path": "scripts/market-broker-codegen.mjs",
@@ -90,11 +90,11 @@
     },
     {
       "path": "sdks/rust/market-broker-control/types.gen.rs",
-      "sha256": "3e5da171199e33f5f88b419d4ff017bc9789f244ed99eb4008a983b7f2cc6fb5"
+      "sha256": "5f0196db66670eae16bc1b0c9a7f8581ebad65c46616f3040de39095517b62ca"
     },
     {
       "path": "sdks/go/market-broker-control/types.gen.go",
-      "sha256": "489d91009bd40ae569e09d114b1855a283582f2125d620977dd8cb9770939cc2"
+      "sha256": "9520ed06e55c1983c1422ac4dd12586e13bdef91672751b108c060b139756132"
     },
     {
       "path": "sdks/jsonschema/market-broker-control.schema.json",
@@ -107,7 +107,7 @@
     {
       "source": "sdks/rust/market-broker-control/types.gen.rs",
       "path": "worker/src/broker_generated.rs",
-      "sha256": "3e5da171199e33f5f88b419d4ff017bc9789f244ed99eb4008a983b7f2cc6fb5"
+      "sha256": "5f0196db66670eae16bc1b0c9a7f8581ebad65c46616f3040de39095517b62ca"
     },
     {
       "source": "sdks/rust/market-selection/portable.gen.rs",
